@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!--
+    This component will provide power and an event based on the voxel environment.
+    When the environment changes the component will temporarily enter a "disturbed" mode and send a "VoxelPowerDisturbed" event.  Once it's undisturbed again it will send a "VoxelPowerUndisturbed" event.
+
+    This example will turn on when there is more than 4m^2 of grass (approx) and less than 1m^2 of snow (approx) within 10 meters.
+    When the environment changes the component will power down and enter the disturbed state until 5 seconds after the last modification.
+  -->
+  <Definition xsi:type="MyObjectBuilder_EquiVoxelPowerComponentDefinition">
+    <Id Type="MyObjectBuilder_EquiVoxelPowerComponent" Subtype="VoxelPowerTest" />
+    <!-- radius, in meters, to scan -->
+    <ScanRadius>10</ScanRadius>
+    <!-- an additional radius that reduces the amount of spam a moving item will cause.  You can exclude this and use the default value. -->
+    <ScanMargin>1</ScanMargin>
+    <!-- Counting mode.  Surface makes the Amount material values ~Surface Area in m^2.  Volume makes the Amount material values in m^3 -->
+    <Mode>Surface</Mode>
+    <!-- When a change occurs nearby the component enters a "disturbed" mode until it has been this long since the last change -->
+    <DisturbedTime Seconds="5"/>
+    <!-- If this is false then the component is always unpowered when in the "disturbed" mode.  If true it just continues in its state before the disturbance -->
+    <PoweredWhenDisturbed>false</PoweredWhenDisturbed>
+    <!-- Query LoD.  Resolution = 2 ^ (LoD + 1) meters. -->
+    <LevelOfDetail>1</LevelOfDetail>
+    <!-- Print the counts and state transitions as messages.  Only useful for development, exclude (false) in published mods -->
+    <DebugMode>true</DebugMode>
+    <!-- AND = all requirements must be satisfied.  OR = any requirement must be satisfied -->
+    <Operator>AND</Operator>
+    <Materials>
+      <!-- Amount is the comparison value in (m^2 or m^3) depending on Mode -->
+      <MaterialRequirement Type="MyObjectBuilder_VoxelMaterialDefinition" Subtype="Grass" Amount="4" />
+      <!-- LessThan inverts the comparison, and gives true if there is less than the given amount -->
+      <MaterialRequirement Type="MyObjectBuilder_VoxelMaterialDefinition" Subtype="Snow" Amount="1" LessThan="true" />
+    </Materials>
+  </Definition>
+</Definitions>

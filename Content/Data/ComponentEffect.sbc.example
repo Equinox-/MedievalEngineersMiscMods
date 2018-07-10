@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_EquiComponentEffectDefinition">
+        <Id Type="EquiComponentEffect" Subtype="ComponentEffectTest" />
+        <DisplayName>Firelord</DisplayName>
+        <Description>Firelord</Description>
+        <Icon>Textures\HUD\StatsAndEffects\Stats_Center.png</Icon>
+        <Icon>Textures\HUD\StatsAndEffects\Bleeding.png</Icon>
+
+        <Duration Seconds="1" />
+        <AddedComponent Type="PhantomEffectComponent" Subtype="BrazierBurn" />
+    </Definition>
+</Definitions>

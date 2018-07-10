@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <!-- 
+        this component says that the torches should be lit during the night and at dusk, but not during the summer
+     -->
+    <Definition xsi:type="MyObjectBuilder_EquiSolarObservationComponentDefinition">
+        <Id Type="MyObjectBuilder_EquiSolarObservationComponent" Subtype="SolarObservationTest" />
+        
+        <!-- Check if they should be turned on every 15 seconds.  (Default 5 seconds) -->
+        <UpdateInterval Seconds="15" />
+        
+        <!-- Vary the update interval per entity by +/- this amount.  (Default 0 seconds) -->
+        <UpdateIntervalVariance Seconds="0" />
+        
+        <!--
+            Transition used between states.  Will not work properly with update variance non zero.
+            Immediate: All objects transition between states at roughly the same time
+            Sparkle: Objects transition between states in a random order
+            Wave: Objects transition between states in a wave across the surface
+            WaveExpand: Objects transition between states in a wave emitting from points every 100m across the surface
+        -->
+        <Transition>Sparkle</Transition>
+        
+        <!-- top level element can be all, any, or rule -->
+        <All>
+            <!-- all or any can have multiple all, any, or rule elements in them -->
+            <!-- all, any, or rule element can have the inverted tag -->
+            <Rule Inverted="true">
+                <Season>Summer</Season>
+            </Rule>
+            
+            <Any>
+                <Rule>
+                    <TimeOfDay>AstronomicalDusk</TimeOfDay>
+                </Rule>
+                <Rule>
+                    <TimeOfDay>Night</TimeOfDay>
+                </Rule>
+            </Any>
+        </All>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EntityFXComponentDefinition">
+        <Id Type="MyObjectBuilder_EntityFXComponent" Subtype="TorchWall" />
+        <Effects>
+            <Effect StartEvent="SolarMatchStart" StopEvent="SolarMatchStop" Dummy="detector_fire">
+                <EffectId Type="MyObjectBuilder_EffectDefinition" Subtype="Torch" />
+            </Effect>
+        </Effects>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+        <Id Type="CubeBlock" Subtype="TorchWall" />
+        <Component Type="MyObjectBuilder_EquiSolarObservationComponent" Subtype="SolarObservationTest" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EntityFXComponentDefinition">
+        <Id Type="MyObjectBuilder_EntityFXComponent" Subtype="TorchStand" />
+        <Effects>
+            <Effect StartEvent="SolarMatchStart" StopEvent="SolarMatchStop" Dummy="detector_fire">
+                <EffectId Type="MyObjectBuilder_EffectDefinition" Subtype="Torch" />
+            </Effect>
+        </Effects>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+        <Id Type="CubeBlock" Subtype="TorchStand" />
+        <Component Type="MyObjectBuilder_EquiSolarObservationComponent" Subtype="SolarObservationTest" />
+    </Definition>
+</Definitions>

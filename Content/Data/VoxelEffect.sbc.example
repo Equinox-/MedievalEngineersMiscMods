@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <Definition xsi:type="MyObjectBuilder_MovementSpeedEffectDefinition">
+        <Id Type="MovementSpeedEffect" Subtype="VoxelEffectTest" />
+        <DisplayName>Speedy Voxels</DisplayName>
+        <Description>Speedy Voxels</Description>
+        <Icon>Textures\HUD\StatsAndEffects\Stats_Center.png</Icon>
+        <Icon>Textures\HUD\StatsAndEffects\Bleeding.png</Icon>
+
+        <Duration Seconds="1" />
+        <Multiplier Style="Multiplicative" Value="2" />
+    </Definition>
+
+    <!-- 
+    This component will apply an effect to the owning entity whenever they are in contact with one of the specified materials.
+    The effect can be applied up to 250ms late, so I suggest a >500ms buff duration at minimum.
+     -->
+    <Definition xsi:type="MyObjectBuilder_EquiVoxelEffectComponentDefinition">
+        <Id Type="MyObjectBuilder_EquiVoxelEffectComponent" Subtype="VoxelEffectTest" />
+
+        <!-- name of the bone to use, or exclude to use the entity anchor -->
+        <SourceBone>ME_RigLFoot</SourceBone>
+
+        <!-- apply the Effect when the player is standing on the Material -->
+        <!-- this element can be repeated as many times as you want -->
+        <!-- if the same material occurs twice, both effects get applied -->
+        <!-- if the material type is VoxelMaterialDefinition you can leave the element out. -->
+        <Effect MaterialType="VoxelMaterialDefinition" MaterialSubtype="SandDark" EffectType="MovementSpeedEffect" EffectSubtype="VoxelEffectTest" />
+        <Effect MaterialSubtype="Soil" EffectType="MovementSpeedEffect" EffectSubtype="VoxelEffectTest" />
+    </Definition>
+    
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Copy="Append">
+        <Id Type="EntityBase" Subtype="Medieval_male" />
+
+        <CopyFrom Type="EntityBase" Subtype="PlayableCharacter" />
+
+        <Component Type="ModelComponent" Subtype="Medieval_male" />
+        <Component Type="SkeletonComponent" Subtype="Medieval_male"/>
+        <Component Type="CharacterAnimationControllerComponent" Subtype="Medieval_male"/>
+        <Component Type="CharacterSoundComponent" Subtype="MedievalMale"/>
+
+        <Component Type="RenderComponentCharacter" Subtype="Medieval_male"/>
+        <Component Type="DeathComponent" Subtype="Medieval_male"/>
+        <Component Type="MyObjectBuilder_EquiVoxelEffectComponent" Subtype="VoxelEffectTest" />
+    </Definition>
+</Definitions>
