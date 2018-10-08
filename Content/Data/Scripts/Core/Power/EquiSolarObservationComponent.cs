@@ -3,12 +3,10 @@ using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.Components.Crafting;
 using Sandbox.Game.SessionComponents;
-using Sandbox.ModAPI;
 using VRage.Factory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Library.Logging;
 using VRage.ObjectBuilders;
 using VRage.Session;
 using VRageMath;
@@ -122,6 +120,7 @@ namespace Equinox76561198048419394.Core.Power
                 _eventBus?.Invoke(value ? SolarMatchEventStart : SolarMatchEventStop);
                 ReadyStateChanged?.Invoke(this, value);
                 PowerStateChanged?.Invoke(this, value);
+                StateChanged?.Invoke(!value, value);
                 _isActive = value;
             }
         }
@@ -153,6 +152,7 @@ namespace Equinox76561198048419394.Core.Power
 
         public event Action<IMyPowerProvider, bool> PowerStateChanged;
         public event Action<IMyPowerProvider, bool> ReadyStateChanged;
+        public event Action<bool, bool> StateChanged;
     }
 
     [MyObjectBuilderDefinition]

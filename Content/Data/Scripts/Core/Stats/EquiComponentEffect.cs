@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices.WindowsRuntime;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
 using Medieval.Entities.Components;
 using Sandbox.Definitions.Components.Entity.Stats.Effects;
 using Sandbox.Game.Entities.Entity.Stats;
@@ -7,7 +6,6 @@ using Sandbox.Game.Entities.Entity.Stats.Effects;
 using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
-using VRage.Game.Entity;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Components.Entity.Stats;
 

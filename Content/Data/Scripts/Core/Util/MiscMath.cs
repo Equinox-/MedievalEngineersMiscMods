@@ -6,30 +6,6 @@ namespace Equinox76561198048419394.Core.Util
 {
     public static class MiscMath
     {
-        public static uint InterleavedBits(uint x)
-        {
-            x &= 0x000003FFu;
-            x = (x ^ (x << 16)) & 0xFF0000FFu;
-            x = (x ^ (x << 8)) & 0x0300F00Fu;
-            x = (x ^ (x << 4)) & 0x030C30C3u;
-            x = (x ^ (x << 2)) & 0x09249249u;
-            return x;
-        }
-
-        private static uint SignedInterleaveNorton(int x)
-        {
-            var raw = InterleavedBits((uint) Math.Abs(x));
-            return (uint) ((raw << 3) | (x < 0 ? 1 : 0));
-        }
-
-        public static uint MortonCode(Vector3I v)
-        {
-            var x = SignedInterleaveNorton(v.X);
-            var y = SignedInterleaveNorton(v.Y);
-            var z = SignedInterleaveNorton(v.Z);
-            return (uint) ((x << 2) | (y << 1) | (z));
-        }
-
         public static double PlanetaryWavePhaseFactor(Vector3D worldPos, double periodMeters)
         {
             var planetCenter = MyGamePruningStructure.GetClosestPlanet(worldPos)?.GetPosition() ?? Vector3D.Zero;

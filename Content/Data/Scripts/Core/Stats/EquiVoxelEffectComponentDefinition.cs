@@ -1,12 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Xml.Serialization;
-using Sandbox.Definitions.Components.Entity.Stats.Effects;
 using VRage.Game;
 using VRage.Game.Definitions;
-using VRage.Library.Logging;
 using VRage.ObjectBuilders;
-using VRage.ObjectBuilders.Components.Entity.Stats.Definitions;
 
 namespace Equinox76561198048419394.Core.Stats
 {

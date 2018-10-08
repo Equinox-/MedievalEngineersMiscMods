@@ -1,10 +1,8 @@
-﻿using System.ComponentModel;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
 using Medieval.ObjectBuilders.Components;
 using Sandbox.Definitions.Components.Entity.Stats.Effects;
 using VRage.Game;
 using VRage.Game.Definitions;
-using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Components.Entity.Stats.Definitions;
 
