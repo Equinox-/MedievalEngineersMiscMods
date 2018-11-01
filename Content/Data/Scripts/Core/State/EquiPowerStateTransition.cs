@@ -85,7 +85,7 @@ namespace Equinox76561198048419394.Core.State
             MarkForUpdate();
         }
 
-        private bool _updateScheduled;
+        private bool _needsUpdate;
 
         public override void OnAddedToScene()
         {
@@ -100,25 +100,23 @@ namespace Equinox76561198048419394.Core.State
             base.OnRemovedFromScene();
             if (!MyAPIGateway.Session.IsServer())
                 return;
-            _updateScheduled = false;
+            _needsUpdate = false;
             RemoveScheduledUpdate(Update);
         }
 
         private void MarkForUpdate()
         {
-            if (!Entity.InScene || MyAPIGateway.Session == null)
+            if (Entity == null || !Entity.InScene || MyAPIGateway.Session == null)
                 return;
-            if (_updateScheduled)
-                return;
-            _updateScheduled = true;
+            _needsUpdate = true;
             AddScheduledCallback(Update);
         }
 
         private void Update(long dt)
         {
-            _updateScheduled = false;
-            if (!Entity.InScene || _state == null)
+            if (!Entity.InScene || _state == null || !_needsUpdate)
                 return;
+            _needsUpdate = false;
             var ns = Definition.TryTransition(_state.CurrentState, _providers);
             if (ns != MyStringHash.NullOrEmpty)
                 _state.TransitionTo(ns);

@@ -22,6 +22,7 @@ namespace Equinox76561198048419394.Core.State
     {
         private MyComponentEventBus _eventBus;
         private MyEntityStateComponent _state;
+        private readonly Queue<MyStringHash> _destinationEvents = new Queue<MyStringHash>();
         private readonly Action<string> _triggerEvent;
 
         public EquiStateEventTrigger()
@@ -29,12 +30,8 @@ namespace Equinox76561198048419394.Core.State
             _triggerEvent = (evt) => _eventBus?.Invoke(evt);
         }
 
-        private bool _updateScheduled = false;
-
         public override void OnAddedToContainer()
         {
-            if (!MyAPIGateway.Session.IsServer())
-                return;
             base.OnAddedToContainer();
             _eventBus = Container.Get<MyComponentEventBus>();
             _state = Container.Get<MyEntityStateComponent>();
@@ -53,25 +50,22 @@ namespace Equinox76561198048419394.Core.State
                 return;
             }
 
-            if (_updateScheduled)
-                return;
+            _destinationEvents.Enqueue(_state.CurrentState);
             AddScheduledCallback(Update);
-            _updateScheduled = true;
         }
 
         private void Update(long dt)
         {
             if (!Definition.Defer || Entity == null || _state == null || !Entity.InScene)
                 return;
-            _updateScheduled = false;
-            Definition.TriggerToEvents(_state.CurrentState, _triggerEvent);
+            MyStringHash state;
+            while (_destinationEvents.TryDequeue(out state))
+                Definition.TriggerToEvents(state, _triggerEvent);
         }
 
         public override void OnBeforeRemovedFromContainer()
         {
             base.OnBeforeRemovedFromContainer();
-            if (!MyAPIGateway.Session.IsServer())
-                return;
             _state.StateChanged -= OnStateChanged;
             _eventBus = null;
             _state = null;
