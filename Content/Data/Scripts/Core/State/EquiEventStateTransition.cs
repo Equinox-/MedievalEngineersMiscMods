@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Util;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
@@ -10,6 +11,7 @@ using VRage.Game.Definitions;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ObjectBuilders;
 using VRage.Utils;
+using Extensions = Equinox76561198048419394.Core.Controller.Extensions;
 
 namespace Equinox76561198048419394.Core.State
 {
@@ -26,7 +28,7 @@ namespace Equinox76561198048419394.Core.State
         public override void OnAddedToScene()
         {
             base.OnAddedToScene();
-            if (!MyAPIGateway.Session.IsServer())
+            if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             _eventBus = Container.Get<MyComponentEventBus>();
             _state = Container.Get<MyEntityStateComponent>();
@@ -67,7 +69,7 @@ namespace Equinox76561198048419394.Core.State
         public override void OnRemovedFromScene()
         {
             base.OnRemovedFromScene();
-            if (!MyAPIGateway.Session.IsServer())
+            if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             foreach (var evt in Definition.Events)
                 _eventBus.RemoveListener(evt, EventOccured);

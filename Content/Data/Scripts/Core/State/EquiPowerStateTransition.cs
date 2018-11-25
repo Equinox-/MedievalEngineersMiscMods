@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.Components.Crafting;
 using Sandbox.Game.EntityComponents;
@@ -12,6 +13,7 @@ using VRage.Game.Definitions;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ObjectBuilders;
 using VRage.Utils;
+using Extensions = Equinox76561198048419394.Core.Controller.Extensions;
 
 namespace Equinox76561198048419394.Core.State
 {
@@ -25,7 +27,7 @@ namespace Equinox76561198048419394.Core.State
 
         public override void OnAddedToContainer()
         {
-            if (!MyAPIGateway.Session.IsServer())
+            if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             base.OnAddedToContainer();
             _state = Container.Get<MyEntityStateComponent>();
@@ -38,7 +40,7 @@ namespace Equinox76561198048419394.Core.State
 
         public override void OnBeforeRemovedFromContainer()
         {
-            if (!MyAPIGateway.Session.IsServer())
+            if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             _state.StateChanged -= StateChanged;
             Container.ComponentAdded -= ComponentAdded;
@@ -90,7 +92,7 @@ namespace Equinox76561198048419394.Core.State
         public override void OnAddedToScene()
         {
             base.OnAddedToScene();
-            if (!MyAPIGateway.Session.IsServer())
+            if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             MarkForUpdate();
         }
@@ -98,7 +100,7 @@ namespace Equinox76561198048419394.Core.State
         public override void OnRemovedFromScene()
         {
             base.OnRemovedFromScene();
-            if (!MyAPIGateway.Session.IsServer())
+            if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             _needsUpdate = false;
             RemoveScheduledUpdate(Update);

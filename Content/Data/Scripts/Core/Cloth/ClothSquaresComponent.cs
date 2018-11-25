@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
+using Sandbox.Game.Entities;
 using Sandbox.Game.GameSystems;
 using Sandbox.ModAPI;
 using VRage;
@@ -105,75 +106,6 @@ namespace Equinox76561198048419394.Core.Cloth
 
             var skeleton = Entity.Get<MySkeletonComponent>();
 
-            {
-                for (var index = 0; index < Definition.SphereColliders.Length; index++)
-                {
-                    var sphere = Definition.SphereColliders[index];
-                    Cloth.Sphere? sphereResult = null;
-
-                    if (!string.IsNullOrEmpty(sphere.Bone) && skeleton != null)
-                    {
-                        int boneIdx;
-                        var bone = skeleton.FindBone(sphere.Bone, out boneIdx);
-                        if (bone != null)
-                        {
-                            if (sphere.Center.HasValue)
-                                sphereResult = new Cloth.Sphere(Vector3.Transform(
-                                    Vector3.Transform(sphere.Center.Value, bone.Transform.AbsoluteBindTransformInv),
-                                    bone.Transform.AbsoluteMatrix), sphere.Radius);
-                            else
-                                sphereResult = new Cloth.Sphere(bone.Transform.AbsoluteTransform.Position, sphere.Radius);
-                        }
-                    }
-
-                    if (sphereResult == null && !sphere.Center.HasValue)
-                        continue;
-                    if (sphereResult == null)
-                        sphereResult = new Cloth.Sphere(sphere.Center.Value, sphere.Radius);
-
-                    foreach (var cloth in _cloths)
-                        if (index < cloth.SphereColliders.Count)
-                            cloth.SphereColliders[index] = sphereResult.Value;
-                        else
-                            cloth.SphereColliders.Add(sphereResult.Value);
-                }
-
-                for (var index = 0; index < Definition.CapsuleColliders.Length; index++)
-                {
-                    var capsule = Definition.CapsuleColliders[index];
-                    Vector3 a = capsule.A ?? Vector3.Zero, b = capsule.B ?? Vector3.Up;
-                    if (!string.IsNullOrEmpty(capsule.Bone) && skeleton != null)
-                    {
-                        int boneIdx;
-                        var bone = skeleton.FindBone(capsule.Bone, out boneIdx);
-                        if (bone != null)
-                        {
-                            var mod = bone.Transform.AbsoluteBindTransformInv * bone.Transform.AbsoluteMatrix;
-                            a = capsule.A.HasValue ? Vector3.Transform(capsule.A.Value, mod) : bone.Transform.AbsoluteTransform.Position;
-                            b = capsule.B.HasValue
-                                ? Vector3.Transform(capsule.B.Value, mod)
-                                : (bone.GetChildBone(0)?.Transform.AbsoluteTransform.Position ?? Vector3.Zero);
-                        }
-                    }
-
-                    var capsuleResult = new Cloth.Capsule(a, b, capsule.Radius);
-
-//                    var wm = MatrixD.CreateWorld((capsuleResult.Line.From + capsuleResult.Line.To) / 2, Vector3.CalculatePerpendicularVector(capsuleResult.Line.Direction),
-//                        capsuleResult.Line.Direction);
-//                    wm *= Entity.PositionComp.WorldMatrix;
-//
-//                    var color = Color.Blue;
-//                    color.A = 32;
-//                    MySimpleObjectDraw.DrawTransparentCapsule(ref wm, capsuleResult.Radius, capsuleResult.Line.Length, ref color, 12, _square);
-
-                    foreach (var cloth in _cloths)
-                        if (index < cloth.CapsuleColliders.Count)
-                            cloth.CapsuleColliders[index] = capsuleResult;
-                        else
-                            cloth.CapsuleColliders.Add(capsuleResult);
-                }
-            }
-
             if (_prevTickPosition.HasValue)
             {
                 var pp = _prevTickPosition.Value;
@@ -215,6 +147,32 @@ namespace Equinox76561198048419394.Core.Cloth
                         }
                     }
 
+                var region = cloth.CalculateInflatedBox(MyEngineConstants.UPDATE_STEPS_PER_SECOND * 2f);
+                var regionWorld = region.Transform(Entity.WorldMatrix);
+                var entities = MyEntities.GetEntitiesInAABB(ref regionWorld);
+                cloth.SphereColliders.Clear();
+                cloth.CapsuleColliders.Clear();
+                var invWorld = Entity.PositionComp.WorldMatrixInvScaled;
+                foreach (var ent in entities)
+                foreach (var collider in ent.Components.GetComponents<ClothColliderComponent>())
+                {
+                    Cloth.Sphere[] spheres;
+                    Cloth.Capsule[] capsules;
+                    collider.GetColliders(out spheres, out capsules);
+                    var conv = (Matrix) (ent.WorldMatrix * invWorld);
+                    foreach (var s in spheres)
+                        cloth.SphereColliders.Add(new Cloth.Sphere(Vector3.Transform(s.P0, conv), s.Radius));
+                    foreach (var c in capsules)
+                        cloth.CapsuleColliders.Add(new Cloth.Capsule(new Line
+                        {
+                            From = Vector3.Transform(c.Line.From, conv),
+                            To = Vector3.Transform(c.Line.To, conv),
+                            Direction = Vector3.TransformNormal(c.Line.Direction, conv),
+                            Length = c.Line.Length,
+                            BoundingBox = c.Line.BoundingBox
+                        }, c.Radius));
+                }
+
                 cloth.Gravity = gravity;
                 cloth.WindDirection = windDir;
                 cloth.WindStrength = windStrength;
@@ -238,7 +196,7 @@ namespace Equinox76561198048419394.Core.Cloth
                     var pt3 = pts[qs[i + 3]];
                     MyTransparentGeometry.AddTriangleBillboard(pt0.Position, pt1.Position, pt2.Position, -pt0.Normal, -pt1.Normal, -pt2.Normal, pt0.Uv, pt1.Uv,
                         pt2.Uv, _mtl, parentRenderObj.GetRenderObjectID(), pt0.Position);
-                    
+
                     MyTransparentGeometry.AddTriangleBillboard(pt0.Position, pt2.Position, pt3.Position, -pt0.Normal, -pt2.Normal, -pt3.Normal, pt0.Uv, pt2.Uv,
                         pt3.Uv, _mtl, parentRenderObj.GetRenderObjectID(), pt3.Position);
 //                    quad.Point0 = Vector3D.Transform(quad.Point0, Entity.WorldMatrix);
@@ -304,17 +262,11 @@ namespace Equinox76561198048419394.Core.Cloth
 
         public ClothSection[] Quads;
 
-        public MyObjectBuilder_ClothSquaresComponentDefinition.Capsule[] CapsuleColliders;
-        public MyObjectBuilder_ClothSquaresComponentDefinition.Sphere[] SphereColliders;
-
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
             base.Init(def);
             var ob = (MyObjectBuilder_ClothSquaresComponentDefinition) def;
             Quads = ob.Squares.Select(x => new ClothSection(x)).ToArray();
-
-            CapsuleColliders = ob.CapsuleColliders ?? new MyObjectBuilder_ClothSquaresComponentDefinition.Capsule[0];
-            SphereColliders = ob.SphereColliders ?? new MyObjectBuilder_ClothSquaresComponentDefinition.Sphere[0];
         }
     }
 
@@ -361,26 +313,6 @@ namespace Equinox76561198048419394.Core.Cloth
             [XmlElement("Pin")]
             public PointRef[] Pins;
         }
-
-        public class Capsule
-        {
-            public string Bone;
-            public SerializableVector3? A, B;
-            public float Radius;
-        }
-
-        public class Sphere
-        {
-            public string Bone;
-            public SerializableVector3? Center;
-            public float Radius;
-        }
-
-        [XmlElement("Capsule")]
-        public Capsule[] CapsuleColliders;
-
-        [XmlElement("Sphere")]
-        public Sphere[] SphereColliders;
 
         [XmlElement("Square")]
         public ClothSquare[] Squares;

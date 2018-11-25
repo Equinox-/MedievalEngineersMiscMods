@@ -41,6 +41,13 @@ namespace Equinox76561198048419394.Core.Cloth
                 Radius = rad;
                 RadiusSq = rad * rad;
             }
+
+            public Capsule(Line line, float rad)
+            {
+                Line = line;
+                Radius = rad;
+                RadiusSq = rad * rad;
+            }
         }
 
         public struct Sphere
@@ -97,6 +104,15 @@ namespace Equinox76561198048419394.Core.Cloth
             var dampingApplied = (float) Math.Pow(Damping, 1.0f / steps);
             for (var i = 0; i < steps; i++)
                 SimulateOne(dt / steps, dampingApplied);
+            Box = CalculateInflatedBox(MyEngineConstants.UPDATE_STEPS_PER_SECOND);
+        }
+
+        public BoundingBox CalculateInflatedBox(float dt)
+        {
+            var tmp = BoundingBox.CreateInvalid();
+            for (var i = 0; i < Particles.Length; i++)
+                tmp = tmp.Include(Particles[i].Position + Particles[i].Velocity * dt);
+            return tmp;
         }
 
         private const float _maxVelocity = 100;

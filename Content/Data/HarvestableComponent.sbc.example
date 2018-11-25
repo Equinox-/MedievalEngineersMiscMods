@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<Definitions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!-- shears -->
+	<Definition xsi:type="MyObjectBuilder_ItemTagDefinition">
+		<Id Type="ItemTagDefinition" Subtype="Shears" />
+		<DisplayName>Shears</DisplayName>
+		<Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+		<Id Type="HandItem" Subtype="ShearsLucky" />
+		<DisplayName>Shears</DisplayName>
+		<Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+		<Tag>Shears</Tag>
+		<Size>
+			<X>1.2</X>
+			<Y>0.6</Y>
+			<Z>0.3</Z>
+		</Size>
+		<Mass>0.5</Mass>
+		<Model>Models\Weapons\Axe_OneHandSteel.mwm</Model>
+		<PhysicalMaterial>Axe</PhysicalMaterial>
+		<MaxStackAmount>1</MaxStackAmount>
+		<BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
+		<MaxDurability>1200</MaxDurability>
+		<Position>
+			<Slot>MainHand</Slot>
+		</Position>
+		<StanceToBehavior>
+			<StanceName>NormalMode</StanceName>
+			<BehaviorId Type="MyObjectBuilder_EquiHarvesterBehaviorDefinition" Subtype="ShearsLucky" />
+		</StanceToBehavior>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_EquiHarvesterBehaviorDefinition">
+		<Id Type="MyObjectBuilder_EquiHarvesterBehaviorDefinition" Subtype="ShearsLucky" />
+		<!-- holder inventory to put items into, exclude this to always drop a loot bag -->
+		<OutputInventory>Internal</OutputInventory>
+		<!-- additional rolls (can be negative) -->
+		<LuckAddition>1</LuckAddition>
+		<!-- multiplier applied to roll count.  Values < 1 decrease luck -->
+		<LuckMultiplier>2</LuckMultiplier>
+		<!-- container definition of loot bag to spawn if not enough space in inventory -->
+		<LootBag Type="MyObjectBuilder_InventoryBagEntity" Subtype="LootBag" />
+	</Definition>
+	<!-- watering can -->
+	<Definition xsi:type="MyObjectBuilder_ItemTagDefinition">
+		<Id Type="ItemTagDefinition" Subtype="WateringCan" />
+		<DisplayName>WateringCan</DisplayName>
+		<Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+		<Id Type="HandItem" Subtype="WateringCan" />
+		<DisplayName>WateringCan</DisplayName>
+		<Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+		<Tag>WateringCan</Tag>
+		<Size>
+			<X>1.2</X>
+			<Y>0.6</Y>
+			<Z>0.3</Z>
+		</Size>
+		<Mass>0.5</Mass>
+		<Model>Models\Weapons\Axe_OneHandSteel.mwm</Model>
+		<PhysicalMaterial>Axe</PhysicalMaterial>
+		<MaxStackAmount>1</MaxStackAmount>
+		<BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
+		<MaxDurability>5</MaxDurability>
+		<Position>
+			<Slot>MainHand</Slot>
+		</Position>
+		<StanceToBehavior>
+			<StanceName>NormalMode</StanceName>
+			<BehaviorId Type="MyObjectBuilder_EquiHarvesterBehaviorDefinition" Subtype="WateringCan" />
+		</StanceToBehavior>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_EquiHarvesterBehaviorDefinition">
+		<Id Type="MyObjectBuilder_EquiHarvesterBehaviorDefinition" Subtype="WateringCan" />
+	</Definition>
+	<!-- example growable block (or anything) -->
+	<Definition xsi:type="MyObjectBuilder_CubeBlockDefinition">
+		<Id Type="CubeBlock" Subtype="HarvestableExample" />
+		<DisplayName>HarvestableExample</DisplayName>
+		<Public>true</Public>
+		<CubeSize>Small</CubeSize>
+		<GuiVisible>true</GuiVisible>
+		<Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+		<BlockTopology>TriangleMesh</BlockTopology>
+		<Size x="1" y="1" z="1" />
+		<ModelOffset x="0" y="0" z="0" />
+		<Model>Models\Environment\Farming\PumpkinSapling.mwm</Model>
+		<Components>
+			<Component Type="CubeBlock" Subtype="PeltDeer" Count="1" />
+		</Components>
+		<CriticalComponent Type="CubeBlock" Subtype="PeltDeer" Index="0" />
+		<MaxIntegrity>100</MaxIntegrity>
+		<MountPoints>
+			<MountPoint Side="Bottom" StartX="-0.5014148" StartY="-0.540884256" EndX="1.4099288" EndY="1.54088426" />
+		</MountPoints>
+		<MirroringY>Z</MirroringY>
+		<MirroringZ>Y</MirroringZ>
+		<BuildTimeSeconds>6</BuildTimeSeconds>
+		<PhysicalMaterial>Wood</PhysicalMaterial>
+		<Public>false</Public>
+		<Mass>1</Mass>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_EquiStateModelComponentDefinition">
+		<Id Type="MyObjectBuilder_EquiStateModelComponent" Subtype="HarvestableExample" />
+		<Entry State="Sapling" Model="Models\Environment\TreesMedium\PineTreeMedium4m.mwm" />
+		<Entry State="Young" Model="Models\Environment\Trees\Pine\PineTree10m.mwm" />
+		<Entry State="Grown" Model="Models\Environment\Trees\Pine\PineTree15m.mwm" />
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_EntityStateComponentDefinition">
+		<Id Type="MyObjectBuilder_EntityStateComponent" Subtype="HarvestableExample" />
+		<InitialState>Sapling</InitialState>
+		<States>
+			<State Name="Sapling">
+				<Transition>Young</Transition>
+			</State>
+			<State Name="Young">
+				<Transition>Sapling</Transition>
+				<Transition>Grown</Transition>
+			</State>
+			<State Name="Grown">
+				<Transition>Sapling</Transition>
+			</State>
+		</States>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_StateTimerComponentDefinition">
+		<Id Type="MyObjectBuilder_StateTimerComponent" Subtype="HarvestableExample" />
+		<StateTimers>
+			<!-- transition from sapling to young after 30 sec -->
+			<Timer From="Sapling" To="Young" Delay="30" />
+			<Timer From="Young" To="Grown" Delay="30" />
+		</StateTimers>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_EquiHarvestableComponentDefinition">
+		<Id Type="MyObjectBuilder_EquiHarvestableComponent" Subtype="HarvestableExample" />
+		<Entry From="Grown" To="Sapling">
+			<!-- loot table this harvest action samples.  Exclude for no loot -->
+			<LootTable Type="LootTableDefinition" Subtype="TreePineGrown" />
+			<!-- what can harvest this.  tag or definition id. Can be repeated -->
+			<Harvester Tag="Shears" />
+			<!-- tooltip shown -->
+			<ActionHint>Harvest</ActionHint>
+			<!-- icon shown -->
+			<ActionIcon>Pickup_Item</ActionIcon>
+			<!-- requires interaction permission at the location -->
+			<RequiresPermission>true</RequiresPermission>
+		</Entry>
+		<Entry From="Young" To="Sapling">
+			<LootTable Type="LootTableDefinition" Subtype="TreePineYoung" />
+			<Harvester Tag="Shears" />
+			<ActionHint>Harvest</ActionHint>
+			<ActionIcon>Pickup_Item</ActionIcon>
+			<RequiresPermission>true</RequiresPermission>
+		</Entry>
+		<Entry From="Sapling" To="Young">
+			<Harvester Tag="WateringCan" />
+			<ActionHint>Water</ActionHint>
+		</Entry>
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_ContainerDefinition">
+		<Id Type="CubeBlock" Subtype="HarvestableExample" />
+		<Component Type="MyObjectBuilder_EquiHarvestableComponent" Subtype="HarvestableExample" />
+		<Component Type="MyObjectBuilder_StateTimerComponent" Subtype="HarvestableExample" />
+		<Component Type="MyObjectBuilder_EntityStateComponent" Subtype="HarvestableExample" />
+		<Component Type="MyObjectBuilder_EquiStateModelComponent" Subtype="HarvestableExample" />
+	</Definition>
+	<!-- loot tables -->
+	<Definition xsi:type="MyObjectBuilder_LootTableDefinition">
+		<Id Type="LootTableDefinition" Subtype="TreePineYoung" />
+		<Rolls>4</Rolls>
+		<Item Type="InventoryItem" Subtype="Sticks" Amount="1" Weight="1" AlwaysDrops="true" />
+		<Item Weight="1" />
+	</Definition>
+	<Definition xsi:type="MyObjectBuilder_LootTableDefinition">
+		<Id Type="LootTableDefinition" Subtype="TreePineGrown" />
+		<Rolls>4</Rolls>
+		<Item Type="InventoryItem" Subtype="Log" Amount="1" Weight="1" AlwaysDrops="true" />
+		<Item Weight="1" />
+	</Definition>
+</Definitions>

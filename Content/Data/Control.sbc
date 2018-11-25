@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Definition xsi:type="MyObjectBuilder_ControlDefinition">
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="LeaveAttached" />
+    <DisplayName>Leave Object</DisplayName>
+    <Description>Leave the object you're attached to (stand up from a chair)</Description>
+    <Category>Character</Category>
+    <Primary Key="F" />
+  </Definition>
+</Definitions>

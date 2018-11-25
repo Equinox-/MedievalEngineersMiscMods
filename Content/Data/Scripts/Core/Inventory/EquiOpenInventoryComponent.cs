@@ -295,7 +295,9 @@ namespace Equinox76561198048419394.Core.Inventory
                 {
                     // cast ray back inwards (because silly, silly phantoms)
                     IHitInfo hit;
-                    return !MyAPIGateway.Physics.CastRay(test, start, out hit, 9) ? start : hit.Position;
+                    if (!MyAPIGateway.Physics.CastRay(test, start, out hit, 9))
+                        return start;
+                    return hit.Position + Vector3.Normalize(test - start) * rad;
                 }
             }
 
