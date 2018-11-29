@@ -3,6 +3,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using Medieval.Entities.UseObject;
 using Sandbox.Game.Components;
+using Sandbox.Game.Entities.Entity.Stats;
 using Sandbox.Game.Replication;
 using Sandbox.ModAPI;
 using VRage;
@@ -15,6 +16,7 @@ using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Logging;
 using VRage.Network;
 using VRage.ObjectBuilders;
+using VRage.Systems;
 using VRage.Utils;
 using VRageMath;
 
@@ -167,7 +169,17 @@ namespace Equinox76561198048419394.Core.Controller
                     var old = _attachedCharacter;
                     if (old == value)
                         return;
+                    
+                    if (_attachedCharacter != null && _scheduledUpdates != null)
+                        foreach (var k in _scheduledUpdates)
+                            k.CharacterDetached();
+                    
                     _attachedCharacter = value;
+                    
+                    if (_attachedCharacter != null && _scheduledUpdates != null)
+                        foreach (var k in _scheduledUpdates)
+                            k.CharacterAttached();
+                    
                     AttachedCharacterChanged?.Invoke(this, old, value);
                 }
             }
@@ -178,10 +190,76 @@ namespace Equinox76561198048419394.Core.Controller
 
             public delegate void AttachedCharacterChangedDelegate(Slot slot, MyEntity old, MyEntity @new);
 
+            private readonly ScheduledUpdateCache[] _scheduledUpdates;
+
             internal Slot(EquiPlayerAttachmentComponent controllable, EquiPlayerAttachmentComponentDefinition.ImmutableAttachmentInfo def)
             {
                 Controllable = controllable;
                 Definition = def;
+
+                if (def.EffectOperations != null && def.EffectOperations.Count > 0 && MyMultiplayerModApi.Static.IsServer)
+                {
+                    _scheduledUpdates = new ScheduledUpdateCache[def.EffectOperations.Count];
+                    for (var i = 0; i < _scheduledUpdates.Length; i++)
+                        _scheduledUpdates[i] = new ScheduledUpdateCache(this, def.EffectOperations[i]);
+                }
+                else
+                {
+                    _scheduledUpdates = null;
+                }
+            }
+
+            private class ScheduledUpdateCache
+            {
+                public readonly Slot Slot;
+                public readonly EquiPlayerAttachmentComponentDefinition.ImmutableEffectOperations Operation;
+                public readonly MyTimedUpdate Delegate;
+
+                public ScheduledUpdateCache(Slot slot, EquiPlayerAttachmentComponentDefinition.ImmutableEffectOperations def)
+                {
+                    Slot = slot;
+                    Operation = def;
+                    if (def.When == MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Continuous || def.DelayMs > 0)
+                        Delegate = Apply;
+                    else
+                        Delegate = null;
+                }
+
+                public void CharacterAttached()
+                {
+                    // ReSharper disable once SwitchStatementMissingSomeCases
+                    switch (Operation.When)
+                    {
+                        case MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Enter:
+                        {
+                            if (Operation.DelayMs > 0)
+                                Slot.Controllable.AddScheduledCallback(Delegate, Operation.DelayMs);
+                            else
+                                Apply(0);
+                            break;
+                        }
+                        case MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Continuous:
+                            Slot.Controllable.AddScheduledUpdate(Delegate, Operation.IntervalMs);
+                            break;
+                    }
+                }
+
+                public void CharacterDetached()
+                {
+                    if (Operation.When == MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Leave)
+                        Apply(0);
+                    if (Delegate != null)
+                        Slot.Controllable.RemoveScheduledUpdate(Delegate);
+                }
+
+                private void Apply(long dt)
+                {
+                    var effect = Slot.AttachedCharacter?.Get<MyEntityStatComponent>();
+                    if (effect == null)
+                        return;
+                    foreach (var op in Operation.Operations)
+                        effect.AddOperation(op, Slot.Controllable.Entity?.EntityId ?? 0);
+                }
             }
         }
     }

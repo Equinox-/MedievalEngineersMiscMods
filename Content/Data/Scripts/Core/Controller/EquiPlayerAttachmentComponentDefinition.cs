@@ -1,13 +1,18 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
+using Sandbox.Definitions.Components.Entity.Stats.Effects;
 using VRage;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Game.Entity.UseObject;
 using VRage.Library.Logging;
 using VRage.ObjectBuilders;
+using VRage.ObjectBuilders.Components.Entity.Stats.Definitions;
+using VRage.ObjectBuilders.Definitions;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Controller
@@ -16,6 +21,76 @@ namespace Equinox76561198048419394.Core.Controller
     public class EquiPlayerAttachmentComponentDefinition : MyEntityComponentDefinition
     {
         public const string LegacyAttachmentName = "legacy";
+
+        public class ImmutableEffectOperations
+        {
+            public readonly MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime When;
+            public readonly long DelayMs;
+            public readonly long IntervalMs;
+
+            private readonly List<MyEffectOperation> _operations;
+
+            public ListReader<MyEffectOperation> Operations => _operations;
+
+            public bool IsValid => _operations.Count > 0 && ((IntervalMs > 0) ==
+                                                             (When == MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime
+                                                                  .Continuous));
+
+            internal bool AssertValid(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition parent)
+            {
+                var good = true;
+                if (_operations.Count == 0)
+                {
+                    MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with no operations", TErrorSeverity.Error);
+                    good = false;
+                }
+
+                if (When == MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Continuous)
+                {
+                    if (IntervalMs <= 0)
+                    {
+                        MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with continuous trigger and zero interval",
+                            TErrorSeverity.Error);
+                        good = false;
+                    }
+                }
+                else
+                {
+                    if (IntervalMs != 0)
+                    {
+                        MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with non continuous trigger and non zero interval",
+                            TErrorSeverity.Error);
+                        good = false;
+                    }
+                }
+
+                // ReSharper disable once InvertIf
+                if (When == MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Leave && DelayMs != 0)
+                {
+                    MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with leave trigger and non zero delay", TErrorSeverity.Error);
+                    good = false;
+                }
+
+                return good;
+            }
+
+            public ImmutableEffectOperations(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo ob)
+            {
+                var tmp = new List<MyEffectOperation>();
+                When = ob.When;
+                DelayMs = (long) (ob.DelaySeconds * 1000);
+                IntervalMs = (long) (ob.IntervalSeconds * 1000);
+                if (ob.Operations == null) return;
+                foreach (var input in ob.Operations)
+                {
+                    var op = new MyEffectOperation();
+                    op.Init(input);
+                    tmp.Add(op);
+                }
+
+                _operations = tmp;
+            }
+        }
 
         public class ImmutableAttachmentInfo
         {
@@ -30,7 +105,10 @@ namespace Equinox76561198048419394.Core.Controller
 
             public IReadOnlyCollection<string> Dummies => _dummyNames;
 
-            public ImmutableAttachmentInfo(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.AttachmentInfo ob)
+            public readonly IReadOnlyList<ImmutableEffectOperations> EffectOperations;
+
+            public ImmutableAttachmentInfo(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition @base,
+                MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.AttachmentInfo ob)
             {
                 Name = ob.Name;
                 Anchor = ob.Anchor;
@@ -42,6 +120,19 @@ namespace Equinox76561198048419394.Core.Controller
                 foreach (var d in ob.DummyNames)
                     if (!string.IsNullOrWhiteSpace(d))
                         _dummyNames.Add(d);
+
+                var tmpOps = new List<ImmutableEffectOperations>();
+                if (ob.EffectOperations != null)
+                    foreach (var eo in ob.EffectOperations)
+                    {
+                        var res = new ImmutableEffectOperations(eo);
+                        if (res.IsValid)
+                            tmpOps.Add(res);
+                        else
+                            MyDefinitionErrors.Add(@base.ModContext, $"{@base.Id} has an invalid effect operation", TErrorSeverity.Error);
+                    }
+
+                EffectOperations = tmpOps;
             }
 
             public ImmutableAttachmentInfo(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition ob)
@@ -58,6 +149,8 @@ namespace Equinox76561198048419394.Core.Controller
                 foreach (var d in ob.DummyNames)
                     if (!string.IsNullOrWhiteSpace(d))
                         _dummyNames.Add(d);
+
+                EffectOperations = new List<ImmutableEffectOperations>();
             }
 
 
@@ -107,7 +200,7 @@ namespace Equinox76561198048419394.Core.Controller
                 Register(new ImmutableAttachmentInfo(ob));
             if (ob.Attachments != null)
                 foreach (var k in ob.Attachments)
-                    Register(new ImmutableAttachmentInfo(k));
+                    Register(new ImmutableAttachmentInfo(ob, k));
             ImmutableAttachmentInfo wildcard = null;
             foreach (var v in _attachmentPointsByName.Values)
                 if (v.Dummies.Count == 0)
@@ -233,6 +326,28 @@ namespace Equinox76561198048419394.Core.Controller
             }
         }
 
+        public class EffectOperationsInfo
+        {
+            public enum TriggerTime
+            {
+                Enter,
+                Continuous,
+                Leave
+            }
+
+            [XmlAttribute]
+            public TriggerTime When;
+
+            [XmlAttribute]
+            public float DelaySeconds;
+
+            [XmlAttribute]
+            public float IntervalSeconds;
+
+            [XmlElement("Operation")]
+            public SerializableEffectOperation[] Operations;
+        }
+
         public class AttachmentInfo
         {
             [XmlAttribute]
@@ -245,6 +360,9 @@ namespace Equinox76561198048419394.Core.Controller
             public AnimationDesc[] Animations;
 
             public ActionDesc EmptyAction, OccupiedAction;
+
+            [XmlElement("Effects")]
+            public EffectOperationsInfo[] EffectOperations;
         }
 
         [XmlElement("Attachment")]
