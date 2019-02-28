@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using VRage.Game;
-using VRage.Library.Logging;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Cloth

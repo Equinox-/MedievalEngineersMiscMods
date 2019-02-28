@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Xml.Serialization;
 using VRage.Game;
 using VRage.Game.Definitions;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 
 namespace Equinox76561198048419394.Core.Stats
@@ -31,7 +32,7 @@ namespace Equinox76561198048419394.Core.Stats
                 }
 
             if (tmp.Count == 0)
-                MyDefinitionErrors.Add(Context, $"Voxel effect component {Id} has no effects", TErrorSeverity.Error);
+                MyDefinitionErrors.Add(Package, $"Voxel effect component {Id} has no effects", LogSeverity.Error);
 
             Effects = tmp;
         }

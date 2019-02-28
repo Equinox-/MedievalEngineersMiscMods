@@ -4,7 +4,6 @@ using VRage.Collections;
 using VRage.Components.Entity;
 using VRage.Game.Components;
 using VRage.Game.Entity;
-using VRage.Library.Logging;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Util
@@ -13,7 +12,7 @@ namespace Equinox76561198048419394.Core.Util
     {
         private readonly HashSet<TComp> _components = new HashSet<TComp>();
         private MyEntityComponentContainer _container;
-        private MyHierarchyComponentBase _hierarchy;
+        private MyHierarchyComponent _hierarchy;
         private MyModelAttachmentComponent _modelAttachment;
 
         public event Action<TComp> ComponentAdded;
@@ -38,8 +37,8 @@ namespace Equinox76561198048419394.Core.Util
             if (_includeParent)
             {
                 _hierarchy = container.Get<MyHierarchyComponent>();
-                _hierarchy.OnParentChanged += ParentChanged;
-                ParentChanged(_hierarchy.Parent?.Entity);
+                _hierarchy.ParentChanged += ParentChanged;
+                ParentChanged(_hierarchy, null, _hierarchy.Parent);
             }
 
             if (_includeChildren)
@@ -74,8 +73,8 @@ namespace Equinox76561198048419394.Core.Util
         {
             if (_includeParent)
             {
-                _hierarchy.OnParentChanged -= ParentChanged;
-                ParentChanged(null);
+                _hierarchy.ParentChanged -= ParentChanged;
+                ParentChanged(_hierarchy, _hierarchy.Parent, null);
                 _hierarchy = null;
             }
 
@@ -104,9 +103,9 @@ namespace Equinox76561198048419394.Core.Util
 
         private MyEntity _activeParent;
 
-        private void ParentChanged(MyEntity obj)
+        private void ParentChanged(MyHierarchyComponent target, MyHierarchyComponent oldParent, MyHierarchyComponent newParentH)
         {
-            var newParent = _hierarchy.Parent?.Entity;
+            var newParent = newParentH?.Entity;
             if (newParent == _activeParent)
                 return;
             if (_activeParent != null)

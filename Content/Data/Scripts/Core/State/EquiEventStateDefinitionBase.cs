@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using VRage.Game;
 using VRage.Game.Definitions;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRage.Utils;
 
@@ -54,9 +55,9 @@ namespace Equinox76561198048419394.Core.State
             {
                 var trig = new Trigger(t);
                 if (string.IsNullOrEmpty(trig.Event))
-                    MyDefinitionErrors.Add(Context, $"Trigger {t} in {Id} has no event", TErrorSeverity.Critical);
+                    MyDefinitionErrors.Add(Package, $"Trigger {t} in {Id} has no event", LogSeverity.Critical);
                 if (trig.From == MyStringHash.NullOrEmpty && trig.To == MyStringHash.NullOrEmpty)
-                    MyDefinitionErrors.Add(Context, $"Trigger {t} in {Id} has no from and no to state", TErrorSeverity.Critical);
+                    MyDefinitionErrors.Add(Package, $"Trigger {t} in {Id} has no from and no to state", LogSeverity.Critical);
                 _triggers.Add(trig);
                 _events.Add(trig.Event);
             }

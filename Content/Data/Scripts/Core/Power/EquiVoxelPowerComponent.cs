@@ -1,26 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
 using Medieval.Entities.Components.Crafting;
+using Medieval.Entities.Components.Crafting.Power;
 using Medieval.ObjectBuilders.Definitions.Quests.Conditions;
+using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using VRage.Components;
 using VRage.Definitions;
+using VRage.Engine;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
-using VRage.Systems;
 using VRage.Voxels;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Power
 {
     [MyComponent(typeof(MyObjectBuilder_EquiVoxelPowerComponent))]
-    [MyDefinitionRequired]
-    public class EquiVoxelPowerComponent : MyEntityComponent, IMyPowerProvider
+    [MyDefinitionRequired(typeof(EquiVoxelPowerComponentDefinition))]
+    public class EquiVoxelPowerComponent : MyEntityComponent, IPowerProvider
     {
         public override void OnAddedToScene()
         {
@@ -105,6 +109,7 @@ namespace Equinox76561198048419394.Core.Power
         private readonly Dictionary<MyVoxelBase, VoxelTracker> _trackedVoxels = new Dictionary<MyVoxelBase, VoxelTracker>();
         private readonly Dictionary<MyVoxelBase, VoxelTracker> _tmpVoxelTrackers = new Dictionary<MyVoxelBase, VoxelTracker>();
 
+        [Update(false)]
         private void RefreshCache(long dt)
         {
             if (_queriesInFlight > 0)
@@ -161,6 +166,7 @@ namespace Equinox76561198048419394.Core.Power
 
         private readonly float[] _totalVoxelData = new float[byte.MaxValue];
 
+        [Update(false)]
         public void QueryFinishedGameThread(long dt)
         {
             _queriesInFlight--;
@@ -206,15 +212,7 @@ namespace Equinox76561198048419394.Core.Power
             Disturbed = false;
             IsPowered = result;
         }
-
-        public void TryStart()
-        {
-        }
-
-        public void TryStop()
-        {
-        }
-
+        
         private bool _powered;
 
         public bool IsPowered
@@ -224,12 +222,12 @@ namespace Equinox76561198048419394.Core.Power
             {
                 if (_powered == value)
                     return;
-                string stateChange = value ? "VoxelPowerStart" : "VoxelPowerStop";
+                var stateChange = value ? "VoxelPowerStart" : "VoxelPowerStop";
                 if (Definition.DebugMode)
                     MyAPIGateway.Utilities?.ShowNotification("VoxelPowerEvt: " + stateChange);
                 Entity?.Components?.Get<MyComponentEventBus>()?.Invoke(stateChange);
                 _powered = value;
-                PowerStateChanged?.Invoke(this, value);
+                OnPowerChanged?.Invoke(this, value);
             }
         }
 
@@ -248,12 +246,8 @@ namespace Equinox76561198048419394.Core.Power
                 if (_isReady == value)
                     return;
                 _isReady = value;
-                ReadyStateChanged?.Invoke(this, value);
             }
         }
-
-        public event Action<IMyPowerProvider, bool> PowerStateChanged;
-        public event Action<IMyPowerProvider, bool> ReadyStateChanged;
 
         private class VoxelTracker
         {
@@ -326,8 +320,8 @@ namespace Equinox76561198048419394.Core.Power
 
                     _storage.Resize(voxMin, voxMax);
                     // ReSharper disable once RedundantCast
-                    ((IMyStorage) _vox.Storage).ReadRange(_storage, MyStorageDataTypeFlags.ContentAndMaterial, _component.Definition.LevelOfDetail, voxMin,
-                        voxMax);
+                    ((IMyStorage) _vox.Storage).ReadRange(_storage, MyStorageDataTypeFlags.ContentAndMaterial, _component.Definition.LevelOfDetail, in voxMin,
+                        in voxMax);
 
                     for (var i = 0; i < _countsWorking.Length; i++)
                         _countsWorking[i] = 0;
@@ -367,6 +361,30 @@ namespace Equinox76561198048419394.Core.Power
                 }
             }
         }
+
+        public bool TryConsumePower(TimeSpan amount)
+        {
+            return IsPowered;
+        }
+
+        public void ReturnPower(TimeSpan amount)
+        {
+        }
+
+        public TimeSpan ComputePotentialPower(TimeSpan startTime, TimeSpan endTime)
+        {
+            return IsPowered ? (endTime - startTime) : TimeSpan.Zero;
+        }
+
+        public TimeSpan ConsumePotentialPower(TimeSpan consumedTime)
+        {
+            return IsPowered ? consumedTime : TimeSpan.Zero;
+        }
+
+        public float PowerEfficiency => 1f;
+        public string PowerProviderName => nameof(EquiVoxelPowerComponent);
+        public IEnumerable<MyInventoryBase> AdditionalInventories => Enumerable.Empty<MyInventoryBase>();
+        public event PowerStateChangedDelegate OnPowerChanged;
     }
 
     [MyObjectBuilderDefinition]

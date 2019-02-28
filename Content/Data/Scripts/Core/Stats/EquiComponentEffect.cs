@@ -1,5 +1,7 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Xml.Serialization;
 using Medieval.Entities.Components;
+using Medieval.ObjectBuilders.Components;
 using Sandbox.Definitions.Components.Entity.Stats.Effects;
 using Sandbox.Game.Entities.Entity.Stats;
 using Sandbox.Game.Entities.Entity.Stats.Effects;
@@ -36,7 +38,7 @@ namespace Equinox76561198048419394.Core.Stats
             {
                 MyEntityComponent existingComponent;
                 MyMultiComponent existingMulti;
-                if (owner.Entity.Components.TryGet(_definition.AddedComponent.TypeId, _definition.AddedComponent.SubtypeId, out existingMulti))
+                if (owner.Entity.Components.TryGet(_definition.AddedComponent.TypeId, _definition.AddedComponent.SubtypeId, out existingComponent))
                     return;
                 if (owner.Entity.Components.TryGet(_definition.AddedComponent.TypeId, out existingComponent))
                 {
@@ -48,9 +50,16 @@ namespace Equinox76561198048419394.Core.Stats
 
             if (_activatedComponent == null)
             {
-//    TODO            _activatedComponent = MyComponentFactory.Get().CreateInstance(_definition.AddedComponent.TypeId);
-                _activatedComponent = new MyPhantomEffectComponent();
-                _activatedComponent.Init(_activatedComponentDefinition);
+//                _activatedComponent = MyEntityComponent.Factory.CreateInstance(_definition.AddedComponent.TypeId);
+                if (_definition.AddedComponent.TypeId == typeof(MyObjectBuilder_PhantomEffectComponent))
+                    _activatedComponent = new MyPhantomEffectComponent();
+                else
+                    throw new Exception("Invalid component type " + _definition.AddedComponent.TypeId);
+                var def = MyDefinitionManager.Get<MyEntityComponentDefinition>(_definition.AddedComponent);
+                if (def != null)
+                {
+                    _activatedComponent.Init(def);
+                }
             }
 
             if (_activatedComponent.Entity == null)

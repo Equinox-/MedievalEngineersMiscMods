@@ -1,24 +1,22 @@
 using System.Collections.Generic;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Core.Controller;
-using Equinox76561198048419394.Core.Util;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.ObjectBuilders.ComponentSystem;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRage.Utils;
-using Extensions = Equinox76561198048419394.Core.Controller.Extensions;
 
 namespace Equinox76561198048419394.Core.State
 {
     [MyComponent(typeof(MyObjectBuilder_EquiEventStateTransition))]
     [MyDependency(typeof(MyComponentEventBus), Critical = true)]
     [MyDependency(typeof(MyEntityStateComponent), Critical = true)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiEventStateTransitionDefinition))]
     public class EquiEventStateTransition : MyEntityComponent
     {
         private MyComponentEventBus _eventBus;
@@ -58,6 +56,7 @@ namespace Equinox76561198048419394.Core.State
             _requestedState = h;
         }
 
+        [Update(false)]
         private void Update(long dt)
         {
             if (Entity == null || _state == null || !Entity.InScene || !_requestedState.HasValue)
@@ -111,14 +110,14 @@ namespace Equinox76561198048419394.Core.State
             foreach (var trig in Triggers)
             {
                 if (trig.To == MyStringHash.NullOrEmpty)
-                    MyDefinitionErrors.Add(Context, $"Trigger {trig} in {Id} has no to state", TErrorSeverity.Critical);
+                    MyDefinitionErrors.Add(Package, $"Trigger {trig} in {Id} has no to state", LogSeverity.Critical);
 
                 TriggerData trigs;
                 if (!_triggersByEvent.TryGetValue(trig.Event, out trigs))
                     _triggersByEvent.Add(trig.Event, trigs = new TriggerData());
 
                 if (trig.From == MyStringHash.NullOrEmpty && trigs.AnySourceTrigger != null)
-                    MyDefinitionErrors.Add(Context, $"Trigger {trig} trying to overwrite {trigs.AnySourceTrigger}", TErrorSeverity.Warning);
+                    MyDefinitionErrors.Add(Package, $"Trigger {trig} trying to overwrite {trigs.AnySourceTrigger}", LogSeverity.Warning);
 
                 if (trig.From == MyStringHash.NullOrEmpty)
                     trigs.AnySourceTrigger = trig;

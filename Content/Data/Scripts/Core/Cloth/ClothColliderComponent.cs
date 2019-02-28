@@ -2,8 +2,8 @@ using System;
 using System.Linq;
 using System.Xml.Serialization;
 using VRage;
+using VRage.Components;
 using VRage.Components.Entity.Animations;
-using VRage.Factory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
@@ -15,7 +15,7 @@ namespace Equinox76561198048419394.Core.Cloth
 {
     [MyComponent(typeof(MyObjectBuilder_ClothColliderComponent))]
     [MyDependency(typeof(MySkeletonComponent), Critical = false)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(ClothColliderComponentDefinition))]
     public class ClothColliderComponent : MyEntityComponent
     {
         private MySkeletonComponent _skeleton;

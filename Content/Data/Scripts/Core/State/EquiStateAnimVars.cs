@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI;
 using VRage;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.ObjectBuilders.ComponentSystem;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRage.Utils;
 using VRageMath;
@@ -16,7 +16,7 @@ using VRageMath;
 namespace Equinox76561198048419394.Core.State
 {
     [MyComponent(typeof(MyObjectBuilder_EquiStateAnimVars))]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiStateAnimVarsDefinition))]
     [MyDependency(typeof(MyAnimationControllerComponent))]
     [MyDependency(typeof(MyEntityStateComponent), Critical = true)]
     public class EquiStateAnimVars : MyEntityComponent
@@ -128,7 +128,7 @@ namespace Equinox76561198048419394.Core.State
                     else if (instruction.Transform.HasValue)
                         instructions[varKey] = new SetInstruction(new MyTransformD(instruction.Transform.Value.GetMatrix()));
                     else
-                        MyDefinitionErrors.Add(Context, $"State {when} instruction {varKey} has no value", TErrorSeverity.Warning);
+                        MyDefinitionErrors.Add(Package, $"State {when} instruction {varKey} has no value", LogSeverity.Warning);
                 }
             }
         }

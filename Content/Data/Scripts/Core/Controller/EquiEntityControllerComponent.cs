@@ -2,15 +2,14 @@ using System;
 using System.Xml.Serialization;
 using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
-using Sandbox.Game.Replication;
 using Sandbox.ModAPI;
 using VRage;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Library.Logging;
+using VRage.Logging;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Session;
@@ -87,6 +86,7 @@ namespace Equinox76561198048419394.Core.Controller
                 randSeed);
         }
 
+        [Update(false)]
         private void CommitAnimationStart(long dt)
         {
             var adata = _controlledSlot?.Definition.ByIndex(_saveData.AnimationId);
@@ -98,7 +98,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         internal void ChangeSlotInternal(EquiPlayerAttachmentComponent.Slot slot, float randSeed)
         {
-            MyLog.Default.WriteLine("Changing slot for " + Entity + " to " + slot?.Controllable?.Entity + "#" + slot?.Definition.Name);
+            this.GetLogger().Debug($"Changing slot for {Entity} to {slot?.Controllable?.Entity}#{slot?.Definition.Name}");
             var old = _controlledSlot;
             _controlledSlot = slot;
 
@@ -123,7 +123,11 @@ namespace Equinox76561198048419394.Core.Controller
             // Handle keeping the physics in check
             if (Entity.Physics != null)
             {
-                Entity.Physics.Enabled = slot == null;
+                var wantsPhysicsEnabled = slot == null;
+                if (wantsPhysicsEnabled && !Entity.Physics.Enabled)
+                    Entity.Physics.Activate();
+                else if (!wantsPhysicsEnabled && Entity.Physics.Enabled)
+                    Entity.Physics.Deactivate();
                 if (slot == null)
                 {
                     var oldPhys = old?.Controllable?.Entity.ParentedPhysics();
@@ -174,11 +178,12 @@ namespace Equinox76561198048419394.Core.Controller
             ControlledChanged?.Invoke(this, old, slot);
             _tracker.RaiseControlledChange(this, old, slot);
         }
-        
+
         private const int PriorityOverride = int.MaxValue;
 
         private const double AutoDetachDistance = 25;
 
+        [FixedUpdate(false)]
         private void FixPosition()
         {
             var slot = Controlled;

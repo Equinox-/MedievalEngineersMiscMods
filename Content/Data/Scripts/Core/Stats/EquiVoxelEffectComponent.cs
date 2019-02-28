@@ -4,8 +4,8 @@ using System.Xml.Serialization;
 using Sandbox.Game.Entities.Entity.Stats;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
+using VRage.Components;
 using VRage.Components.Entity.Animations;
-using VRage.Factory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ObjectBuilders.ComponentSystem;
@@ -16,7 +16,7 @@ using VRageRender.Animations;
 namespace Equinox76561198048419394.Core.Stats
 {
     [MyComponent(typeof(MyObjectBuilder_EquiVoxelEffectComponent))]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiVoxelEffectComponentDefinition))]
     [MyDependency(typeof(MyEntityStatComponent), Critical = true)]
     [MyDependency(typeof(MyEntityTerrainProviderComponent), Critical = true)]
     [MyDependency(typeof(MySkeletonComponent), Critical = false)]
@@ -70,6 +70,7 @@ namespace Equinox76561198048419394.Core.Stats
 
         private int? _cachedBoneIndex;
 
+        [Update(false)]
         private void AddEffect(long dt)
         {
             if (_terrainProvider == null || _statComponent == null)

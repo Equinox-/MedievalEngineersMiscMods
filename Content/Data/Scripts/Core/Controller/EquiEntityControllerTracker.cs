@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using VRage.Components;
 using VRage.Game.Components;
 using VRage.Game.Input;
-using VRage.Library.Logging;
+using VRage.Library.Memory;
+using VRage.Logging;
 using VRage.Network;
 using VRage.Session;
 using VRage.Utils;
@@ -13,8 +15,8 @@ using VRageMath;
 namespace Equinox76561198048419394.Core.Controller
 {
     [StaticEventOwner]
-    [MySessionComponentDescriptor(MyUpdateOrder.NoUpdate)]
-    public class EquiEntityControllerTracker : MySessionComponentBase
+    [MySessionComponent(AllowAutomaticCreation = true, AlwaysOn = true)]
+    public class EquiEntityControllerTracker : MySessionComponent
     {
         private readonly Dictionary<long, ControlledId> _controllerToControlled = new Dictionary<long, ControlledId>();
         private readonly Dictionary<ControlledId, long> _controlledToController = new Dictionary<ControlledId, long>();
@@ -26,7 +28,7 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 if (existingController == controller)
                     return;
-                MyLog.Default.Warning($"Controllable slot {key} is already controlled by {existingController}");
+                this.GetLogger().Warning($"Controllable slot {key} is already controlled by {existingController}");
                 Unlink(existingController);
             }
 
@@ -35,7 +37,7 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 if (existingControlled.Equals(key))
                     return;
-                MyLog.Default.Warning($"Controller {controller} is already controlling {existingControlled}");
+                this.GetLogger().Warning($"Controller {controller} is already controlling {existingControlled}");
                 Unlink(controller);
             }
 
@@ -187,17 +189,17 @@ namespace Equinox76561198048419394.Core.Controller
                 () => MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>()?.ReleaseControl());
         }
 
-        public override void BeforeStart()
+        protected override void OnSessionReady()
         {
-            base.BeforeStart();
+            base.OnSessionReady();
             CheckAttachedControls();
         }
 
-        protected override void UnloadData()
+        protected override void OnUnload()
         {
-            base.UnloadData();
             if (_attachedControls.InStack)
                 _attachedControls.Pop();
+            base.OnUnload();
         }
 
         private void CheckAttachedControls()

@@ -1,20 +1,17 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
 using Sandbox.Game.Entities;
-using Sandbox.Game.GameSystems;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
 using VRage.Components.Entity.Animations;
+using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
-using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Library.Logging;
 using VRage.ObjectBuilders;
 using VRage.Session;
 using VRage.Utils;
@@ -23,7 +20,7 @@ using VRageMath;
 namespace Equinox76561198048419394.Core.Cloth
 {
     [MyComponent(typeof(MyObjectBuilder_ClothSquaresComponent))]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(ClothSquaresComponentDefinition))]
     public class ClothSquaresComponent : MyEntityComponent
     {
         public static readonly Vector3 WindVector = new Vector3(1, 0, 0);
@@ -147,8 +144,8 @@ namespace Equinox76561198048419394.Core.Cloth
                         }
                     }
 
-                var region = cloth.CalculateInflatedBox(MyEngineConstants.UPDATE_STEPS_PER_SECOND * 2f);
-                var regionWorld = region.Transform(Entity.WorldMatrix);
+                var region = (BoundingBoxD) cloth.CalculateInflatedBox(MyEngineConstants.UPDATE_STEPS_PER_SECOND * 2f);
+                var regionWorld = region.TransformFast(Entity.PositionComp.WorldMatrix);
                 var entities = MyEntities.GetEntitiesInAABB(ref regionWorld);
                 cloth.SphereColliders.Clear();
                 cloth.CapsuleColliders.Clear();

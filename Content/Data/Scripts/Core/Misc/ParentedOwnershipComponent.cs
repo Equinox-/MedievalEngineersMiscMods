@@ -1,5 +1,5 @@
 using System.Xml.Serialization;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
@@ -10,7 +10,7 @@ using VRage.ObjectBuilders;
 namespace Equinox76561198048419394.Core.Misc
 {
     [MyComponent(typeof(MyObjectBuilder_EquiParentedOwnershipComponent))]
-    [MyDependency(typeof(MyHierarchyComponentBase))]
+    [MyDependency(typeof(MyHierarchyComponent), Critical = true)]
     public class EquiParentedOwnershipComponent : MyEntityOwnershipComponent
     {
         private MyHierarchyComponent _hierarchy;
@@ -20,12 +20,11 @@ namespace Equinox76561198048419394.Core.Misc
         {
             base.OnAddedToScene();
             _hierarchy = Entity.Hierarchy;
-            if (_hierarchy != null)
-                _hierarchy.OnParentChanged += OnParentChanged;
-            OnParentChanged(Entity);
+            _hierarchy.ParentChanged += OnParentChanged;
+            OnParentChanged(_hierarchy, null, _hierarchy.Parent);
         }
 
-        private void OnParentChanged(MyEntity obj)
+        private void OnParentChanged(MyHierarchyComponent target, MyHierarchyComponent oldParent, MyHierarchyComponent newParent)
         {
             var parent = _hierarchy?.Parent?.Entity?.Components.Get<MyEntityOwnershipComponent>();
             if (_parent == parent)
@@ -47,9 +46,8 @@ namespace Equinox76561198048419394.Core.Misc
         public override void OnRemovedFromScene()
         {
             base.OnRemovedFromScene();
-            OnParentChanged(null);
-            if (_hierarchy != null)
-                _hierarchy.OnParentChanged -= OnParentChanged;
+            OnParentChanged(_hierarchy, _hierarchy.Parent, null);
+            _hierarchy.ParentChanged -= OnParentChanged;
             _hierarchy = null;
         }
 

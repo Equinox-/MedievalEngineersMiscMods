@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
@@ -17,7 +16,7 @@ namespace Equinox76561198048419394.Core.State
     [MyComponent(typeof(MyObjectBuilder_EquiStateEventTrigger))]
     [MyDependency(typeof(MyComponentEventBus), Critical = true)]
     [MyDependency(typeof(MyEntityStateComponent), Critical = true)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiStateEventTriggerDefinition))]
     public class EquiStateEventTrigger : MyEntityComponent, IMyComponentEventProvider
     {
         private MyComponentEventBus _eventBus;
@@ -36,6 +35,11 @@ namespace Equinox76561198048419394.Core.State
             _eventBus = Container.Get<MyComponentEventBus>();
             _state = Container.Get<MyEntityStateComponent>();
             _state.StateChanged += OnStateChanged;
+        }
+
+        public override void OnAddedToScene()
+        {
+            base.OnAddedToScene();
             OnStateChanged(MyStringHash.NullOrEmpty, _state.CurrentState);
         }
 
@@ -51,9 +55,13 @@ namespace Equinox76561198048419394.Core.State
             }
 
             _destinationEvents.Enqueue(_state.CurrentState);
-            AddScheduledCallback(Update);
+            if (Entity != null && Entity.InScene)
+            {
+                AddScheduledCallback(Update);
+            }
         }
 
+        [Update(false)]
         private void Update(long dt)
         {
             if (!Definition.Defer || Entity == null || _state == null || !Entity.InScene)

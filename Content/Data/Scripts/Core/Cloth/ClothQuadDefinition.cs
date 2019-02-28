@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Cloth

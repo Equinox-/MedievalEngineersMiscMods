@@ -1,23 +1,19 @@
 using System.Collections.Generic;
 using System.Xml.Serialization;
-using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Entity.Stats;
 using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ObjectBuilders;
 using VRage.Utils;
-using VRageMath;
 
 namespace Equinox76561198048419394.Core.State
 {
     [MyComponent(typeof(MyObjectBuilder_EquiStateModelComponent))]
     [MyDependency(typeof(MyEntityStateComponent), Critical = true)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiStateModelComponentDefinition))]
     public class EquiStateModelComponent : MyEntityComponent
     {
         private MyEntityStateComponent _stateComponent;
@@ -38,8 +34,7 @@ namespace Equinox76561198048419394.Core.State
                 Entity.RefreshModels(model, model);
                 Entity.Render.RemoveRenderObjects();
                 Entity.Render.AddRenderObjects();
-                var block = Entity as MyCubeBlock;
-                block?.CubeGrid.SetCubeDirty(block.Position);
+                // TODO grids?
             }
         }
 

@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
-using Sandbox.Game.EntityComponents.Character;
 using VRage.Components;
 using VRage.Components.Entity.Animations;
-using VRage.Factory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
+using VRage.Logging;
 using VRage.ObjectBuilders;
-using VRage.Systems;
 using VRageMath;
 using VRageRender.Animations;
 
@@ -25,10 +23,10 @@ namespace Equinox76561198048419394.Core.Misc
         public override void OnAddedToScene()
         {
             base.OnAddedToScene();
-            Entity.Hierarchy.OnParentChanged += ParentChanged;
+            Entity.Hierarchy.ParentChanged += ParentChanged;
             _mySkeleton = Entity.Get<MySkeletonComponent>();
             _mySkeleton.OnReloadBones += InvalidateBoneMapping;
-            ParentChanged(Entity.Hierarchy.Parent?.Entity);
+            ParentChanged(Entity.Hierarchy, null, Entity.Hierarchy.Parent);
         }
 
         public override void OnRemovedFromScene()
@@ -38,8 +36,8 @@ namespace Equinox76561198048419394.Core.Misc
                 _mySkeleton.OnReloadBones -= InvalidateBoneMapping;
             var h = Entity?.Hierarchy;
             if (h != null)
-                h.OnParentChanged -= ParentChanged;
-            ParentChanged(null);
+                h.ParentChanged -= ParentChanged;
+            ParentChanged(Entity.Hierarchy, Entity.Hierarchy.Parent, null);
             _mySkeleton = null;
         }
 
@@ -47,9 +45,9 @@ namespace Equinox76561198048419394.Core.Misc
         private MyEntity _parentCache;
         private MySkeletonComponent _parentSkeleton;
 
-        private void ParentChanged(MyEntity obj)
+        private void ParentChanged(MyHierarchyComponent target, MyHierarchyComponent oldParent, MyHierarchyComponent newParentH)
         {
-            var newParent = Entity.Hierarchy.Parent?.Entity;
+            var newParent = newParentH?.Entity;
             if (newParent == _parentCache)
                 return;
             if (_parentCache != null)
@@ -201,13 +199,13 @@ namespace Equinox76561198048419394.Core.Misc
             {
                 if (string.IsNullOrWhiteSpace(k.Source))
                 {
-                    MyDefinitionErrors.Add(Context, $"Null or empty mapping source bone", TErrorSeverity.Warning);
+                    MyDefinitionErrors.Add(Package, $"Null or empty mapping source bone", LogSeverity.Warning);
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(k.Dest))
                 {
-                    MyDefinitionErrors.Add(Context, $"Null or empty mapping destination bone", TErrorSeverity.Warning);
+                    MyDefinitionErrors.Add(Package, $"Null or empty mapping destination bone", LogSeverity.Warning);
                     continue;
                 }
 

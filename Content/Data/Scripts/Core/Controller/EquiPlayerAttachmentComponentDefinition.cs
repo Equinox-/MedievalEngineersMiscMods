@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -9,10 +8,10 @@ using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Game.Entity.UseObject;
-using VRage.Library.Logging;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Components.Entity.Stats.Definitions;
-using VRage.ObjectBuilders.Definitions;
+using VRage.Session;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Controller
@@ -41,7 +40,7 @@ namespace Equinox76561198048419394.Core.Controller
                 var good = true;
                 if (_operations.Count == 0)
                 {
-                    MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with no operations", TErrorSeverity.Error);
+                    MyDefinitionErrors.Add(parent.Package, $"{parent.Id} has operation group with no operations", LogSeverity.Error);
                     good = false;
                 }
 
@@ -49,8 +48,8 @@ namespace Equinox76561198048419394.Core.Controller
                 {
                     if (IntervalMs <= 0)
                     {
-                        MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with continuous trigger and zero interval",
-                            TErrorSeverity.Error);
+                        MyDefinitionErrors.Add(parent.Package, $"{parent.Id} has operation group with continuous trigger and zero interval",
+                            LogSeverity.Error);
                         good = false;
                     }
                 }
@@ -58,8 +57,8 @@ namespace Equinox76561198048419394.Core.Controller
                 {
                     if (IntervalMs != 0)
                     {
-                        MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with non continuous trigger and non zero interval",
-                            TErrorSeverity.Error);
+                        MyDefinitionErrors.Add(parent.Package, $"{parent.Id} has operation group with non continuous trigger and non zero interval",
+                            LogSeverity.Error);
                         good = false;
                     }
                 }
@@ -67,7 +66,7 @@ namespace Equinox76561198048419394.Core.Controller
                 // ReSharper disable once InvertIf
                 if (When == MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.EffectOperationsInfo.TriggerTime.Leave && DelayMs != 0)
                 {
-                    MyDefinitionErrors.Add(parent.ModContext, $"{parent.Id} has operation group with leave trigger and non zero delay", TErrorSeverity.Error);
+                    MyDefinitionErrors.Add(parent.Package, $"{parent.Id} has operation group with leave trigger and non zero delay", LogSeverity.Error);
                     good = false;
                 }
 
@@ -129,7 +128,7 @@ namespace Equinox76561198048419394.Core.Controller
                         if (res.IsValid)
                             tmpOps.Add(res);
                         else
-                            MyDefinitionErrors.Add(@base.ModContext, $"{@base.Id} has an invalid effect operation", TErrorSeverity.Error);
+                            MyDefinitionErrors.Add(@base.Package, $"{@base.Id} has an invalid effect operation", LogSeverity.Error);
                     }
 
                 EffectOperations = tmpOps;
@@ -182,7 +181,7 @@ namespace Equinox76561198048419394.Core.Controller
                     return k;
                 }
 
-                MyLog.Default.Warning(
+                MySession.Static.Log.WithContext(this).Warning(
                     $"Failed to find animation for {controller}.  R={rand}, Opts={string.Join(", ", _animations.Select(x => x.ToString()))}");
                 return null;
             }
@@ -206,7 +205,7 @@ namespace Equinox76561198048419394.Core.Controller
                 if (v.Dummies.Count == 0)
                 {
                     if (wildcard != null)
-                        MyDefinitionErrors.Add(Context, $"Attachments {wildcard.Name} and {v.Name} both are wildcard attachments", TErrorSeverity.Critical);
+                        MyDefinitionErrors.Add(Package, $"Attachments {wildcard.Name} and {v.Name} both are wildcard attachments", LogSeverity.Critical);
                     wildcard = v;
                 }
 
@@ -217,7 +216,7 @@ namespace Equinox76561198048419394.Core.Controller
         {
             if (_attachmentPointsByName.ContainsKey(attachment.Name))
             {
-                MyDefinitionErrors.Add(Context, $"Can't register {attachment.Name} twice", TErrorSeverity.Critical);
+                MyDefinitionErrors.Add(Package, $"Can't register {attachment.Name} twice", LogSeverity.Critical);
                 return;
             }
 
@@ -226,7 +225,7 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 if (_attachmentPointByDummy.ContainsKey(dum))
                 {
-                    MyDefinitionErrors.Add(Context, $"Can't register attachment for dummy {dum} twice", TErrorSeverity.Critical);
+                    MyDefinitionErrors.Add(Package, $"Can't register attachment for dummy {dum} twice", LogSeverity.Critical);
                     continue;
                 }
 

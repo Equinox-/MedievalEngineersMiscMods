@@ -4,7 +4,6 @@ using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Constants;
 using Medieval.GameSystems;
-using Sandbox.Definitions.Components;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
@@ -14,12 +13,10 @@ using Sandbox.ModAPI;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
-using VRage.Game.ObjectBuilders;
 using VRage.GUI.Crosshair;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Equipment;
 using VRage.Utils;
-using Extensions = Equinox76561198048419394.Core.Controller.Extensions;
 
 namespace Equinox76561198048419394.Core.Harvest
 {

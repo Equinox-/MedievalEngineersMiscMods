@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities.Inventory;
-using Sandbox.Game.Inventory;
 using VRage.Collections;
 using VRage.Definitions.Inventory;
 using VRage.Game;

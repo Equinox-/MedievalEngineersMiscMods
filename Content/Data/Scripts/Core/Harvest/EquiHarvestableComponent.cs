@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Remoting.Contexts;
 using System.Xml.Serialization;
-using Medieval.Constants;
 using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI;
+using VRage.Components;
 using VRage.Definitions.Inventory;
-using VRage.Factory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
-using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Inventory;
 using VRage.Utils;
@@ -19,7 +18,7 @@ namespace Equinox76561198048419394.Core.Harvest
 {
     [MyComponent(typeof(MyObjectBuilder_EquiHarvestableComponent))]
     [MyDependency(typeof(MyEntityStateComponent), Critical = true)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiHarvestableComponentDefinition))]
     public class EquiHarvestableComponent : MyEntityComponent
     {
         private MyEntityStateComponent _stateComponent;
@@ -169,13 +168,13 @@ namespace Equinox76561198048419394.Core.Harvest
             {
                 if (string.IsNullOrWhiteSpace(k.From))
                 {
-                    MyDefinitionErrors.Add(Context, $"{Id} has an entry with no from state", TErrorSeverity.Warning);
+                    MyDefinitionErrors.Add(Package, $"{Id} has an entry with no from state", LogSeverity.Warning);
                     continue;
                 }
 
                 if (k.Harvesters == null || k.Harvesters.Length == 0)
                 {
-                    MyDefinitionErrors.Add(Context, $"{Id} has an entry with no harvesters", TErrorSeverity.Warning);
+                    MyDefinitionErrors.Add(Package, $"{Id} has an entry with no harvesters", LogSeverity.Warning);
                     continue;
                 }
 
@@ -185,15 +184,15 @@ namespace Equinox76561198048419394.Core.Harvest
                     lootTable = MyDefinitionManager.Get<MyLootTableDefinition>(k.LootTable.Value);
                     if (lootTable == null)
                     {
-                        MyDefinitionErrors.Add(Context, $"{Id} has an entry from {k.From} referring to missing loot table {k.LootTable}",
-                            TErrorSeverity.Warning);
+                        MyDefinitionErrors.Add(Package, $"{Id} has an entry from {k.From} referring to missing loot table {k.LootTable}",
+                            LogSeverity.Warning);
                         continue;
                     }
                 }
 
                 foreach (var item in k.Harvesters)
                     if (!item.IsValid())
-                        MyDefinitionErrors.Add(Context, $"{Id} has an entry with an invalid harvester", TErrorSeverity.Warning);
+                        MyDefinitionErrors.Add(Package, $"{Id} has an entry with an invalid harvester", LogSeverity.Warning);
 
 
                 var sourceState = MyStringHash.GetOrCompute(k.From);

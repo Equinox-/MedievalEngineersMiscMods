@@ -1,5 +1,8 @@
 using System;
+using System.Linq;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Planet;
+using VRage.Components.Session;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util
@@ -8,7 +11,7 @@ namespace Equinox76561198048419394.Core.Util
     {
         public static double PlanetaryWavePhaseFactor(Vector3D worldPos, double periodMeters)
         {
-            var planetCenter = MyGamePruningStructure.GetClosestPlanet(worldPos)?.GetPosition() ?? Vector3D.Zero;
+            var planetCenter = MyGamePruningStructureSandbox.GetClosestPlanet(worldPos)?.GetPosition() ?? Vector3D.Zero;
             var planetDir = worldPos - planetCenter;
             var currRadius = planetDir.Normalize();
 
@@ -17,7 +20,7 @@ namespace Equinox76561198048419394.Core.Util
             var elevationDistance = currRadius;
             return (surfaceDistance + elevationDistance) / periodMeters;
         }
-        
+
         // r, theta (inc), phi (az)
         public static Vector3D ToSpherical(Vector3D world)
         {

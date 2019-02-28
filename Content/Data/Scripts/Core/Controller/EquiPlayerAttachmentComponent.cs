@@ -4,19 +4,18 @@ using System.Xml.Serialization;
 using Medieval.Entities.UseObject;
 using Sandbox.Game.Components;
 using Sandbox.Game.Entities.Entity.Stats;
-using Sandbox.Game.Replication;
 using Sandbox.ModAPI;
 using VRage;
-using VRage.Factory;
+using VRage.Components;
+using VRage.Engine;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Library.Logging;
+using VRage.Logging;
 using VRage.Network;
 using VRage.ObjectBuilders;
-using VRage.Systems;
 using VRage.Utils;
 using VRageMath;
 
@@ -24,7 +23,7 @@ namespace Equinox76561198048419394.Core.Controller
 {
     [MyComponent(typeof(MyObjectBuilder_EquiPlayerAttachmentComponent))]
     [MyDependency(typeof(MyUseObjectsComponent), Critical = true)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiPlayerAttachmentComponentDefinition))]
     [ReplicatedComponent]
     public class EquiPlayerAttachmentComponent : MyEntityComponent, IMyGenericUseObjectInterface, IMyEventProxy
     {
@@ -71,6 +70,7 @@ namespace Equinox76561198048419394.Core.Controller
             return _states.Values.Select(x => x.AttachedCharacter).Where(x => x != null);
         }
 
+        [Update(false)]
         private void RegisterLazy(long dt)
         {
             if (Entity == null || !Entity.InScene)
@@ -81,15 +81,16 @@ namespace Equinox76561198048419394.Core.Controller
 
             if (_genericUseObjects.Count == 0)
             {
-                MyLog.Default.Warning(
+                this.GetLogger().Warning(
                     $"Failed to find use object for {nameof(EquiPlayerAttachmentComponent)} {_definition.Id}");
                 foreach (var t in _genericUseObjects)
-                    MyLog.Default.Info($"Detector " + t);
+                    this.GetLogger().Info($"Detector " + t);
                 return;
             }
 
             foreach (var k in _genericUseObjects)
-                k.Interface = this;
+                if (_definition.AttachmentForDummy(k.GetDummyName()) != null)
+                    k.Interface = this;
         }
 
         public override void OnRemovedFromScene()
@@ -169,17 +170,17 @@ namespace Equinox76561198048419394.Core.Controller
                     var old = _attachedCharacter;
                     if (old == value)
                         return;
-                    
+
                     if (_attachedCharacter != null && _scheduledUpdates != null)
                         foreach (var k in _scheduledUpdates)
                             k.CharacterDetached();
-                    
+
                     _attachedCharacter = value;
-                    
+
                     if (_attachedCharacter != null && _scheduledUpdates != null)
                         foreach (var k in _scheduledUpdates)
                             k.CharacterAttached();
-                    
+
                     AttachedCharacterChanged?.Invoke(this, old, value);
                 }
             }
@@ -252,6 +253,7 @@ namespace Equinox76561198048419394.Core.Controller
                         Slot.Controllable.RemoveScheduledUpdate(Delegate);
                 }
 
+                [Update(false)]
                 private void Apply(long dt)
                 {
                     var effect = Slot.AttachedCharacter?.Get<MyEntityStatComponent>();

@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.Components.Crafting;
+using Medieval.Entities.Components.Crafting.Power;
 using Sandbox.Game.SessionComponents;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ObjectBuilders;
 using VRage.Session;
@@ -15,8 +19,8 @@ namespace Equinox76561198048419394.Core.Power
 {
     [MyComponent(typeof(MyObjectBuilder_EquiSolarObservationComponent))]
     [MyDependency(typeof(MyComponentEventBus), Critical = false)]
-    [MyDefinitionRequired]
-    public class EquiSolarObservationComponent : MyEntityComponent, IMyComponentEventProvider, IMyPowerProvider
+    [MyDefinitionRequired(typeof(EquiSolarObservationComponentDefinition))]
+    public class EquiSolarObservationComponent : MyEntityComponent, IMyComponentEventProvider, IPowerProvider
     {
         private static readonly Random Rand = new Random();
         private const double StaggerDistance = 100D;
@@ -39,6 +43,7 @@ namespace Equinox76561198048419394.Core.Power
             Update(0);
         }
 
+        [Update(false)]
         private void FirstUpdate(long dt)
         {
             var currTime = (long) (MySession.Static?.ElapsedGameTime.TotalMilliseconds ?? 0);
@@ -74,6 +79,7 @@ namespace Equinox76561198048419394.Core.Power
             Update(0);
         }
 
+        [Update(false)]
         private void StartUpdateLoop(long dt)
         {
             var intervalRand = 0;
@@ -118,18 +124,17 @@ namespace Equinox76561198048419394.Core.Power
                     return;
 
                 _eventBus?.Invoke(value ? SolarMatchEventStart : SolarMatchEventStop);
-                ReadyStateChanged?.Invoke(this, value);
-                PowerStateChanged?.Invoke(this, value);
-                StateChanged?.Invoke(!value, value);
+                OnPowerChanged?.Invoke(this, value);
                 _isActive = value;
             }
         }
 
+        [Update(false)]
         private void Update(long dt)
         {
             if (_weather == null || Entity == null || MySession.Static == null || Definition == null)
                 return;
-            var observation = _weather.CreateSolarObservation(MySession.Static.ElapsedGameTime, Entity.GetPosition());
+            var observation = _weather.CreateSolarObservation(_weather.CurrentTime, Entity.GetPosition());
             IsActive = Definition.Test(observation);
         }
 
@@ -138,21 +143,34 @@ namespace Equinox76561198048419394.Core.Power
             return eventName == SolarMatchEventStart || eventName == SolarMatchEventStop;
         }
 
-        public void TryStart()
+        public bool TryConsumePower(TimeSpan amount)
         {
-            Update(0);
+            return IsActive;
         }
 
-        public void TryStop()
+        public void ReturnPower(TimeSpan amount)
         {
         }
 
-        public bool IsPowered => IsActive;
-        public bool IsReady => IsPowered;
+        public TimeSpan ComputePotentialPower(TimeSpan startTime, TimeSpan endTime)
+        {
+            // TODO figure this out
+            if (IsActive)
+            {
+                return endTime - startTime;
+            }
+            return TimeSpan.Zero;
+        }
 
-        public event Action<IMyPowerProvider, bool> PowerStateChanged;
-        public event Action<IMyPowerProvider, bool> ReadyStateChanged;
-        public event Action<bool, bool> StateChanged;
+        public TimeSpan ConsumePotentialPower(TimeSpan consumedTime)
+        {
+            return IsActive ? consumedTime : TimeSpan.Zero;
+        }
+
+        public float PowerEfficiency => 1f;
+        public string PowerProviderName => nameof(EquiSolarObservationComponent);
+        public IEnumerable<MyInventoryBase> AdditionalInventories => Enumerable.Empty<MyInventoryBase>();
+        public event PowerStateChangedDelegate OnPowerChanged;
     }
 
     [MyObjectBuilderDefinition]

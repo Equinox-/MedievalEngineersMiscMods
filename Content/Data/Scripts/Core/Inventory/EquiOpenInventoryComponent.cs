@@ -8,37 +8,38 @@ using Medieval.Definitions.Components;
 using Medieval.Entities.Components;
 using Medieval.ObjectBuilders.Definitions.Components;
 using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Cube;
-using Sandbox.Game.GameSystems;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
 using VRage.Components.Entity;
+using VRage.Components.Entity.CubeGrid;
+using VRage.Components.Physics;
 using VRage.Definitions.Components;
-using VRage.Factory;
+using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
-using VRage.Game.ModAPI;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions;
 using VRage.Session;
-using VRage.Utils;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Inventory
 {
     [MyComponent(typeof(MyObjectBuilder_EquiInventoryPhysicsComponent))]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiInventoryPhysicsComponentDefinition))]
 //    [MyDependency(typeof(MyPositionComponentBase), Critical = true)]
 //    [MyDependency(typeof(MyHierarchyComponentBase), Critical = true)]
     public class EquiInventoryPhysicsComponent : MyPhantomComponent
     {
         private MyPositionComponentBase _positionComponent;
         private readonly MultiComponentReference<MyInventoryBase> _inventories = new MultiComponentReference<MyInventoryBase>();
+
+        [Automatic]
+        private readonly MyFloatingObjects _floatingObjects = null;
 
         public EquiInventoryPhysicsComponent()
         {
@@ -133,7 +134,7 @@ namespace Equinox76561198048419394.Core.Inventory
 
         private void CheckNeedsUpdate()
         {
-            if (!VRage.Session.MySession.Static.IsServer)
+            if (!MySession.Static.IsServer)
                 return;
             if (_updateScheduled)
                 return;
@@ -165,6 +166,7 @@ namespace Equinox76561198048419394.Core.Inventory
             }
         }
 
+        [Update(false)]
         private void Update(long dt)
         {
             _updateScheduled = false;
@@ -178,7 +180,7 @@ namespace Equinox76561198048419394.Core.Inventory
             var maxFloating = (MyAPIGateway.Session?.MaxFloatingObjects ?? 0) * 2 / 3;
             if (maxFloating == 0)
                 maxFloating = int.MaxValue;
-            if (_isDumping && (MyFloatingObjects.FloatingOreCount + MyFloatingObjects.FloatingItemCount) < maxFloating)
+            if (_isDumping && _floatingObjects.FloatingItemCount < maxFloating)
             {
                 var itemSpawned = false;
                 foreach (var inv in _inventories.Components)
@@ -263,8 +265,8 @@ namespace Equinox76561198048419394.Core.Inventory
                         }
 
                         slotOutputPosition.Translation = resultPos.Value;
-                        MyFloatingObjects.Spawn(item, slotOutputPosition, inv.Container.Get<MyPhysicsComponentBase>() ??
-                                                                          inv.Container.Get<MyHierarchyComponentBase>()?.Parent?.Container
+                        _floatingObjects.Spawn(item, slotOutputPosition, inv.Container.Get<MyPhysicsComponentBase>() ??
+                                                                          inv.Container.Get<MyHierarchyComponent>()?.Parent?.Container
                                                                               .Get<MyPhysicsComponentBase>());
                         inv.Remove(item);
                         itemSpawned = true;
@@ -308,13 +310,6 @@ namespace Equinox76561198048419394.Core.Inventory
         {
             var def = vic.Entity?.Definition?.Components;
             if (def == null)
-            {
-                var block = vic.Entity as MyCubeBlock;
-                if (block?.BlockDefinition != null)
-                    def = MyDefinitionManager.Get<MyContainerDefinition>(block.BlockDefinition.Id)?.Components;
-            }
-
-            if (def == null)
                 return null;
             foreach (var k in def)
             {
@@ -336,7 +331,7 @@ namespace Equinox76561198048419394.Core.Inventory
 
         private void ConsumeEntity(MyEntity ent)
         {
-            if (!VRage.Session.MySession.Static.IsServer)
+            if (!MySession.Static.IsServer)
                 return;
             if (ent.Closed || ent.MarkedForClose)
                 return;
@@ -345,29 +340,17 @@ namespace Equinox76561198048419394.Core.Inventory
             var itemId = item?.DefinitionId;
             var amount = item?.Amount ?? 1;
 
-            IMySlimBlock block = null;
             if (item == null)
             {
-                var grid = ent as MyCubeGrid;
+                var grid = ent.Components.Get<MyGridDataComponent>();
                 if (grid == null)
                     return;
-                if (grid.BlocksCount != 1 || grid.Physics == null)
+                if (grid.BlockCount != 1 || ent.Physics == null)
                     return;
-                {
-                    var tmp = Entity;
-                    while (tmp != null)
-                    {
-                        if (tmp == grid)
-                            return;
-                        tmp = tmp.Parent;
-                    }
-                }
-                if ((int) grid.Physics.Mass != grid.GetCurrentMass())
-                    return;
-                block = grid.CubeBlocks.FirstOrDefault();
+                var block = grid.Blocks.FirstOrDefault();
                 if (block == null)
                     return;
-                itemId = block.BlockDefinition.Id;
+                itemId = block.DefinitionId;
             }
 
             foreach (var k in _inventories.Components)

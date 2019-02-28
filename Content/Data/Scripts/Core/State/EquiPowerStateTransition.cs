@@ -1,28 +1,29 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.Components.Crafting;
+using Medieval.Entities.Components.Crafting.Power;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
-using VRage.Factory;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.ObjectBuilders.ComponentSystem;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRage.Utils;
-using Extensions = Equinox76561198048419394.Core.Controller.Extensions;
 
 namespace Equinox76561198048419394.Core.State
 {
     [MyComponent(typeof(MyObjectBuilder_EquiPowerStateTransition))]
     [MyDependency(typeof(MyEntityStateComponent), Critical = true)]
-    [MyDefinitionRequired]
+    [MyDefinitionRequired(typeof(EquiPowerStateTransitionDefinition))]
     public class EquiPowerStateTransition : MyEntityComponent
     {
-        private readonly List<IMyPowerProvider> _providers = new List<IMyPowerProvider>();
+        private readonly List<IPowerProvider> _providers = new List<IPowerProvider>();
         private MyEntityStateComponent _state;
 
         public override void OnAddedToContainer()
@@ -53,22 +54,20 @@ namespace Equinox76561198048419394.Core.State
 
         private void ComponentAdded(MyEntityComponent obj)
         {
-            var p = obj as IMyPowerProvider;
+            var p = obj as IPowerProvider;
             if (p == null)
                 return;
             _providers.Add(p);
-            p.ReadyStateChanged += ReadyStateChanged;
-            p.PowerStateChanged += PowerStateChanged;
+            p.OnPowerChanged += PowerStateChanged;
         }
 
         private void ComponentRemoved(MyEntityComponent obj)
         {
-            var p = obj as IMyPowerProvider;
+            var p = obj as IPowerProvider;
             if (p == null)
                 return;
             _providers.Remove(p);
-            p.ReadyStateChanged -= ReadyStateChanged;
-            p.PowerStateChanged -= PowerStateChanged;
+            p.OnPowerChanged -= PowerStateChanged;
             MarkForUpdate();
         }
 
@@ -77,12 +76,7 @@ namespace Equinox76561198048419394.Core.State
             MarkForUpdate();
         }
 
-        private void PowerStateChanged(IMyPowerProvider arg1, bool arg2)
-        {
-            MarkForUpdate();
-        }
-
-        private void ReadyStateChanged(IMyPowerProvider arg1, bool arg2)
+        private void PowerStateChanged(IPowerProvider arg1, bool arg2)
         {
             MarkForUpdate();
         }
@@ -114,6 +108,7 @@ namespace Equinox76561198048419394.Core.State
             AddScheduledCallback(Update);
         }
 
+        [Update(false)]
         private void Update(long dt)
         {
             if (!Entity.InScene || _state == null || !_needsUpdate)
@@ -174,13 +169,13 @@ namespace Equinox76561198048419394.Core.State
             {
                 var trig = new Trigger(t);
                 if (trig.To == MyStringHash.NullOrEmpty)
-                    MyDefinitionErrors.Add(Context, $"Trigger {trig} in {Id} has no to destination state", TErrorSeverity.Critical);
+                    MyDefinitionErrors.Add(Package, $"Trigger {trig} in {Id} has no to destination state", LogSeverity.Critical);
 
                 _triggersBySource.AddMulti(trig.From, trig);
             }
         }
 
-        public MyStringHash TryTransition(MyStringHash source, IReadOnlyCollection<IMyPowerProvider> providers)
+        public MyStringHash TryTransition(MyStringHash source, IReadOnlyCollection<IPowerProvider> providers)
         {
             if (providers.Count == 0)
                 return MyStringHash.NullOrEmpty;
@@ -192,16 +187,10 @@ namespace Equinox76561198048419394.Core.State
 
             var providersOn = 0;
             foreach (var p in providers)
-                if (p.IsPowered)
+                if (p.TryConsumePower(TimeSpan.FromMilliseconds(1)))
                     providersOn++;
 
-            var providersReady = 0;
-            foreach (var p in providers)
-                if (p.IsReady)
-                    providersReady++;
-
             var allOn = providersOn == providers.Count;
-            var allReady = providersReady == providers.Count;
 
             var enumerable = Enumerable.Empty<Trigger>();
             if (specific != null)
@@ -221,8 +210,7 @@ namespace Equinox76561198048419394.Core.State
                         var success = true;
                         foreach (var k in providers)
                         {
-                            k.TryStop();
-                            success &= !k.IsPowered;
+                            success &= !k.TryConsumePower(TimeSpan.FromMilliseconds(1));
                             if (!success)
                                 break;
                         }
@@ -234,13 +222,12 @@ namespace Equinox76561198048419394.Core.State
                     {
                         if (providersOn > 0)
                             return type.To;
-                        if (!type.AutoStart || providersReady <= 0)
+                        if (!type.AutoStart)
                             continue;
                         var success = false;
                         foreach (var k in providers)
                         {
-                            k.TryStart();
-                            success |= k.IsPowered;
+                            success |= k.TryConsumePower(TimeSpan.FromMilliseconds(1));
                             if (!success)
                                 break;
                         }
@@ -254,13 +241,12 @@ namespace Equinox76561198048419394.Core.State
                     {
                         if (providersOn > 0 && allOn)
                             return type.To;
-                        if (!type.AutoStart || providersReady <= 0 || !allReady)
+                        if (!type.AutoStart)
                             continue;
                         var success = true;
                         foreach (var k in providers)
                         {
-                            k.TryStart();
-                            success &= k.IsPowered;
+                            success &= k.TryConsumePower(TimeSpan.FromMilliseconds(1));
                             if (!success)
                                 break;
                         }
