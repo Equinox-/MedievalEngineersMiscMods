@@ -111,7 +111,7 @@ namespace Equinox76561198048419394.Core.State
         [Update(false)]
         private void Update(long dt)
         {
-            if (!Entity.InScene || _state == null || !_needsUpdate)
+            if (Entity == null || !Entity.InScene || _state == null || !_needsUpdate)
                 return;
             _needsUpdate = false;
             var ns = Definition.TryTransition(_state.CurrentState, _providers);
