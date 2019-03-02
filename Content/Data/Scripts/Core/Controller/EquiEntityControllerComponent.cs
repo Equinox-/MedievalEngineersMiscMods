@@ -5,6 +5,7 @@ using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
+using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
@@ -120,6 +121,34 @@ namespace Equinox76561198048419394.Core.Controller
                     AddScheduledCallback(CommitAnimationStart);
             }
 
+            // Handle restoring character's position
+            if (slot == null && old?.Controllable?.Entity != null && old.Controllable.Entity.InScene)
+            {
+                var relMatrix = _saveData.RelativeOrientation.GetMatrix();
+                if (relMatrix.Scale.AbsMax() < 1)
+                    relMatrix = MatrixD.Identity;
+                var outPos = relMatrix * old.AttachMatrix;
+                var transformedCenter = Vector3.TransformNormal(Entity.PositionComp.LocalVolume.Center, outPos);
+                var translate = MyEntities.FindFreePlace(outPos.Translation + transformedCenter,
+                    Entity.PositionComp.LocalVolume.Radius * .9f, 200, 20, 0.1f, false);
+                if (translate.HasValue)
+                    outPos.Translation = translate.Value - transformedCenter;
+                else
+                    outPos = old.AttachMatrix;
+                var gravity = Vector3.Normalize(MyGravityProviderSystem.CalculateTotalGravityInPoint(outPos.Translation));
+                if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + gravity, out var hit))
+                {
+                    outPos.Translation = hit.Position;
+                }
+
+                Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
+            }
+
+            // Handles storing the character's position when attaching
+            if (slot != null)
+                _saveData.RelativeOrientation = new MyPositionAndOrientation(MatrixD.Normalize(Entity.WorldMatrix * MatrixD.Invert(slot.AttachMatrix)));
+
+
             // Handle keeping the physics in check
             if (Entity.Physics != null)
             {
@@ -135,26 +164,6 @@ namespace Equinox76561198048419394.Core.Controller
                         Entity.Physics.LinearVelocity = oldPhys.GetVelocityAtPoint(old.Controllable.Entity.WorldMatrix.Translation);
                 }
             }
-
-            // Handle restoring character's position
-            if (slot == null && old?.Controllable?.Entity != null && old.Controllable.Entity.InScene)
-            {
-                var relMatrix = _saveData.RelativeOrientation.GetMatrix();
-                if (relMatrix.Scale.AbsMax() < 1)
-                    relMatrix = MatrixD.Identity;
-                var outPos = relMatrix * old.AttachMatrix;
-                var translate = MyAPIGateway.Entities.FindFreePlace(outPos.Translation + Entity.PositionComp.LocalVolume.Center,
-                    Entity.PositionComp.LocalVolume.Radius * .6f, 200, 20, 2f);
-                if (translate.HasValue)
-                    outPos.Translation = translate.Value - Entity.PositionComp.LocalVolume.Center;
-                else
-                    outPos = old.AttachMatrix;
-                Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
-            }
-
-            // Handles storing the character's position when attaching
-            if (slot != null)
-                _saveData.RelativeOrientation = new MyPositionAndOrientation(MatrixD.Normalize(Entity.WorldMatrix * MatrixD.Invert(slot.AttachMatrix)));
 
             _saveData.ControlledEntity = slot?.Controllable.Entity.EntityId ?? 0;
             _saveData.ControlledSlot = slot?.Definition.Name;
