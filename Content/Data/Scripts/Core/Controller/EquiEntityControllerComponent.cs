@@ -128,15 +128,19 @@ namespace Equinox76561198048419394.Core.Controller
                 if (relMatrix.Scale.AbsMax() < 1)
                     relMatrix = MatrixD.Identity;
                 var outPos = relMatrix * old.AttachMatrix;
-                var transformedCenter = Vector3.TransformNormal(Entity.PositionComp.LocalVolume.Center, outPos);
-                var translate = MyEntities.FindFreePlace(outPos.Translation + transformedCenter,
-                    Entity.PositionComp.LocalVolume.Radius * .9f, 200, 20, 0.1f, false);
+                var transformedCenter = Vector3.TransformNormal(Entity.PositionComp.LocalAABB.Center, outPos);
+                var orientation = Quaternion.CreateFromRotationMatrix(Entity.PositionComp.WorldMatrix.GetOrientation());
+                var halfExtents = Entity.PositionComp.LocalAABB.HalfExtents;
+                halfExtents.X *= 0.25f;
+                halfExtents.Z *= 0.25f;
+                var translate = MyEntities.FindFreePlace(outPos.Translation + transformedCenter, orientation, 
+                    halfExtents, 200,20, 0.1f, false);
                 if (translate.HasValue)
                     outPos.Translation = translate.Value - transformedCenter;
                 else
                     outPos = old.AttachMatrix;
                 var gravity = Vector3.Normalize(MyGravityProviderSystem.CalculateTotalGravityInPoint(outPos.Translation));
-                if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + gravity, out var hit))
+                if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + 10 * gravity, out var hit))
                 {
                     outPos.Translation = hit.Position;
                 }

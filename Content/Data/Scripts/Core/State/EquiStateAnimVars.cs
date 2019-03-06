@@ -126,7 +126,10 @@ namespace Equinox76561198048419394.Core.State
                     if (!string.IsNullOrWhiteSpace(instruction.Value) && float.TryParse(instruction.Value, out valOutput))
                         instructions[varKey] = new SetInstruction(valOutput);
                     else if (instruction.Transform.HasValue)
-                        instructions[varKey] = new SetInstruction(new MyTransformD(instruction.Transform.Value.GetMatrix()));
+                    {
+                        var mat = instruction.Transform.Value.GetMatrix();
+                        instructions[varKey] = new SetInstruction(new MyTransformD(in mat));
+                    }
                     else
                         MyDefinitionErrors.Add(Package, $"State {when} instruction {varKey} has no value", LogSeverity.Warning);
                 }

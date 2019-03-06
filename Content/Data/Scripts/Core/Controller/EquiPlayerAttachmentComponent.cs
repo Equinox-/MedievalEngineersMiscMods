@@ -13,7 +13,6 @@ using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Logging;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Utils;
