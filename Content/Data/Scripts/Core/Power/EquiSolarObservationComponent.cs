@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.Entities.Components.Crafting;
 using Medieval.Entities.Components.Crafting.Power;
 using Sandbox.Game.SessionComponents;

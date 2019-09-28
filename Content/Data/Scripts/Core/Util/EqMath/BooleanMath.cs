@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Equinox76561198048419394.Core.Util
+namespace Equinox76561198048419394.Core.Util.EqMath
 {
     public static class BooleanMath
     {
@@ -24,7 +24,7 @@ namespace Equinox76561198048419394.Core.Util
             switch (arr.Length)
             {
                 case 0:
-                    return (x) => true;
+                    return Helper<T>.False;
                 case 1:
                     return arr[0];
                 default:
@@ -49,7 +49,7 @@ namespace Equinox76561198048419394.Core.Util
             switch (arr.Length)
             {
                 case 0:
-                    return (x) => false;
+                    return Helper<T>.False;
                 case 1:
                     return arr[0];
                 default:

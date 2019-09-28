@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+        <Id Type="HandItem" Subtype="TestModifierPlaster"/>
+        <DisplayName>TestModifierPlaster</DisplayName>
+        <Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+        <Size>
+            <X>1.2</X>
+            <Y>0.6</Y>
+            <Z>0.3</Z>
+        </Size>
+        <Mass>0.5</Mass>
+        <Model>Models\Weapons\Axe_OneHandSteel.mwm</Model>
+        <PhysicalMaterial>Axe</PhysicalMaterial>
+        <MaxStackAmount>1</MaxStackAmount>
+        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid"/>
+        <MaxDurability>5</MaxDurability>
+        <Position>
+            <Slot>MainHand</Slot>
+        </Position>
+        <StanceToBehavior>
+            <StanceName>NormalMode</StanceName>
+            <BehaviorId Type="MyObjectBuilder_EquiModifierToolBehaviorDefinition" Subtype="TestModifierPlaster"/>
+        </StanceToBehavior>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiModifierToolBehaviorDefinition">
+        <Id Type="EquiModifierToolBehaviorDefinition" Subtype="TestModifierPlaster"/>
+
+        <Action>
+            <Modifier Type="EquiModifierChangeMaterialDefinition" Subtype="TestModifierPlaster" />
+            <ActionHint>Add plaster</ActionHint>
+            <ItemAction Mode="TakeItem" Tag="Timber" Amount="4" />  <!-- Mode can be: GiveItem, TakeItem, DamageItem, RepairItem, GiveLootTable -->
+            <Inventory>Internal</Inventory> <!-- Inventory ID to give/take items to/from -->
+        </Action>
+        <Action>
+            <Modifier Type="EquiModifierChangeMaterialDefinition" Subtype="TestModifierPlaster" />
+            <ActionHint>Remove plaster</ActionHint>
+            <Remove>tue</Remove>
+            <ItemAction Mode="GiveItem" Tag="Timber" Amount="4" />
+            <Inventory>Internal</Inventory>
+        </Action>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiModifierChangeMaterialDefinition">
+        <Id Type="EquiModifierChangeMaterialDefinition" Subtype="TestModifierPlaster"/>
+        <!-- A tag that can be used to reference this modifier.  See ModifierChangeColor.sbc.example for an example-->
+        <Tag>Paintable</Tag>
+        
+        <!-- You can have multiple changes in a single modifier definition -->
+        <Change Name="Wall_Inner">
+            <!-- The same parameters that are used for mwmbuilder.  If omitted it will use the values from the original model -->
+            <Parameter Name="ParallaxHeight">0.001</Parameter>
+            <Parameter Name="ParallaxBackOffset">0.05</Parameter>
+            <Parameter Name="Technique">MESH</Parameter>
+            <Parameter Name="ColorMetalTexture">Textures\Models\Plaster\Plaster_cm.dds</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\Models\Plaster\Plaster_ng.dds</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\Models\Plaster\Plaster_add.dds</Parameter>
+            <!-- set this to HUE_KEYCOLOR to have the coloring be relative to gray instead of relative to the original color (you want this for paintable objects) -->
+            <Parameter Name="Flags">HUE_KEYCOLOR</Parameter>
+        </Change>
+    </Definition>
+</Definitions>

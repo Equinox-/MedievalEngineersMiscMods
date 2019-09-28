@@ -16,6 +16,7 @@ using VRage.ObjectBuilders;
 using VRage.Session;
 using VRage.Utils;
 using VRageMath;
+using VRageRender;
 
 namespace Equinox76561198048419394.Core.Cloth
 {
@@ -26,13 +27,18 @@ namespace Equinox76561198048419394.Core.Cloth
         public static readonly Vector3 WindVector = new Vector3(1, 0, 0);
         public static readonly float WindStrength = 0.3f;
 
+        private uint _renderObject;
+
         public override void OnAddedToScene()
         {
             base.OnAddedToScene();
+            _renderObject = MyRenderProxy.RENDER_ID_UNASSIGNED;
         }
 
         public override void OnRemovedFromScene()
         {
+            if (_renderObject != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                MyRenderProxy.RemoveRenderObject(ref _renderObject);
             base.OnRemovedFromScene();
         }
 
@@ -52,33 +58,6 @@ namespace Equinox76561198048419394.Core.Cloth
             Vector3 windDir = Vector3.TransformNormal(WindVector, Entity.PositionComp.WorldMatrixNormalizedInv);
             float windStrength = 0;
             {
-//                float3 CalculateWindOffset(float3 position)
-//                {
-//                    const float3 wind_d = frame_.Foliage.wind_vec;
-//                    if ( !any(wind_d) )
-//                        return 0;
-//
-//                    float4 freq = float4(1.975, 0.973, 0.375, 0.193);
-//                    float4 x = mad(frame_.frameTime, length(wind_d), dot(normalize(wind_d), position));
-//                    float4 waves = smooth_triangle_wave(freq * x);
-//
-//                    return normalize(wind_d) * dot(waves, 0.25);
-//                }
-
-//                float4 smooth_curve( float4 x ) 
-//                {
-//                    return x * x *( 3.0 - 2.0 * x );  
-//                }  
-//
-//                float4 triangle_wave( float4 x ) 
-//                {
-//                    return abs( frac( x + 0.5 ) * 2.0 - 1.0 );  
-//                }  
-//
-//                float4 smooth_triangle_wave( float4 x ) 
-//                {
-//                    return smooth_curve( triangle_wave( x ) );  
-//                }  
                 var freq = new Vector4(1.975f, 0.973f, 0.375f, 0.193f);
                 var x = (float) MySession.Static.ElapsedGameTime.TotalSeconds * WindStrength + (float) ((Vector3D) WindVector).Dot(Entity.GetPosition());
                 var waves = freq * x;

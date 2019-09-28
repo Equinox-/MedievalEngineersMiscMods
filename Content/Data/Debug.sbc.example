@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_EquiDebugDefinition">
+        <Id Type="EquiDebugDefinition" Subtype="AnyUniqueSubtype1234" />
+        
+        <!-- YOU SHOULD NEVER PUT A DEBUG DEFINITION IN A PRODUCTION MOD -->
+        
+        <!-- All loggers starting with the given prefix will be logged at the Trace level (useful for programmers) -->
+        <Entry Prefix="Equinox76561198048419394.Core.Modifiers" Level="Trace" />
+
+        <!-- All loggers in Equinox core will be logged at the Debug level (useful for others using Equinox core) -->
+        <Entry Prefix="Equinox76561198048419394.Core" Level="Debug" />
+
+        <!-- All loggers will be logged at the Debug level -->
+        <Entry Prefix="" Level="Debug" />
+    </Definition>
+</Definitions>

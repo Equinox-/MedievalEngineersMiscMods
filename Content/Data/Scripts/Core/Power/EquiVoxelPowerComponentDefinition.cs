@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Core.Util;
 using Medieval.ObjectBuilders.Definitions.Quests.Conditions;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.ObjectBuilders;
@@ -20,10 +20,10 @@ namespace Equinox76561198048419394.Core.Power
         public EquiVoxelPowerComponentDefinition()
         {
             _materialsBacking = new List<MaterialRequirement>();
-            Materials = new ReadOnlyList<MaterialRequirement>(_materialsBacking);
+            Materials = new ListReader<MaterialRequirement>(_materialsBacking);
         }
 
-        public IReadOnlyList<MaterialRequirement> Materials { get; }
+        public ListReader<MaterialRequirement> Materials { get; }
         public float ScanRadius { get; private set; }
         public float ScanMargin { get; private set; }
         public bool PoweredWhenDisturbed { get; private set; }
@@ -31,6 +31,8 @@ namespace Equinox76561198048419394.Core.Power
         public TimeSpan DisturbedTime { get; private set; }
         public VoxelPowerCountMode Mode { get; private set; }
         public bool DebugMode { get; private set; }
+        
+        public string Name { get; private set; }
 
         public QuestConditionCompositeOperator Operator { get; private set; }
 
@@ -68,6 +70,7 @@ namespace Equinox76561198048419394.Core.Power
             DisturbedTime = ob.DisturbedTime;
             PoweredWhenDisturbed = ob.PoweredWhenDisturbed;
             DebugMode = ob.DebugMode;
+            Name = ob.Name;
         }
     }
 
@@ -103,6 +106,8 @@ namespace Equinox76561198048419394.Core.Power
         public TimeDefinition DisturbedTime;
 
         public List<MaterialRequirement> Materials;
+
+        public string Name;
 
         public struct MaterialRequirement
         {

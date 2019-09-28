@@ -76,21 +76,21 @@ namespace Equinox76561198048419394.Core.State
                 _backing[MyStringHash.GetOrCompute(k.State)] = k.Model;
         }
     }
-}
 
-[MyObjectBuilderDefinition]
-[XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-public class MyObjectBuilder_EquiStateModelComponentDefinition : MyObjectBuilder_EntityComponentDefinition
-{
-    public struct Entry
+    [MyObjectBuilderDefinition]
+    [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
+    public class MyObjectBuilder_EquiStateModelComponentDefinition : MyObjectBuilder_EntityComponentDefinition
     {
-        [XmlAttribute]
-        public string State;
+        public struct Entry
+        {
+            [XmlAttribute]
+            public string State;
 
-        [XmlAttribute]
-        public string Model;
+            [XmlAttribute]
+            public string Model;
+        }
+
+        [XmlElement("Entry")]
+        public Entry[] Entries;
     }
-
-    [XmlElement("Entry")]
-    public Entry[] Entries;
 }

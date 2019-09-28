@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.GameSystems;
 using Medieval.ObjectBuilders.Components;
 using Sandbox.Game.SessionComponents;
@@ -277,10 +278,10 @@ namespace Equinox76561198048419394.Core.Power
                     if (longitude != null && !longitude.Value.ValueBetween((float) value.Longitude))
                         return false;
 
-                    if (season != null && !season.Value.HasFlagEq(value.Season))
+                    if (season != null && !season.Value.HasFlags(value.Season))
                         return false;
 
-                    if (timeOfDay != null && !timeOfDay.Value.HasFlagEq(value.TimeOfDay))
+                    if (timeOfDay != null && !timeOfDay.Value.HasFlags(value.TimeOfDay))
                         return false;
 
                     // ReSharper disable once InvertIf

@@ -9,16 +9,30 @@ using VRage.Library.Utils;
 using VRage.ObjectBuilders.Definitions.Inventory;
 using VRage.Utils;
 
-namespace Equinox76561198048419394.Core.Util
+namespace Equinox76561198048419394.Core.Inventory
 {
     /// <summary>
     /// Copy of MyInventoryBaseLootExtensions with lucky rolls
     /// </summary>
     public static class LuckyLoot
     {
+        public static readonly LootContext DefaultLoot = new LootContext(1, 0);
+
+        public struct LootContext
+        {
+            public readonly float RollMultiplier;
+            public readonly float RollAdditive;
+
+            public LootContext(float rollMultiplier, float rollAdditive)
+            {
+                RollMultiplier = rollMultiplier;
+                RollAdditive = rollAdditive;
+            }
+        }
+
 
         public static void GenerateLuckyContent(this MyInventoryBase inventory, MyLootTableDefinition lootTableDefinition,
-            float rollMultiplier, float rollAdditive, HashSet<MyStringHash> blacklistedLootTables = null)
+            LootContext context, HashSet<MyStringHash> blacklistedLootTables = null)
         {
             var cachingHashSet = new CachingHashSet<MyLootTableDefinition.Row>();
             foreach (var item in lootTableDefinition.LootTable)
@@ -34,10 +48,10 @@ namespace Equinox76561198048419394.Core.Util
                 {
                     if (row.ItemDefinition.Value.TypeId == typeof(MyObjectBuilder_LootTableDefinition))
                     {
-                        var myLootTableDefinition = MyDefinitionManager.Get<MyLootTableDefinition>(row.ItemDefinition.Value);
-                        if (myLootTableDefinition != null && !blacklistedLootTables.Contains(myLootTableDefinition.Id.SubtypeId))
+                        var nestedTable = MyDefinitionManager.Get<MyLootTableDefinition>(row.ItemDefinition.Value);
+                        if (nestedTable != null && !blacklistedLootTables.Contains(nestedTable.Id.SubtypeId))
                         {
-                            inventory.GenerateLuckyContent(myLootTableDefinition, rollMultiplier, rollAdditive, blacklistedLootTables);
+                            inventory.GenerateLuckyContent(nestedTable, context, blacklistedLootTables);
                         }
                     }
                     else
@@ -55,7 +69,7 @@ namespace Equinox76561198048419394.Core.Util
                 num += row.Weight;
             }
 
-            var rollLucky = Math.Round(lootTableDefinition.Rolls * rollMultiplier + rollAdditive);
+            var rollLucky = Math.Round(lootTableDefinition.Rolls * context.RollMultiplier + context.RollAdditive);
             for (var j = 0; j < rollLucky; j++)
             {
                 var num2 = MyRandom.Instance.NextFloat(0f, num);
@@ -67,11 +81,9 @@ namespace Equinox76561198048419394.Core.Util
                         continue;
                     if (row2.ItemDefinition.Value.TypeId == typeof(MyObjectBuilder_LootTableDefinition))
                     {
-                        var myLootTableDefinition2 = MyDefinitionManager.Get<MyLootTableDefinition>(row2.ItemDefinition.Value);
-                        if (myLootTableDefinition2 != null)
-                        {
-                            inventory.GenerateLuckyContent(myLootTableDefinition2, rollMultiplier, rollAdditive);
-                        }
+                        var nestedTable = MyDefinitionManager.Get<MyLootTableDefinition>(row2.ItemDefinition.Value);
+                        if (nestedTable != null)
+                            inventory.GenerateLuckyContent(nestedTable, context);
                     }
                     else
                     {

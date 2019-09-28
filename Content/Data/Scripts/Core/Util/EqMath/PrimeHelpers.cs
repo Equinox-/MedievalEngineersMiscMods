@@ -1,6 +1,6 @@
 using System;
 
-namespace Equinox76561198048419394.Core.Util
+namespace Equinox76561198048419394.Core.Util.EqMath
 {
     public static class PrimeHelpers
     {

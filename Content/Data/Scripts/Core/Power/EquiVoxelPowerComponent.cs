@@ -382,7 +382,7 @@ namespace Equinox76561198048419394.Core.Power
         }
 
         public float PowerEfficiency => 1f;
-        public string PowerProviderName => nameof(EquiVoxelPowerComponent);
+        public string PowerProviderName => Definition?.Name ?? "Voxel";
         public IEnumerable<MyInventoryBase> AdditionalInventories => Enumerable.Empty<MyInventoryBase>();
         public event PowerStateChangedDelegate OnPowerChanged;
     }

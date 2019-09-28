@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+        <Id Type="HandItem" Subtype="TestModifierTool"/>
+        <DisplayName>TestModifierTool</DisplayName>
+        <Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+        <Size>
+            <X>1.2</X>
+            <Y>0.6</Y>
+            <Z>0.3</Z>
+        </Size>
+        <Mass>0.5</Mass>
+        <Model>Models\Weapons\Axe_OneHandSteel.mwm</Model>
+        <PhysicalMaterial>Axe</PhysicalMaterial>
+        <MaxStackAmount>1</MaxStackAmount>
+        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid"/>
+        <MaxDurability>5</MaxDurability>
+        <Position>
+            <Slot>MainHand</Slot>
+        </Position>
+        <StanceToBehavior>
+            <StanceName>NormalMode</StanceName>
+            <BehaviorId Type="MyObjectBuilder_EquiModifierToolBehaviorDefinition" Subtype="TestModifierTool"/>
+        </StanceToBehavior>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiModifierToolBehaviorDefinition">
+        <Id Type="EquiModifierToolBehaviorDefinition" Subtype="TestModifierTool"/>
+        <!-- The modifier to add or remove -->
+        <Modifier Type="EquiModifierChangeModelDefinition" Subtype="Test" />
+
+        <Action>
+            <Modifier Type="EquiModifierChangeModelDefinition" Subtype="TestChangeModel" />
+            <ActionHint>Change model</ActionHint>
+            <ItemAction Mode="TakeItem" Tag="Timber" Amount="4" />  <!-- Mode can be: GiveItem, TakeItem, DamageItem, RepairItem, GiveLootTable -->
+            <Inventory>Internal</Inventory> <!-- Inventory ID to give/take items to/from -->
+        </Action>
+        <Action>
+            <Modifier Type="EquiModifierChangeModelDefinition" Subtype="TestChangeModel" />
+            <ActionHint>Change model</ActionHint>
+            <Remove>tue</Remove>
+            <ItemAction Mode="GiveItem" Tag="Timber" Amount="4" />
+            <Inventory>Internal</Inventory>
+        </Action>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiModifierChangeModelDefinition">
+        <Id Type="EquiModifierChangeModelDefinition" Subtype="TestChangeModel"/>
+        <!-- Can repeat -->
+        <Change From="Models\Cubes\large\WoodenBlocks\SupportWood_V1.mwm">
+            <To Model="Models\Cubes\large\WoodenBlocks\SupportWoodSlope_V1.mwm" Weight="2"/>
+            <To Model="Models\Cubes\large\LogWalls\WallWoodLog.mwm" Weight="1"/>
+        </Change>
+    </Definition>
+</Definitions>

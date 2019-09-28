@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <!--
+        Base definition that should contain every model that should be colorable using any techinque.
+        If you want a modifier that paints a specific color CopyFrom this definition and override the ColorMask.
+        If you want to add a new colorable material usable anywhere Merge=Append onto THIS definition with the material(s) you are adding
+    -->
+    <Definition xsi:type="MyObjectBuilder_EquiModifierChangeColorDefinition" Merge="Append">
+        <Id Type="EquiModifierChangeColorDefinition" Subtype="ChangeColorBase" />
+
+        <!-- This modifier should explicitly have no color mask, so the color is stored in the modifier data -->
+        <!-- <ColorMask x="1.0" y="1.0" z="1.0" /> -->
+        
+        <!-- Materials that are setup for being recolored.  -->
+        <!-- <MaterialDependency>PaintablePlaster</MaterialDependency> -->
+        
+        <!-- Modifiers that make an object become paintable -->
+        <ModifierDependency Tag="Paintable" />
+    </Definition>
+</Definitions>

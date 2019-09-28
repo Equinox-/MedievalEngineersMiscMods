@@ -24,7 +24,7 @@ namespace Equinox76561198048419394.Core.Controller
     [MyDependency(typeof(MyUseObjectsComponent), Critical = true)]
     [MyDefinitionRequired(typeof(EquiPlayerAttachmentComponentDefinition))]
     [ReplicatedComponent]
-    public class EquiPlayerAttachmentComponent : MyEntityComponent, IMyGenericUseObjectInterface, IMyEventProxy
+    public class EquiPlayerAttachmentComponent : MyEntityComponent, IMyGenericUseObjectInterfaceFiltered, IMyEventProxy
     {
         private EquiPlayerAttachmentComponentDefinition _definition;
 
@@ -40,15 +40,7 @@ namespace Equinox76561198048419394.Core.Controller
             foreach (var k in _definition.Attachments)
                 _states.Add(k.Name, new Slot(this, k));
         }
-
-        private readonly List<MyUseObjectGeneric> _genericUseObjects = new List<MyUseObjectGeneric>();
-
-        public override void OnAddedToScene()
-        {
-            base.OnAddedToScene();
-            AddScheduledCallback(RegisterLazy);
-        }
-
+        
         public IEnumerable<Slot> GetSlots()
         {
             return _states.Values;
@@ -69,29 +61,6 @@ namespace Equinox76561198048419394.Core.Controller
             return _states.Values.Select(x => x.AttachedCharacter).Where(x => x != null);
         }
 
-        [Update(false)]
-        private void RegisterLazy(long dt)
-        {
-            if (Entity == null || !Entity.InScene)
-                return;
-            var component = Entity.Components.Get<MyUseObjectsComponentBase>();
-            _genericUseObjects.Clear();
-            component?.GetInteractiveObjects(_genericUseObjects);
-
-            if (_genericUseObjects.Count == 0)
-            {
-                this.GetLogger().Warning(
-                    $"Failed to find use object for {nameof(EquiPlayerAttachmentComponent)} {_definition.Id}");
-                foreach (var t in _genericUseObjects)
-                    this.GetLogger().Info($"Detector " + t);
-                return;
-            }
-
-            foreach (var k in _genericUseObjects)
-                if (_definition.AttachmentForDummy(k.GetDummyName()) != null)
-                    k.Interface = this;
-        }
-
         public override void OnRemovedFromScene()
         {
             foreach (var state in _states.Values)
@@ -107,11 +76,6 @@ namespace Equinox76561198048419394.Core.Controller
                 else
                     c.ChangeSlotInternal(null, 0f);
             }
-
-            RemoveScheduledUpdate(RegisterLazy);
-            foreach (var k in _genericUseObjects)
-                k.Interface = null;
-            _genericUseObjects.Clear();
             base.OnRemovedFromScene();
         }
 
@@ -151,6 +115,10 @@ namespace Equinox76561198048419394.Core.Controller
         public UseActionEnum PrimaryAction => UseActionEnum.Manipulate;
         public UseActionEnum SecondaryAction => UseActionEnum.None;
         public bool ContinuousUsage => false;
+        public bool AppliesTo(string dummyName)
+        {
+            return dummyName != null && _definition.AttachmentForDummy(dummyName) != null;
+        }
 
         #endregion
 
@@ -269,29 +237,6 @@ namespace Equinox76561198048419394.Core.Controller
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiPlayerAttachmentComponent : MyObjectBuilder_EntityComponent
     {
-        #region Legacy
-
-        public long? Entity;
-        public MyPositionAndOrientation Relative;
-        public int AnimationId;
-
-        public bool ShouldSerializeEntity()
-        {
-            return false;
-        }
-
-        public bool ShouldSerializeRelative()
-        {
-            return false;
-        }
-
-        public bool ShouldSerializeAnimationId()
-        {
-            return false;
-        }
-
-        #endregion
-
         public AttachmentData[] Attached;
 
         public struct AttachmentData

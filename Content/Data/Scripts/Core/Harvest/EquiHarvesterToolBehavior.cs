@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Inventory;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Constants;
 using Medieval.GameSystems;
@@ -72,7 +73,7 @@ namespace Equinox76561198048419394.Core.Harvest
             var inv = lootBag.Get<MyInventoryBase>();
             if (inv == null)
                 return;
-            inv.GenerateLuckyContent(data.LootTable, _definition.LuckMultiplier, _definition.LuckAddition);
+            inv.GenerateLuckyContent(data.LootTable, new LuckyLoot.LootContext(_definition.LuckMultiplier, _definition.LuckAddition));
 
             if (_definition.OutputInventory != MyStringHash.NullOrEmpty)
             {
