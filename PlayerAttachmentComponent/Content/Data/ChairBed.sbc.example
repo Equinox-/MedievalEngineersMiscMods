@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Definition xsi:type="MyObjectBuilder_UseObjectsComponentDefinition">
+    <Id Type="UseObjectsComponent" Subtype="GenericBoundingBoxUse"/>
+    <LoadFromModel>false</LoadFromModel>
+    <CustomUseObject Dummy="detector_generic_sit" Name="generic"/>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_EquiPlayerAttachmentComponentDefinition">
+    <Id Type="EquiPlayerAttachmentComponent" Subtype="ChairComponent"/>
+
+    <Attachment Name="default">
+      <!-- defines the anchor point on the model.  This is where the character's bottom ends up -->
+      <Anchor>
+        <Position x="0" y="0" z="0" />
+        <Forward x="0" y="0" z="1" />
+        <Up x="0" y="1" z="0" />
+      </Anchor>
+      <!-- possible triggers to use -->
+      <Animations>
+        <!-- animation entry trigger is equi_sit_standard.  Exit trigger is equi_attach_end.  Probability to choose this is 1 -->
+        <AnimationDesc Start="equi_sit_standard" Stop="equi_attach_end" Weight="1" />
+        <AnimationDesc Start="equi_sit_anklecross" Stop="equi_attach_end" Weight="1" />
+      </Animations>
+      <!-- Hud helper when trying to sit in an empty chair -->
+      <EmptyAction Text="Sit down" />
+      <!-- Hud helper when trying to sit in an occupied chair -->
+      <OccupiedAction Text="Occupied" />
+
+      <!-- The name of the dummy that defined the use object to bind to.  You can repeat this element. -->
+      <DummyName>detector_generic_sit</DummyName>
+    </Attachment>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+    <Id Type="CubeBlock" Subtype="ChairWood" />
+
+    <Component Type="UseObjectsComponent" Subtype="GenericBoundingBoxUse"/>
+    <Component Type="EquiPlayerAttachmentComponent" Subtype="ChairComponent"/>
+  </Definition>
+
+
+
+  <Definition xsi:type="MyObjectBuilder_EquiPlayerAttachmentComponentDefinition">
+    <Id Type="EquiPlayerAttachmentComponent" Subtype="BedComponent"/>
+
+    <Attachment Name="default">
+      <!-- defines the anchor point on the model.  This is where the character's bottom ends up -->
+      <Anchor>
+        <Position x="0" y="0" z="0" />
+        <Forward x="0" y="0" z="1" />
+        <Up x="0" y="1" z="0" />
+      </Anchor>
+      <!-- possible triggers to use -->
+      <Animations>
+        <!-- animation entry trigger is equi_lay_standard.  Exit trigger is equi_attach_end.  Probability to choose this is 1 -->
+        <AnimationDesc Start="equi_lay_standard" Stop="equi_attach_end" Weight="1" />
+      </Animations>
+      <!-- Hud helper when trying to sit in an empty chair -->
+      <EmptyAction Text="Lay down" />
+      <!-- Hud helper when trying to sit in an occupied chair -->
+      <OccupiedAction Text="Occupied" />
+
+      <!-- The name of the dummy that defined the use object to bind to.  You can repeat this element. -->
+      <DummyName>detector_generic_lay</DummyName>
+    </Attachment>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_ContainerDefinition">
+    <Id Type="CubeBlock" Subtype="BedWood" />
+
+    <Component Type="UseObjectsComponent" Subtype="GenericBoundingBoxUse"/>
+    <Component Type="EquiPlayerAttachmentComponent" Subtype="BedComponent"/>
+  </Definition>
+</Definitions>

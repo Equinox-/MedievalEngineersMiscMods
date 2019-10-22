@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Definition xsi:type="MyObjectBuilder_EquiPlayerAttachmentComponentDefinition">
+    <Id Type="EquiPlayerAttachmentComponent" Subtype="BedWood"/>
+
+    <Attachment Name="default">
+      <Anchor>
+        <Position x="0" y="0.1" z="0" />
+        <Forward x="0" y="0" z="1" />
+        <Up x="0" y="1" z="0" />
+      </Anchor>
+      <Animations>
+        <AnimationDesc Start="equi_lay_standard" Stop="equi_attach_end" Weight="1" />
+      </Animations>
+      <EmptyAction Text="Lay down" />
+      <OccupiedAction Text="Occupied" />
+      <DummyName>detector_sleep</DummyName>
+
+      <Effects When="Enter">
+        <Operation Type="CompositeEntityEffect" Subtype="Sleeping" Operation="Add" />
+      </Effects> 
+
+      <Effects When="Leave">
+        <Operation Type="CompositeEntityEffect" Subtype="Sleeping" Operation="Remove" />
+      </Effects>
+    </Attachment>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_UseObjectsComponentDefinition">
+    <Id Type="UseObjectsComponent" Subtype="BedWood"/>
+    <LoadFromModel>false</LoadFromModel>
+    <UseObjects>
+      <UseObject Dummy="detector_sleep" Name="generic" />
+      <UseObject Dummy="detector_ownership" Name="ownership" />
+    </UseObjects>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+    <Id Type="EntityBase" Subtype="Sleepable" />
+    
+    <Component Type="EquiSleepComponent" />
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+    <Id Type="Block" Subtype="BedWood" />
+
+    <Component Type="EquiSleepComponent" />
+    <Component Type="EquiPlayerAttachmentComponent" Subtype="BedWood"/>
+    <Component Type="UseObjectsComponent" Subtype="BedWood"/>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_CompositeEntityEffectDefinition">
+    <Id Type="CompositeEntityEffect" Subtype="Sleeping" />
+    <DisplayName>Sleeping</DisplayName>
+    <Description>Sleeping</Description>
+    <Icon>Textures\HUD\StatsAndEffects\Stats_Center.png</Icon>
+    <Icon>Textures\HUD\StatsAndEffects\Resting.png</Icon>
+    <EffectType>Positive</EffectType>
+
+    <Effect Type="EntityStatEffect" Subtype="SleepingStamina" />
+    <Effect Type="EntityStatEffect" Subtype="SleepingHealth" />
+    <Effect Type="EntityStatEffect" Subtype="SleepingFood" />
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_EntityStatEffectDefinition">
+    <Id Type="EntityStatEffect" Subtype="SleepingStamina" />
+    <DisplayName>Sleeping</DisplayName>
+    <Description>Sleeping</Description>
+    <Public>false</Public>
+    <EffectType>Positive</EffectType>
+    <Stat>Stamina</Stat>
+    <RegenPerSecond>8</RegenPerSecond>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_EntityStatEffectDefinition">
+    <Id Type="EntityStatEffect" Subtype="SleepingHealth" />
+    <DisplayName>Sleeping</DisplayName>
+    <Description>Sleeping</Description>
+    <Public>false</Public>
+    <EffectType>Positive</EffectType>
+    <Stat>Health</Stat>
+    <RegenPerSecond>1</RegenPerSecond>
+    <RegenLimit>80</RegenLimit>
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_EntityStatEffectDefinition">
+    <Id Type="EntityStatEffect" Subtype="SleepingFood" />
+    <DisplayName>Sleeping</DisplayName>
+    <Description>Sleeping</Description>
+    <Public>false</Public>
+    <EffectType>Negative</EffectType>
+    <Stat>Food</Stat>
+    <RegenPerSecond>-0.5</RegenPerSecond>
+    <RegenLimit>10</RegenLimit>
+  </Definition>
+</Definitions>
