@@ -31,7 +31,7 @@ namespace Equinox76561198048419394.Core.Mirz.Components
     [MyDependency(typeof(MyInventoryBase))]
     [MyDependency(typeof(MyUseObjectsComponentBase))]
     [MyDefinitionRequired(typeof(MrzInventoryInteractionComponentDefinition))]
-    public class MrzInventoryInteractionComponent : MyEntityComponent, IMyGenericUseObjectInterfaceFiltered, IMyEventProxy
+    public class MrzInventoryInteractionComponent : MyEntityComponent, IMyGenericUseObjectInterface, IMyEventProxy
     {
         private MyInventoryBase _inventory;
         private MyUseObjectGeneric _useObj;

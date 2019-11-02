@@ -24,7 +24,7 @@ namespace Equinox76561198048419394.Core.Controller
     [MyDependency(typeof(MyUseObjectsComponent), Critical = true)]
     [MyDefinitionRequired(typeof(EquiPlayerAttachmentComponentDefinition))]
     [ReplicatedComponent]
-    public class EquiPlayerAttachmentComponent : MyEntityComponent, IMyGenericUseObjectInterfaceFiltered, IMyEventProxy
+    public class EquiPlayerAttachmentComponent : MyEntityComponent, IMyGenericUseObjectInterface, IMyEventProxy
     {
         private EquiPlayerAttachmentComponentDefinition _definition;
 
