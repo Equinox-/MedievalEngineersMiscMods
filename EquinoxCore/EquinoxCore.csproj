@@ -621,7 +621,7 @@
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponentDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\SerializableControlledId.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags..cs" />
+    <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiDebugDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Harvest\EquiHarvestableComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Harvest\EquiHarvesterToolBehavior.cs" />
@@ -678,7 +678,6 @@
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Def\ModifierContext.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Def\ModifierOutput.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiGridModifierComponent.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiGridModifierComponentBackup.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiModifierStorageComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiModifierOutputHelpers.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Tool\EquiMaterialHere.cs" />
@@ -717,6 +716,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\ISerializer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqSpan.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqReadOnlySpan.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\Memory\MemoryStream.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\SpanAllocator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MessageUtil.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MultiComponentReference.cs" />

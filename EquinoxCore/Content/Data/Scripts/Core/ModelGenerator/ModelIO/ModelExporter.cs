@@ -124,7 +124,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator.ModelIO
             list.Add(string.Format("Version:{0}", 1157002));
             stream.ExportData("Debug", list.ToArray());
 
-            using (var cacheStream = new MemoryStream(1024 * 1024))
+            using (var cacheStream = new Equinox76561198048419394.Core.Util.Memory.MemoryStream(1024 * 1024))
             using (var cacheWriter = new BinaryWriter(cacheStream))
             {
                 stream.WriteIndexDictionary(ExportTags(cacheWriter, tagData));

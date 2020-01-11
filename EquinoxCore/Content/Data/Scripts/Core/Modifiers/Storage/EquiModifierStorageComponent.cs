@@ -160,7 +160,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             if (!modifier.CanApply(in ctx))
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
-                    this.GetLogger().Info($"Not adding {modifier.Id} to {key} it can't be applied to {ctx}");
+                    this.GetLogger().Info($"Not adding {modifier.Id} to {key} since it can't be applied to {ctx}");
                 return;
             }
             var modifierData = (useData ?? modifier.CreateData(in ctx))?.Serialize() ?? "";
