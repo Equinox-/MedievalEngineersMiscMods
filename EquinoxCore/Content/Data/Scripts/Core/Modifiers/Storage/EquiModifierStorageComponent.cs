@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Xml.Serialization;
@@ -15,15 +16,15 @@ using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
 using VRage.Library.Threading;
 using VRage.Network;
+using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
 using VRage.Session;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
-    public abstract class EquiModifierStorageComponent<TRtKey, TObKey, TObSeed> : MyEntityComponent, IMyEventProxy
+    public abstract class EquiModifierStorageComponent<TRtKey, TObKey> : MyEntityComponent, IMyEventProxy
         where TRtKey : struct, IModifierRtKey<TObKey>, IEquatable<TRtKey>
-        where TObKey : struct, IModifierObKey<TRtKey>
-        where TObSeed : struct, IModifierObSeed<TObKey>
+        where TObKey : struct, IModifierObKey<TRtKey>, IMyRemappable
     {
         protected readonly FastResourceLock Lock = new FastResourceLock();
 
@@ -33,7 +34,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         protected readonly Dictionary<ModifierDataKey, IModifierData> ModifierData = new Dictionary<ModifierDataKey, IModifierData>();
 
 
-        public delegate void ModifiersAppliedDelegate(EquiModifierStorageComponent<TRtKey, TObKey, TObSeed> owner, TRtKey block);
+        public delegate void ModifiersAppliedDelegate(EquiModifierStorageComponent<TRtKey, TObKey> owner, TRtKey block);
 
         public event ModifiersAppliedDelegate ModifiersApplied;
 
@@ -107,7 +108,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
                     foreach (var rem in toRemove)
                     {
-                        if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
+                        if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                             this.GetLogger().Info($"Removing {rem} since context creation failed");
                         Modifiers.Remove(rem);
                     }
@@ -121,7 +122,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
                     foreach (var rem in toRemove)
                     {
-                        if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
+                        if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                             this.GetLogger().Info($"Removing {rem} since context creation failed");
                         ModifierData.Remove(rem);
                     }
@@ -139,7 +140,18 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         private InterningBag<EquiModifierBaseDefinition> GetModifiersUnsafe(in TRtKey block)
         {
-            return Modifiers.GetValueOrDefault(block, InterningBag<EquiModifierBaseDefinition>.Empty);
+            var tmp = block;
+            while (true)
+            {
+                if (Modifiers.TryGetValue(tmp, out var result))
+                {
+                    return result;
+                }
+                if (!TryGetParent(tmp, out tmp))
+                {
+                    return InterningBag<EquiModifierBaseDefinition>.Empty;
+                }
+            }
         }
 
         public InterningBag<EquiModifierBaseDefinition> GetModifiers(in TRtKey block)
@@ -152,17 +164,18 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         {
             if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not adding {modifier.Id} to {key} since context creation failed");
                 return;
             }
 
             if (!modifier.CanApply(in ctx))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
-                    this.GetLogger().Info($"Not adding {modifier.Id} to {key} since it can't be applied to {ctx}");
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
+                    this.GetLogger().Info($"Not adding {modifier} to {key} since it can't be applied to {ctx}");
                 return;
             }
+
             var modifierData = (useData ?? modifier.CreateData(in ctx))?.Serialize() ?? "";
             RaiseAddModifierInternal(in key, in modifier.Id, modifierData);
         }
@@ -171,11 +184,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         {
             if (!GetModifiers(in key).Contains(modifier))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Can't update {modifier.Id} on {key} with {useData}");
                 return;
             }
-            
+
             RaiseUpdateModifierInternal(in key, modifier.Id, useData?.Serialize() ?? "");
         }
 
@@ -193,7 +206,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             var modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
             if (modifierDef == null)
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not adding {modifier} to {key} since {modifier} doesn't seem to exist");
                 MyEventContext.ValidationFailed();
                 return;
@@ -201,7 +214,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not adding {modifier} to {key} since {MyEventContext.Current.Sender} isn't trusted");
                 MyEventContext.ValidationFailed();
                 return;
@@ -209,7 +222,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not adding {modifier} to {key} since context creation failed");
                 MyEventContext.ValidationFailed();
                 return;
@@ -217,7 +230,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!modifierDef.CanApply(in ctx))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not adding {modifier} to {key} since it can't be applied to {ctx}");
                 MyEventContext.ValidationFailed();
                 return;
@@ -229,18 +242,19 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 var edited = mods.With(modifierDef);
                 if (mods.Equals(edited))
                 {
-                    if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
+                    if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                         this.GetLogger().Info($"Adding {modifier} to {key} was a no-op");
                     MyEventContext.ValidationFailed();
                     return;
                 }
-                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
+
+                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Adding {modifier} to {key}");
 
                 foreach (var k in mods)
                     if (modifierDef.ShouldEvict(k))
                     {
-                        if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                        if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                             this.GetLogger().Info($"Evicting {k} from {key} while adding {modifier}");
                         ModifierData.Remove(new ModifierDataKey(key, k.Id));
                         edited = edited.Without(k);
@@ -263,7 +277,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             var modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
             if (modifierDef == null)
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not updating {modifier} on {key} since {modifier} doesn't seem to exist");
                 MyEventContext.ValidationFailed();
                 return;
@@ -271,7 +285,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not updating {modifier} on {key} since {MyEventContext.Current.Sender} isn't trusted");
                 MyEventContext.ValidationFailed();
                 return;
@@ -279,12 +293,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!GetModifiers(in key).Contains(modifierDef))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not updating {modifier} on {key} since it doesn't exist");
                 MyEventContext.ValidationFailed();
                 return;
             }
-            
+
             var dataKey = new ModifierDataKey(key, modifier);
             var dataObj = modifierDef.CreateData(data);
             using (Lock.AcquireExclusiveUsing())
@@ -301,7 +315,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             var modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
             if (modifierDef == null)
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not removing {modifier} from {key} since {modifier} doesn't seem to exist");
                 MyEventContext.ValidationFailed();
                 return;
@@ -309,7 +323,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not removing {modifier} from {key} since {MyEventContext.Current.Sender} isn't trusted");
                 MyEventContext.ValidationFailed();
                 return;
@@ -317,7 +331,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (!TryCreateContext(in key, GetModifiers(key), out var ctx))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not removing {modifier} from {key} since context creation failed");
                 MyEventContext.ValidationFailed();
                 return;
@@ -329,12 +343,13 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 var edited = mods.Without(modifierDef);
                 if (ReferenceEquals(edited, mods))
                 {
-                    if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
+                    if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                         this.GetLogger().Info($"Adding {modifier} to {key} was a no-op");
                     MyEventContext.ValidationFailed();
                     return;
                 }
-                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
+
+                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Removing {modifier} from {key}");
 
                 ModifierData.Remove(new ModifierDataKey(key, modifier));
@@ -350,7 +365,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         }
 
         // No locking
-        protected void RemoveOrMoveInternal(in TRtKey root, EquiModifierStorageComponent<TRtKey, TObKey, TObSeed> other)
+        protected void RemoveOrMoveInternal(in TRtKey root, EquiModifierStorageComponent<TRtKey, TObKey> other)
         {
             using (PoolManager.Get(out List<TRtKey> children))
             {
@@ -392,7 +407,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     if (!v.CanApply(in ctx))
                     {
                         edited = edited.Without(v);
-                        if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                        if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                             this.GetLogger().Info($"Removing {v} from {key} since it is no longer applicable");
                         ModifierData.Remove(new ModifierDataKey(key, v.Id));
                     }
@@ -432,15 +447,16 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 _applyingModifiers = true;
                 if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
                 {
-                    if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,,>)))
+                    if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                         this.GetLogger().Info($"Context creation for {key} failed while applying modifiers");
                     return;
                 }
 
-                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,,>)))
-                    this.GetLogger().Info($"Applying modifiers to {key}");
                 GenerateModifierOutput(in key, in ctx, out var result);
+                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
+                    this.GetLogger().Info($"Applying modifiers to {key}: {ctx.Modifiers} produced {result}");
                 ApplyOutput(in key, in ctx, in result);
+                result.MaterialEditsBuilder?.Dispose();
                 ModifiersApplied?.Invoke(this, key);
             }
             finally
@@ -463,9 +479,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         public override MyObjectBuilder_EntityComponent Serialize(bool copy = false)
         {
-            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey, TObSeed>) base.Serialize(copy);
+            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey>) base.Serialize(copy);
             var tmpModifiers = new Dictionary<InterningBag<EquiModifierBaseDefinition>, List<TObKey>>();
-            var tmpDataSets = new Dictionary<MyDefinitionId, List<TObSeed>>();
+            var tmpDataSets = new Dictionary<DataSetKey, List<TObKey>>();
 
             using (Lock.AcquireSharedUsing())
             {
@@ -478,24 +494,24 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
                 foreach (var block in ModifierData)
                 {
-                    if (!tmpDataSets.TryGetValue(block.Key.Modifier, out var list))
-                        tmpDataSets[block.Key.Modifier] = list = new List<TObSeed>();
-                    list.Add(new TObSeed
-                    {
-                        Key = block.Key.Host.ToObjectBuilder(),
-                        Data = block.Value.Serialize()
-                    });
+                    var dataSet = new DataSetKey(block.Key.Modifier, block.Value.Serialize());
+                    if (string.IsNullOrEmpty(dataSet.Seed))
+                        continue;
+                    if (!tmpDataSets.TryGetValue(dataSet, out var list))
+                        tmpDataSets[dataSet] = list = new List<TObKey>();
+                    list.Add(block.Key.Host.ToObjectBuilder());
                 }
             }
 
-            ob.Modifiers = tmpModifiers.Select(bb => new MyObjectBuilder_EquiModifierStorageComponent<TObKey, TObSeed>.ModifierSet
+            ob.Modifiers = tmpModifiers.Select(bb => new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.ModifierSet
             {
                 Blocks = bb.Value.ToArray(),
                 Modifiers = bb.Key.Select(x => (SerializableDefinitionId) x.Id).ToArray()
             }).ToArray();
-            ob.Storage = tmpDataSets.Select(bb => new MyObjectBuilder_EquiModifierStorageComponent<TObKey, TObSeed>.DataSet
+            ob.Storage = tmpDataSets.Select(bb => new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.DataSet
             {
-                Modifier = bb.Key,
+                Modifier = bb.Key.Id,
+                Seed = bb.Key.Seed,
                 Blocks = bb.Value.ToArray()
             }).ToArray();
             return ob;
@@ -504,7 +520,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         public override void Deserialize(MyObjectBuilder_EntityComponent builder)
         {
             base.Deserialize(builder);
-            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey, TObSeed>) builder;
+            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey>) builder;
             using (Lock.AcquireExclusiveUsing())
             {
                 Modifiers.Clear();
@@ -523,23 +539,47 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         }
 
                 if (ob.Storage != null)
-                    foreach (var dataSets in ob.Storage)
-                        if (dataSets.Blocks != null)
+                    foreach (var dataSet in ob.Storage)
+                        if (dataSet.Blocks != null && !string.IsNullOrEmpty(dataSet.Seed))
                         {
-                            var definition = MyDefinitionManager.Get<EquiModifierBaseDefinition>(dataSets.Modifier);
-                            foreach (var data in dataSets.Blocks)
-                                if (!string.IsNullOrEmpty(data.Data))
-                                    ModifierData[new ModifierDataKey(data.Key.ToRuntime(), dataSets.Modifier)] = definition.CreateData(data.Data);
+                            var definition = MyDefinitionManager.Get<EquiModifierBaseDefinition>(dataSet.Modifier);
+                            foreach (var data in dataSet.Blocks)
+                                ModifierData[new ModifierDataKey(data.ToRuntime(), dataSet.Modifier)] = definition.CreateData(dataSet.Seed);
                         }
             }
         }
 
         public override bool IsSerialized => Modifiers.Count > 0;
+
+        private readonly struct DataSetKey : IEquatable<DataSetKey>
+        {
+            public readonly MyDefinitionId Id;
+            public readonly string Seed;
+
+            public DataSetKey(MyDefinitionId id, string seed)
+            {
+                Id = id;
+                Seed = seed;
+            }
+
+            public bool Equals(DataSetKey other)
+            {
+                return Id.Equals(other.Id) && Seed == other.Seed;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is DataSetKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                return (Id.GetHashCode() * 397) ^ (Seed != null ? Seed.GetHashCode() : 0);
+            }
+        }
     }
 
-    public class MyObjectBuilder_EquiModifierStorageComponent<TKey, TSeed> : MyObjectBuilder_EntityComponent
-        where TKey : struct
-        where TSeed : struct, IModifierObSeed<TKey>
+    public class MyObjectBuilder_EquiModifierStorageComponent<TKey> : MyObjectBuilder_EntityComponent, IMyRemappable where TKey : struct, IMyRemappable
     {
         [XmlElement("Modifiers")]
         public ModifierSet[] Modifiers;
@@ -561,8 +601,27 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             [XmlElement("Modifier")]
             public SerializableDefinitionId Modifier;
 
+            [XmlElement("Data")]
+            public string Seed;
+
             [XmlElement("Object")]
-            public TSeed[] Blocks;
+            public TKey[] Blocks;
+        }
+
+        [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
+        public void Remap(IMySceneRemapper remapper)
+        {
+            if (Modifiers != null)
+                foreach (var modifier in Modifiers)
+                    if (modifier.Blocks != null)
+                        for (var i = 0; i < modifier.Blocks.Length; i++)
+                            modifier.Blocks[i].Remap(remapper);
+            
+            if (Storage != null)
+                foreach (var storage in Storage)
+                    if (storage.Blocks != null)
+                        for (var i = 0; i < storage.Blocks.Length; i++)
+                            storage.Blocks[i].Remap(remapper);
         }
     }
 
@@ -576,14 +635,5 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
     {
         [Pure]
         TRtKey ToRuntime();
-    }
-
-    public interface IModifierObSeed<TKey> where TKey : struct
-    {
-        [XmlIgnore]
-        TKey Key { get; set; }
-
-        [XmlIgnore]
-        string Data { get; set; }
     }
 }

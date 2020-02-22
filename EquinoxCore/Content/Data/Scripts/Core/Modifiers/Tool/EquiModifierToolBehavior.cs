@@ -141,7 +141,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             }
 
             foreach (var act in _definition.Actions)
-                if (act.IsPermitted(in context, material1, material2) && act.Modifier.CanApply(in context))
+                if (act.IsPermitted(in context, material1, material2))
                 {
                     action = act;
                     return true;
@@ -180,11 +180,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                 HandleHit(grid, key, action);
         }
 
-        private void HandleHit<TRtKey, TObKey, TObSeed>(EquiModifierStorageComponent<TRtKey, TObKey, TObSeed> storage, TRtKey key,
+        private void HandleHit<TRtKey, TObKey>(EquiModifierStorageComponent<TRtKey, TObKey> storage, TRtKey key,
             EquiModifierToolBehaviorDefinition.ModifierAction action)
             where TRtKey : struct, IModifierRtKey<TObKey>, IEquatable<TRtKey>
-            where TObKey : struct, IModifierObKey<TRtKey>
-            where TObSeed : struct, IModifierObSeed<TObKey>
+            where TObKey : struct, IModifierObKey<TRtKey>, IMyRemappable
         {
             if (action.ItemActions.Count > 0)
             {
@@ -293,6 +292,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             public bool IsPermitted(in ModifierContext ctx, string targetMaterial, string targetMaterial2)
             {
                 if (Remove != ctx.Modifiers.Contains(Modifier))
+                    return false;
+                if (!Modifier.CanApply(in ctx))
                     return false;
                 if (_requireMaterial.Count > 0)
                 {

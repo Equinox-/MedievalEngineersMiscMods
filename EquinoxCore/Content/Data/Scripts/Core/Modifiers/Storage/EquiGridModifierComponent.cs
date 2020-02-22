@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Debug;
 using Equinox76561198048419394.Core.Mirz.Extensions;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Data;
@@ -24,6 +25,7 @@ using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
 using VRage.Library.Threading;
 using VRage.Network;
+using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
 using VRage.Session;
 using VRage.Utils;
@@ -39,8 +41,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
     [MyDependency(typeof(MyRenderComponentGrid), Critical = false)]
     [MyDependency(typeof(MyGridHierarchyComponent), Critical = false)]
     public class EquiGridModifierComponent : EquiModifierStorageComponent<EquiGridModifierComponent.BlockModifierKey,
-        MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey,
-        MyObjectBuilder_EquiGridModifierComponent.BlockModifierSeed>
+        MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
     {
         public struct BlockModifierKey : IEquatable<BlockModifierKey>, IModifierRtKey<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
         {
@@ -125,8 +126,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return true;
             }
 
-            var blockObj = _gridData.GetBlock(key.Block);
-            if (blockObj is MyGeneratedBlock genBlock)
+            if (_gridData?.GetBlock(key.Block) is MyGeneratedBlock genBlock)
             {
                 parent = new BlockModifierKey(genBlock.ParentBlock, MyStringHash.NullOrEmpty);
                 return true;
@@ -167,7 +167,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 }
             }
 
-            var attachedModels = _gridHierarchy.GetBlockEntity(parent.Block)?.Definition.Get<MyModelAttachmentComponentDefinition>();
+            var attachedModels = _gridHierarchy?.GetBlockEntity(parent.Block)?.Definition.Get<MyModelAttachmentComponentDefinition>();
             if (attachedModels != null)
             {
                 foreach (var point in attachedModels.AttachmentPoints.Keys)
@@ -190,7 +190,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return true;
             }
 
-            var entity = _gridHierarchy.GetBlockEntity(key.Block);
+            var entity = _gridHierarchy?.GetBlockEntity(key.Block);
             var attachment = entity?.Get<MyModelAttachmentComponent>();
             if (attachment == null)
             {
@@ -222,7 +222,13 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         {
             var blockObj = _gridData.GetBlock(key.Block);
             if (blockObj == null)
+            {
+                if (DebugFlags.Debug(typeof(EquiGridModifierComponent)))
+                {
+                    this.GetLogger().Warning($"Attempted to apply modifier output for {key}@{context.Modifiers} -> {output} but found no block with that ID");
+                }
                 return;
+            }
 
             if (key.AttachmentPoint == MyStringHash.NullOrEmpty)
             {
@@ -230,9 +236,16 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return;
             }
 
-            var attached = _gridHierarchy.GetBlockEntity(key.Block)?.Get<MyModelAttachmentComponent>()?.GetAttachedEntities(key.AttachmentPoint);
+            var attached = _gridHierarchy?.GetBlockEntity(key.Block)?.Get<MyModelAttachmentComponent>()?.GetAttachedEntities(key.AttachmentPoint);
             if (!attached.HasValue || attached.Value.Count == 0)
+            {
+                if (DebugFlags.Debug(typeof(EquiGridModifierComponent)))
+                {
+                    this.GetLogger().Warning($"Attempted to apply modifier output for {key}@{context.Modifiers} -> {output} but found no matching attachments");
+                }
                 return;
+            }
+
             foreach (var ent in attached.Value)
             {
                 var ctx = new ModifierContext(ent, context.Modifiers);
@@ -244,6 +257,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 {
                     GenerateModifierOutput(in key, in ctx, out var specializedOutput);
                     EquiModifierOutputHelpers.Apply(in specializedOutput, ent);
+                    specializedOutput.MaterialEditsBuilder?.Dispose();
                 }
             }
         }
@@ -341,11 +355,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
     [MyObjectBuilderDefinition]
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-    public class MyObjectBuilder_EquiGridModifierComponent : MyObjectBuilder_EquiModifierStorageComponent<
-        MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey,
-        MyObjectBuilder_EquiGridModifierComponent.BlockModifierSeed>
+    public class MyObjectBuilder_EquiGridModifierComponent :
+        MyObjectBuilder_EquiModifierStorageComponent<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>,
+        IMyRemappable
     {
-        public struct BlockModifierKey : IModifierObKey<EquiGridModifierComponent.BlockModifierKey>
+        public struct BlockModifierKey : IModifierObKey<EquiGridModifierComponent.BlockModifierKey>, IMyRemappable
         {
             [XmlAttribute("Block")]
             public ulong Block;
@@ -359,35 +373,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             {
                 return new EquiGridModifierComponent.BlockModifierKey(Block, MyStringHash.GetOrCompute(AttachmentPoint));
             }
-        }
 
-        public struct BlockModifierSeed : IModifierObSeed<BlockModifierKey>
-        {
-            [XmlAttribute("Block")]
-            public ulong Block;
-
-            [XmlAttribute("Point")]
-            public string AttachmentPoint;
-
-            public bool ShouldSerializedAttachmentPoint() => !string.IsNullOrEmpty(AttachmentPoint);
-
-            [XmlAttribute("Data")]
-            public string Data;
-
-            BlockModifierKey IModifierObSeed<BlockModifierKey>.Key
+            public void Remap(IMySceneRemapper remapper)
             {
-                get => new BlockModifierKey {Block = Block, AttachmentPoint = AttachmentPoint};
-                set
-                {
-                    Block = value.Block;
-                    AttachmentPoint = value.AttachmentPoint;
-                }
-            }
-
-            string IModifierObSeed<BlockModifierKey>.Data
-            {
-                get => Data;
-                set => Data = value;
+                remapper.RemapObject(MyBlock.SceneType, ref Block);
             }
         }
     }

@@ -38,7 +38,7 @@
         <Action>
             <Modifier Type="EquiModifierChangeModelDefinition" Subtype="TestChangeModel" />
             <ActionHint>Change model</ActionHint>
-            <Remove>tue</Remove>
+            <Remove>true</Remove>
             <ItemAction Mode="GiveItem" Tag="Timber" Amount="4" />
             <Inventory>Internal</Inventory>
         </Action>

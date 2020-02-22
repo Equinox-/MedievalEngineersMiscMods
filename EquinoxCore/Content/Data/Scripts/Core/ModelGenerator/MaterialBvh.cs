@@ -53,7 +53,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
             foreach (var part in parts)
             {
-                var materialName = part.m_MaterialDesc.MaterialName;
+                var materialName = part.m_MaterialDesc?.MaterialName ?? "<<no material>>";
                 using (PoolManager.Get(out List<KeyValuePair<string, MyMeshSectionMeshInfo>> mtlSections))
                 {
                     foreach (var section in sections)

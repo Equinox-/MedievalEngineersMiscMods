@@ -54,7 +54,7 @@ namespace Equinox76561198048419394.Core.Util.Memory
             {
                 return;
             }
-            Array.Resize(ref _buffer, MathHelper.GetNearestBiggerPowerOfTwo(_buffer.Length));
+            Array.Resize(ref _buffer, MathHelper.GetNearestBiggerPowerOfTwo(_buffer.Length + n));
         }
 
         public override int ReadByte()

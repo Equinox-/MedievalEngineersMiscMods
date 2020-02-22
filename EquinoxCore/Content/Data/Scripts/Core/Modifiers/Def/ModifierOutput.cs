@@ -7,6 +7,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
     {
         public string Model;
         public MaterialEditsBuilder MaterialEditsBuilder;
-        public Vector3? ColorMask;
+        public Vector3? ColorMaskHsv;
+
+        public override string ToString()
+        {
+            return $"{nameof(Model)}: {Model}, Materials: {MaterialEditsBuilder}, Color: {ColorMaskHsv}";
+        }
     }
 }

@@ -40,7 +40,7 @@
         <CopyFrom Type="EquiModifierChangeColorDefinition" Subtype="ChangeColorBase" />
 
         <!-- Color mask to apply as a HSV shift from gray (with HUE_KEYCOLOR, HSV shift from default color without HUE_KEYCOLOR) -->
-        <ColorMask x="0.25" y="0.75" z="-0.25" />
+        <ColorMaskHsv x="0.25" y="0.75" z="-0.25" />
         
         <!-- Another modifier that must exist for this modifier to be added.  Either a Tag or a Type+Subtype combo -->
         <!-- This can be used on any modifier to add dependencies -->

@@ -29,20 +29,28 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             if (modifier.MaterialEditsBuilder != null && !IsDedicated)
                 model = MySession.Static.Components.Get<DerivedModelManager>().CreateModel(model, modifier.MaterialEditsBuilder);
 
-            var modelData = MyModels.GetModel(model);
+            var modelData = MyModels.GetModelOnlyData(model);
             if (modelData != null && modelComp.Model != modelData)
+            {
                 modelComp.SetModel(modelData);
+                if (render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
+                {
+                    render.RemoveRenderObjects();
+                    render.AddRenderObjects();
+                }
+            }
 
             if (IsDedicated || render == null)
                 return;
-            if (modifier.ColorMask.HasValue)
+            if (modifier.ColorMaskHsv.HasValue)
             {
                 render.EnableColorMaskHsv = true;
-                modelComp.ColorMask = modifier.ColorMask.Value;
+                modelComp.ColorMask = modifier.ColorMaskHsv.Value;
             }
             else
             {
                 render.EnableColorMaskHsv = false;
+                modelComp.ColorMask = Vector3.Zero;
             }
         }
 
@@ -55,12 +63,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             var modelData = MyModels.GetModelOnlyData(model);
             if (modelData != null && block.Model != modelData)
                 gridData.ChangeModel(block, modelData);
-            
+
             if (IsDedicated || gridRender == null)
                 return;
-            var colorMask = modifier.ColorMask ?? Vector3.Zero;
+            var colorMaskHsv = modifier.ColorMaskHsv ?? Vector3.Zero;
             foreach (var renderable in gridRender.GetBlockRenderObjectIDs(block.Id))
-                MyRenderProxy.UpdateRenderEntity(renderable, null, colorMask);
+                MyRenderProxy.UpdateRenderEntity(renderable, null, colorMaskHsv);
         }
     }
 }

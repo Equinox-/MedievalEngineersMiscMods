@@ -37,6 +37,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                 Collection = null;
                 Model = model;
             }
+
+            public override string ToString()
+            {
+                return Model ?? string.Join(", ", Collection);
+            }
         }
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
@@ -117,6 +122,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         public override bool ShouldEvict(EquiModifierBaseDefinition other)
         {
             return other is EquiModifierChangeModelDefinition || base.ShouldEvict(other);
+        }
+
+        public override string ToString()
+        {
+            return $"{Id}[{_modelReplacements}]";
         }
     }
 

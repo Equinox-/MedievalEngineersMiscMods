@@ -36,7 +36,7 @@
         <Action>
             <Modifier Type="EquiModifierChangeMaterialDefinition" Subtype="TestModifierPlaster" />
             <ActionHint>Remove plaster</ActionHint>
-            <Remove>tue</Remove>
+            <Remove>true</Remove>
             <ItemAction Mode="GiveItem" Tag="Timber" Amount="4" />
             <Inventory>Internal</Inventory>
         </Action>

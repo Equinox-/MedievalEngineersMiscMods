@@ -216,5 +216,10 @@ namespace Equinox76561198048419394.Core.Util
         {
             return GetEnumerator();
         }
+
+        public override string ToString()
+        {
+            return string.Join(", ", this);
+        }
     }
 }

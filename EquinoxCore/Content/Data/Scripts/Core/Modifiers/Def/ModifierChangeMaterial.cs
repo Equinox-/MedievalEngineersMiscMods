@@ -35,9 +35,22 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             foreach (var mod in ob.Replacements)
                 if (mod.Parameters != null)
                 {
-                    if (!_edits.TryGetValue(mod.Name, out var list))
-                        _edits[mod.Name] = list = new List<MaterialEdit>();
-                    mod.GetChanges(list);
+                    if (!string.IsNullOrEmpty(mod.Name))
+                    {
+                        if (!_edits.TryGetValue(mod.Name, out var list))
+                            _edits[mod.Name] = list = new List<MaterialEdit>();
+                        mod.GetChanges(list);
+                    }
+
+                    if (mod.Names != null)
+                    {
+                        foreach (var name in mod.Names)
+                        {
+                            if (!_edits.TryGetValue(name, out var list))
+                                _edits[name] = list = new List<MaterialEdit>();
+                            mod.GetChanges(list);
+                        }
+                    }
                 }
         }
 
@@ -101,6 +114,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         {
             [XmlAttribute]
             public string Name;
+
+            [XmlElement("Names")]
+            public string[] Names;
 
             [XmlElement("Parameter")]
             public MaterialParameter[] Parameters;

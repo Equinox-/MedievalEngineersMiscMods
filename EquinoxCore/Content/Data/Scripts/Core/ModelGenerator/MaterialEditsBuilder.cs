@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using VRage.Collections;
 using VRage.Library.Collections;
 using VRage.Library.Collections.Concurrent;
@@ -47,6 +48,11 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
             _builders.Clear();
             BuilderPool.Add(this);
+        }
+
+        public override string ToString()
+        {
+            return string.Join(", ", _builders.Keys);
         }
     }
 }

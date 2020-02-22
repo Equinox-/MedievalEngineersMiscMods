@@ -4,6 +4,7 @@ using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Util;
+using ObjectBuilders.Definitions.GUI;
 using VRage;
 using VRage.Game;
 using VRage.Game.Definitions;
@@ -21,13 +22,13 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         private HashSet<string> _materialDependencies;
 
-        public Vector3? ColorMask { get; private set; }
+        public Vector3? ColorMaskHsv { get; private set; }
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
             base.Init(def);
             var ob = (MyObjectBuilder_EquiModifierChangeColorDefinition) def;
-            ColorMask = ob.ColorMask;
+            ColorMaskHsv = ob.ColorMaskHsv;
             if (ob.MaterialDependencies != null && ob.MaterialDependencies.Count > 0)
             {
                 _materialDependencies = new HashSet<string>();
@@ -49,10 +50,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         public override void Apply(in ModifierContext ctx, IModifierData data, ref ModifierOutput output)
         {
-            if (ColorMask.HasValue)
-                output.ColorMask = ColorMask.Value;
+            if (ColorMaskHsv.HasValue)
+                output.ColorMaskHsv = ColorMaskHsv.Value;
             else if (data is ModifierDataColor colorMod)
-                output.ColorMask = colorMod.Raw;
+                output.ColorMaskHsv = colorMod.Raw;
         }
 
         public override IModifierData CreateData(in ModifierContext ctx)
@@ -62,12 +63,17 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         public override IModifierData CreateData(string data)
         {
-            return ColorMask.HasValue ? null : new ModifierDataColor(data);
+            return ColorMaskHsv.HasValue ? null : new ModifierDataColor(data);
         }
 
         public override bool ShouldEvict(EquiModifierBaseDefinition other)
         {
             return other is EquiModifierChangeColorDefinition || base.ShouldEvict(other);
+        }
+
+        public override string ToString()
+        {
+            return $"{Id}[{nameof(ColorMaskHsv)}={ColorMaskHsv}]";
         }
     }
 
@@ -75,7 +81,25 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiModifierChangeColorDefinition : MyObjectBuilder_EquiModifierBaseDefinition
     {
-        public SerializableVector3? ColorMask;
+        public ColorDefinitionHSV? ColorMaskHsv;
+
+        public SerializableVector3? ColorMask
+        {
+            // Do not use, only here for back compat
+            get => (Vector3?) ColorMaskHsv;
+            set => ColorMaskHsv = value.HasValue ? (ColorDefinitionHSV?) CastCorrect(value.Value) : null;
+        }
+        
+        // Vanilla one is all kinds of screwed up, so use the fixed one
+        private static ColorDefinitionHSV CastCorrect(Vector3 vector)
+        {
+            return new ColorDefinitionHSV()
+            {
+                H = (int) MathHelper.Clamp(vector.X * 360f, 0f, 360f),
+                S = (int) MathHelper.Clamp(vector.Y * 100f, -100f, 100f),
+                V = (int) MathHelper.Clamp(vector.Z * 100f, -100f, 100f)
+            };
+        }
 
         [XmlElement("MaterialDependency")]
         public List<string> MaterialDependencies;
