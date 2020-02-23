@@ -5,6 +5,9 @@
         
         <!-- YOU SHOULD NEVER PUT A DEBUG DEFINITION IN A PRODUCTION MOD -->
         
+        <!-- If we encounter an error immediately crash the game instead of logging and ignoring the error --> 
+        <FailFast>true</FailFast>
+        
         <!-- All loggers starting with the given prefix will be logged at the Trace level (useful for programmers) -->
         <Entry Prefix="Equinox76561198048419394.Core.Modifiers" Level="Trace" />
 

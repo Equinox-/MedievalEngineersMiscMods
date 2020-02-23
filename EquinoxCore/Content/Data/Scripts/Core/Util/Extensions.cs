@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using Medieval.Entities.UseObject;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.EntityComponents.Character;
+﻿using Medieval.GameSystems;
+using Sandbox.ModAPI;
 using VRage.Components.Physics;
 using VRage.Game.Entity;
-using VRage.Game.Entity.UseObject;
+using VRage.Game.ModAPI;
+using VRage.Utils;
 using VRageMath;
 using VRageRender.Animations;
 
-namespace Equinox76561198048419394.Core.Controller
+namespace Equinox76561198048419394.Core.Util
 {
     public static class Extensions
     {
@@ -79,6 +78,7 @@ namespace Equinox76561198048419394.Core.Controller
                         result = new char[input.Length];
                         input.CopyTo(0, result, 0, i);
                     }
+
                     result[i] = replacement;
                 }
                 else if (result != null)
@@ -88,6 +88,21 @@ namespace Equinox76561198048419394.Core.Controller
             }
 
             return result != null ? new string(result) : input;
+        }
+
+        public static bool IsCreative(this IMyPlayer player)
+        {
+            return MyAPIGateway.Session.CreativeMode || MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
+        }
+
+        public static bool IsServerDecider(this IMySession session)
+        {
+            return MyMultiplayerModApi.Static.IsServer;
+        }
+
+        public static bool HasPermission(this IMyPlayer player, Vector3D location, MyStringId id)
+        {
+            return MyAreaPermissionSystem.Static == null || MyAreaPermissionSystem.Static.HasPermission(player.IdentityId, location, id);
         }
     }
 }

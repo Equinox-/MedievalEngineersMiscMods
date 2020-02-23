@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Debug;
 using Equinox76561198048419394.Core.Harvest;
 using Equinox76561198048419394.Core.Inventory;
@@ -192,8 +193,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                 var reporter = player != null
                     ? new ActionWithArg<IMyPlayer, ImmutableInventoryAction>(player, InventoryActionApplier.NotifyUserIncapableAction)
                     : (ActionWithArg<IMyPlayer, ImmutableInventoryAction>?) null;
-                if (inv == null || !InventoryActionApplier.CanApply(inv, action.ItemActions, errorReporter: reporter) ||
-                    !InventoryActionApplier.Apply(inv, action.ItemActions, errorReporter: reporter))
+                var creative = player.IsCreative();
+                if (!creative && (inv == null
+                                  || !InventoryActionApplier.CanApply(inv, action.ItemActions, errorReporter: reporter)
+                                  || !InventoryActionApplier.Apply(inv, action.ItemActions, errorReporter: reporter)))
                 {
                     if (DebugFlags.Debug(typeof(EquiModifierToolBehavior)))
                         _log.Info($"Failed to apply removal actions for {_definition.Id}: {string.Join(", ", action.ItemActions)}");

@@ -204,6 +204,7 @@ namespace Equinox76561198048419394.Core.Inventory
 
         public void OverwriteFrom(MyInventoryBase other)
         {
+            _items.Clear();
             foreach (var item in other.Items)
                 _items.Add(item.Clone(item.Amount));
         }

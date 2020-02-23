@@ -1,6 +1,7 @@
 using System;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
+using VRage.Logging;
 using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.ModelGenerator
@@ -55,9 +56,20 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         public void ApplyTo(MyMaterialDescriptor mtl)
         {
+            var technique = mtl.TechniqueEnum;
+            var isDecal = technique == MyMeshDrawTechnique.HOLO
+                          || technique == MyMeshDrawTechnique.DECAL
+                          || technique == MyMeshDrawTechnique.FOLIAGE
+                          || technique == MyMeshDrawTechnique.DECAL_CUTOUT
+                          || technique == MyMeshDrawTechnique.DECAL_NOPREMULT;
             switch (Mode)
             {
                 case ModeEnum.Texture:
+                    if (Key == "AddMapsTexture" && isDecal)
+                    {
+                        MyLog.Default.Warning($"Edit to material {mtl.MaterialName} with a decal type technique can not have an ADD texture");
+                        break;
+                    }
                     mtl.Textures[Key] = Value;
                     break;
                 case ModeEnum.UserData:

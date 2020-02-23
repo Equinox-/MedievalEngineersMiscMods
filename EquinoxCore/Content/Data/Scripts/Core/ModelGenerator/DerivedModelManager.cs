@@ -22,6 +22,9 @@ namespace Equinox76561198048419394.Core.ModelGenerator
     [MySessionComponent(AlwaysOn = true, AllowAutomaticCreation = true)]
     public class DerivedModelManager : MySessionComponent
     {
+        private const int DerivedVersion = 1;
+        private const int BvhVersion = 1;
+        
         private static readonly ConcurrentBag<byte[]> Buffers = new ConcurrentBag<byte[]>();
         private readonly FastResourceLock _lock = new FastResourceLock();
         private readonly Dictionary<Hashing.Hash128, string> _derivedModels = new Dictionary<Hashing.Hash128, string>();
@@ -50,29 +53,31 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             var readmeDerived = $"{DerivedModelPrefix}_0ReadMe.txt";
             var readmeBvh = $"{ModelBvhPrefix}_0ReadMe.txt";
             var utils = (IMyUtilities) MyAPIUtilities.Static;
-            if (!utils.FileExistsInGlobalStorage(readmeDerived))
-                using (var writer = utils.WriteFileInGlobalStorage(readmeDerived))
-                {
-                    writer.WriteLine("== Equinox Core Model Generator Cache ==");
-                    writer.WriteLine("This folder contains all the models Equinox Core has generated at runtime with texture variants");
-                    writer.WriteLine($"and block modifiers.  All the files that start with {DerivedModelPrefix} can safely be deleted");
-                    writer.WriteLine("as any that are still in use will be regenerated on demand.");
-                    writer.WriteLine();
-                    writer.WriteLine("In some cases it may make sense for the mod author to include these inside their mod to reduce");
-                    writer.WriteLine("the amount of runtime generation required.  Simply copy the files relevant to your mod into");
-                    writer.WriteLine("Models/Generated inside your mod and they will no longer be automatically generated. NOTE: ");
-                    writer.WriteLine("you will have to copy these files again if you change the source model, as the hash will have changed");
-                }
-            
-            if (!utils.FileExistsInGlobalStorage(readmeBvh))
-                using (var writer = utils.WriteFileInGlobalStorage(readmeBvh))
-                {
-                    writer.WriteLine("== Equinox Core Model BVH Cache ==");
-                    writer.WriteLine("This folder contains all the model BVHs Equinox Core has generated at runtime");
-                    writer.WriteLine("to provide material-I-am-looking-at functionality");
-                    writer.WriteLine($"All the files that start with {ModelBvhPrefix} can be safely deleted and");
-                    writer.WriteLine("any that are still in use will be regenerated on demand.");
-                }
+            using (var writer = utils.WriteFileInGlobalStorage(readmeDerived))
+            {
+                writer.WriteLine("== Equinox Core Model Generator Cache ==");
+                writer.WriteLine("This folder contains all the models Equinox Core has generated at runtime with texture variants");
+                writer.WriteLine($"and block modifiers.  All the files that start with {DerivedModelPrefix} can safely be deleted");
+                writer.WriteLine("as any that are still in use will be regenerated on demand.");
+                writer.WriteLine();
+                writer.WriteLine("In some cases it may make sense for the mod author to include these inside their mod to reduce");
+                writer.WriteLine("the amount of runtime generation required.  Simply copy the files relevant to your mod into");
+                writer.WriteLine("Models/Generated inside your mod and they will no longer be automatically generated. NOTE: ");
+                writer.WriteLine("you will have to copy these files again if you change the source model, as the hash will have changed");
+                writer.WriteLine();
+                writer.WriteLine($"The current version is {DerivedVersion}.  Anything that uses a lower version number can be deleted.");
+            }
+
+            using (var writer = utils.WriteFileInGlobalStorage(readmeBvh))
+            {
+                writer.WriteLine("== Equinox Core Model BVH Cache ==");
+                writer.WriteLine("This folder contains all the model BVHs Equinox Core has generated at runtime");
+                writer.WriteLine("to provide material-I-am-looking-at functionality");
+                writer.WriteLine($"All the files that start with {ModelBvhPrefix} can be safely deleted and");
+                writer.WriteLine("any that are still in use will be regenerated on demand.");
+                writer.WriteLine();
+                writer.WriteLine($"The current version is {BvhVersion}.  Anything that uses a lower version number can be deleted.");
+            }
         }
 
         private Hashing.Hash128 GetModelHash(string model)
@@ -155,7 +160,13 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                                     continue;
                                 foreach (var edit in edits)
                                     edit.ApplyTo(part.m_MaterialDesc);
-                                var newMaterialName = GenerateMaterialName(part.m_MaterialDesc);
+                                var newBaseMaterialName = GenerateMaterialName(part.m_MaterialDesc);
+                                var newMaterialName = newBaseMaterialName;
+                                for (var i = 0; !usedMaterials.Add(newMaterialName); i++)
+                                {
+                                    newMaterialName = $"{newBaseMaterialName}`{i}";
+                                }
+
                                 materialMapping[originalMaterialName] = newMaterialName;
                                 part.m_MaterialDesc = part.m_MaterialDesc.Clone(newMaterialName);
                                 part.m_MaterialHash = part.m_MaterialDesc.MaterialName.GetHashCode();
@@ -224,7 +235,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         {
             if (rawModel.EndsWith(".mwm", StringComparison.OrdinalIgnoreCase))
                 rawModel = rawModel.Substring(0, rawModel.Length - 4);
-            var fileName = $"{DerivedModelPrefix}_{rawModel.AsAlphaNumeric()}_{key.ToString()}.mwm";
+            var fileName = $"{DerivedModelPrefix}_v{DerivedVersion}_{rawModel.AsAlphaNumeric()}_{key.ToString()}.mwm";
 
             var modCachedPath = Path.Combine("Models/Generated", fileName);
             if (MyAPIUtilities.Static.ContentFileExists(modCachedPath))
@@ -288,10 +299,10 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             return _originalModelsBvh.GetOrAdd(modelPath, (rawPath) =>
             {
                 var modelHash = GetModelHash(modelPath);
-                var bvhName = $"{ModelBvhPrefix}_{Path.GetFileNameWithoutExtension(modelPath)}_{modelHash}.ebvh";
+                var bvhName = $"{ModelBvhPrefix}_v{BvhVersion}_{Path.GetFileNameWithoutExtension(modelPath)}_{modelHash}.ebvh";
                 var utils = (IMyUtilities) MyAPIUtilities.Static;
                 MaterialBvh bvh;
-                
+
                 var modCachedPath = Path.Combine("Models/Generated", bvhName);
                 if (MyAPIUtilities.Static.ContentFileExists(modCachedPath))
                 {
@@ -309,7 +320,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                         this.GetLogger().Warning($"Failed to deserialize cached BVH at {bvhName} for {modelPath}, recreating.  {e}");
                     }
                 }
-                
+
                 if (utils.FileExistsInGlobalStorage(bvhName))
                 {
                     try
