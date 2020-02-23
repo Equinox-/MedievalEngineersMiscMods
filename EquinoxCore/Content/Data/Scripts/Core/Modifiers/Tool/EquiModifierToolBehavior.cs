@@ -8,6 +8,7 @@ using Equinox76561198048419394.Core.Debug;
 using Equinox76561198048419394.Core.Harvest;
 using Equinox76561198048419394.Core.Inventory;
 using Equinox76561198048419394.Core.ModelGenerator;
+using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Modifiers.Storage;
 using Equinox76561198048419394.Core.Util;
@@ -205,7 +206,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             if (action.Remove)
                 storage.RemoveModifier(key, action.Modifier);
             else
-                storage.AddModifier(key, action.Modifier);
+                storage.AddModifier(key, action.Modifier, action.ModifierData);
         }
 
         protected override void OnTargetEntityChanged(MyDetectedEntityProperties myEntityProps)
@@ -240,6 +241,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
         {
             private readonly EquiModifierToolBehaviorDefinition _owner;
             private readonly MyDefinitionId _modifier;
+            private readonly string _modifierData;
             public readonly bool Remove;
             public readonly string ActionHint;
             public readonly MyStringHash ActionIcon;
@@ -249,6 +251,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             private readonly HashSetReader<MyDefinitionId> _requireModifier;
             private readonly HashSetReader<MyDefinitionId> _prohibitModifier;
 
+            private IModifierData _memorizedModifierData;
             private EquiModifierBaseDefinition _memorizedModifier;
 
             public EquiModifierBaseDefinition Modifier
@@ -264,12 +267,23 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                 }
             }
 
+            public IModifierData ModifierData
+            {
+                get
+                {
+                    if (_memorizedModifierData != null || _modifierData == null)
+                        return _memorizedModifierData;
+                    return _memorizedModifierData = Modifier?.CreateData(_modifierData);
+                }
+            }
+
 
             public ModifierAction(EquiModifierToolBehaviorDefinition owner,
                 MyObjectBuilder_EquiModifierToolBehaviorDefinition.ModifierAction builder)
             {
                 _owner = owner;
                 _modifier = builder.Modifier;
+                _modifierData = builder.ModifierData;
                 Remove = builder.Remove;
                 ActionHint = builder.ActionHint;
                 ActionIcon = MyStringHash.GetOrCompute(builder.ActionIcon);
@@ -351,6 +365,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
         {
             [XmlElement]
             public SerializableDefinitionId Modifier;
+
+            [XmlElement]
+            public string ModifierData;
 
             [XmlElement]
             [DefaultValue(false)]

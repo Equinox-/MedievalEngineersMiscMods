@@ -102,7 +102,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                 output.Model = op.Value.Collection.Sample(MyRandom.Instance);
         }
 
-        public override IModifierData CreateData(in ModifierContext ctx)
+        public override IModifierData CreateDefaultData(in ModifierContext ctx)
         {
             var op = OperationFor(in ctx);
             if (op?.Collection == null)
@@ -116,7 +116,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         public override IModifierData CreateData(string data)
         {
-            return new ModifierDataLong(data);
+            return ModifierDataLong.Deserialize(data);
         }
 
         public override bool ShouldEvict(EquiModifierBaseDefinition other)

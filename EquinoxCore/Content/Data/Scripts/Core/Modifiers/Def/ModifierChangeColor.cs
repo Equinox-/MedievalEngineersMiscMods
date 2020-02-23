@@ -8,6 +8,7 @@ using ObjectBuilders.Definitions.GUI;
 using VRage;
 using VRage.Game;
 using VRage.Game.Definitions;
+using VRage.Library.Collections;
 using VRage.ObjectBuilders;
 using VRage.Session;
 using VRageMath;
@@ -16,7 +17,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 {
     [MyDefinitionType(typeof(MyObjectBuilder_EquiModifierChangeColorDefinition))]
     public class EquiModifierChangeColorDefinition : EquiModifierBaseDefinition
-    {
+    {   
         // Memorized table of models this modifier can be applied to.
         private readonly ConcurrentDictionary<string, bool> _memorizedApplicableTo = new ConcurrentDictionary<string, bool>();
 
@@ -53,17 +54,19 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             if (ColorMaskHsv.HasValue)
                 output.ColorMaskHsv = ColorMaskHsv.Value;
             else if (data is ModifierDataColor colorMod)
-                output.ColorMaskHsv = colorMod.Raw;
+                output.ColorMaskHsv = colorMod.Color;
         }
 
-        public override IModifierData CreateData(in ModifierContext ctx)
+        public override IModifierData CreateDefaultData(in ModifierContext ctx)
         {
             return null;
         }
 
         public override IModifierData CreateData(string data)
         {
-            return ColorMaskHsv.HasValue ? null : new ModifierDataColor(data);
+            if (ColorMaskHsv.HasValue || data == null)
+                return null;
+            return ModifierDataColor.Deserialize(data);
         }
 
         public override bool ShouldEvict(EquiModifierBaseDefinition other)

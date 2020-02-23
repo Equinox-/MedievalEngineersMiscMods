@@ -165,18 +165,18 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not adding {modifier.Id} to {key} since context creation failed");
+                    this.GetLogger().Info($"Not adding {modifier.Id} / {useData} to {key} since context creation failed");
                 return;
             }
 
             if (!modifier.CanApply(in ctx))
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not adding {modifier} to {key} since it can't be applied to {ctx}");
+                    this.GetLogger().Info($"Not adding {modifier} / {useData} to {key} since it can't be applied to {ctx}");
                 return;
             }
 
-            var modifierData = (useData ?? modifier.CreateData(in ctx))?.Serialize() ?? "";
+            var modifierData = (useData ?? modifier.CreateDefaultData(in ctx))?.Serialize() ?? "";
             RaiseAddModifierInternal(in key, in modifier.Id, modifierData);
         }
 
@@ -243,13 +243,13 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 if (mods.Equals(edited))
                 {
                     if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                        this.GetLogger().Info($"Adding {modifier} to {key} was a no-op");
+                        this.GetLogger().Info($"Adding {modifier} / {data} to {key} was a no-op");
                     MyEventContext.ValidationFailed();
                     return;
                 }
 
                 if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Adding {modifier} to {key}");
+                    this.GetLogger().Info($"Adding {modifier} / {data} to {key}");
 
                 foreach (var k in mods)
                     if (modifierDef.ShouldEvict(k))
@@ -344,7 +344,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 if (ReferenceEquals(edited, mods))
                 {
                     if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                        this.GetLogger().Info($"Adding {modifier} to {key} was a no-op");
+                        this.GetLogger().Info($"Removing {modifier} from {key} was a no-op");
                     MyEventContext.ValidationFailed();
                     return;
                 }

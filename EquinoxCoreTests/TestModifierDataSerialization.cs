@@ -13,9 +13,9 @@ namespace EquinoxCoreTests
         {
             foreach (var color in Color.AllNamedColors)
             {
-                var data = new ModifierDataColor(color);
-                var compared = new ModifierDataColor(data.Serialize());
-                Assert.AreEqual(data.Raw, compared.Raw);
+                var data = new ModifierDataColor(color.ColorToHSV());
+                var compared = ModifierDataColor.Deserialize(data.Serialize());
+                Assert.AreEqual(data.Color, compared.Color);
             }
         }
     }

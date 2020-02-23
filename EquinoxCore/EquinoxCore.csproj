@@ -714,6 +714,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\HasFlagExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Triangle.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ISerializer.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\LruCache.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqSpan.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqReadOnlySpan.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\MemoryStream.cs" />

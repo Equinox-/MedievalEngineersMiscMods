@@ -142,7 +142,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         }
 
         public abstract void Apply(in ModifierContext ctx, IModifierData data, ref ModifierOutput output);
-        public abstract IModifierData CreateData(in ModifierContext ctx);
+        public abstract IModifierData CreateDefaultData(in ModifierContext ctx);
         public abstract IModifierData CreateData(string data);
     }
 

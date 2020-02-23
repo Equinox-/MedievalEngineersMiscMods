@@ -92,7 +92,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                 output.MaterialEditsBuilder.Add(mtl, _edits[mtl]);
         }
 
-        public override IModifierData CreateData(in ModifierContext ctx)
+        public override IModifierData CreateDefaultData(in ModifierContext ctx)
         {
             return null;
         }

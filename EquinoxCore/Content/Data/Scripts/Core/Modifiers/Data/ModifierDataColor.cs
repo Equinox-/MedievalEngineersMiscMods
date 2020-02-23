@@ -1,11 +1,15 @@
 using System;
 using System.Diagnostics;
+using Equinox76561198048419394.Core.Util;
+using ObjectBuilders.Definitions.GUI;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Modifiers.Data
 {
     public class ModifierDataColor : IModifierData
     {
+        private static readonly LruCache<string, ModifierDataColor> DataCache = new LruCache<string, ModifierDataColor>(16384);
+        
         private static readonly byte[] _charToBitsLut;
         private static readonly char[] _bitsToCharLut;
 
@@ -20,34 +24,43 @@ namespace Equinox76561198048419394.Core.Modifiers.Data
                 _charToBitsLut[char.ToUpperInvariant(c)] = (byte) i;
             }
         }
-        
-        public Color Raw;
 
-        public ModifierDataColor(Color raw)
+        public readonly ColorDefinitionHSV Color;
+
+        public ModifierDataColor(ColorDefinitionHSV hsv)
         {
-            Raw = raw;
-            Raw.A = 0xF;
+            Color = hsv;
         }
 
-        public ModifierDataColor(string data)
+        public static ModifierDataColor Deserialize(string data)
         {
-            if (data.Length != 6)
-                return;
-            Raw.R = (byte) ((_charToBitsLut[Math.Min(0xFF, (int) data[0])] << 4) | _charToBitsLut[Math.Min(0xFF, (int) data[1])]);
-            Raw.G = (byte) ((_charToBitsLut[Math.Min(0xFF, (int) data[2])] << 4) | _charToBitsLut[Math.Min(0xFF, (int) data[3])]);
-            Raw.B = (byte) ((_charToBitsLut[Math.Min(0xFF, (int) data[4])] << 4) | _charToBitsLut[Math.Min(0xFF, (int) data[5])]);
-            Raw.A = 0xF;
+            if (data == null || data.Length != 6)
+                return null;
+            return DataCache.GetOrCreate(data, dc =>
+            {
+                var h = (byte) ((_charToBitsLut[Math.Min(0xFF, (int) dc[0])] << 4) | _charToBitsLut[Math.Min(0xFF, (int) dc[1])]);
+                var s = (byte) ((_charToBitsLut[Math.Min(0xFF, (int) dc[2])] << 4) | _charToBitsLut[Math.Min(0xFF, (int) dc[3])]);
+                var v = (byte) ((_charToBitsLut[Math.Min(0xFF, (int) dc[4])] << 4) | _charToBitsLut[Math.Min(0xFF, (int) dc[5])]);
+                var color = default(ColorDefinitionHSV);
+                color.H = h * 360 / 0xFF;
+                color.S = (s * 200 / 0xFF) - 100;
+                color.V = (v * 200 / 0xFF) - 100;
+                return new ModifierDataColor(color);
+            });
         }
 
         public string Serialize()
         {
             var buffer = new char[6];
-            buffer[0] = _bitsToCharLut[(Raw.R >> 4) & 0xF];
-            buffer[1] = _bitsToCharLut[(Raw.R >> 0) & 0xF];
-            buffer[2] = _bitsToCharLut[(Raw.G >> 4) & 0xF];
-            buffer[3] = _bitsToCharLut[(Raw.G >> 0) & 0xF];
-            buffer[4] = _bitsToCharLut[(Raw.B >> 4) & 0xF];
-            buffer[5] = _bitsToCharLut[(Raw.B >> 0) & 0xF];            
+            var h = (byte) ((Color.H % 360) * 0xFF / 360);
+            var s = (byte) ((Color.S + 100) * 0xFF / 200);
+            var v = (byte) ((Color.V + 100) * 0xFF / 200);
+            buffer[0] = _bitsToCharLut[(h >> 4) & 0xF];
+            buffer[1] = _bitsToCharLut[(h >> 0) & 0xF];
+            buffer[2] = _bitsToCharLut[(s >> 4) & 0xF];
+            buffer[3] = _bitsToCharLut[(s >> 0) & 0xF];
+            buffer[4] = _bitsToCharLut[(v >> 4) & 0xF];
+            buffer[5] = _bitsToCharLut[(v >> 0) & 0xF];
             return new string(buffer);
         }
     }
