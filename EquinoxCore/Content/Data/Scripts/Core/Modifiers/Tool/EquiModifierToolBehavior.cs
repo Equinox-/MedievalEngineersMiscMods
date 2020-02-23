@@ -124,10 +124,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             }
 
             string material1 = null;
-            string material2 = null;
 
-            var originalModel = context.OriginalModel;
-            var currentModel = context.GetCurrentModel();
+            var originalModel = context.OriginalModel ?? context.GetCurrentModel();
             var mm = MySession.Static.Components.Get<DerivedModelManager>();
             if (mm != null)
             {
@@ -137,12 +135,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                     (Vector3) Vector3D.TransformNormal(caster.Direction, worldToLocal));
 
                 mm.GetMaterialBvh(originalModel)?.RayCast(in localRay, out _, out material1, out _);
-                if (!object.Equals(originalModel, currentModel))
-                    mm.GetMaterialBvh(currentModel)?.RayCast(in localRay, out _, out material2, out _);
             }
 
             foreach (var act in _definition.Actions)
-                if (act.IsPermitted(in context, material1, material2))
+                if (act.IsPermitted(in context, material1))
                 {
                     action = act;
                     return true;
@@ -292,7 +288,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                     : default;
             }
 
-            public bool IsPermitted(in ModifierContext ctx, string targetMaterial, string targetMaterial2)
+            public bool IsPermitted(in ModifierContext ctx, string targetMaterial)
             {
                 if (Remove != ctx.Modifiers.Contains(Modifier))
                     return false;
@@ -300,8 +296,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                     return false;
                 if (_requireMaterial.Count > 0)
                 {
-                    if (!((targetMaterial != null && _requireMaterial.Contains(targetMaterial)) ||
-                          (targetMaterial2 != null && _requireMaterial.Contains(targetMaterial2))))
+                    if (targetMaterial == null || !_requireMaterial.Contains(targetMaterial))
                         return false;
                 }
 

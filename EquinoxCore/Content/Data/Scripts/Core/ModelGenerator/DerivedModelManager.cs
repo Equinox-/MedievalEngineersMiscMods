@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Equinox76561198048419394.Core.Controller;
+using Equinox76561198048419394.Core.Debug;
 using Equinox76561198048419394.Core.ModelGenerator.ModelIO;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
@@ -22,7 +23,12 @@ namespace Equinox76561198048419394.Core.ModelGenerator
     [MySessionComponent(AlwaysOn = true, AllowAutomaticCreation = true)]
     public class DerivedModelManager : MySessionComponent
     {
-        private const int DerivedVersion = 1;
+        private static NamedLogger _log = new NamedLogger(nameof(DerivedModelManager), MyLog.Default);
+        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        // ReSharper disable once ConvertToConstant.Local
+        private static bool _useCaching = true;
+        
+        private const int DerivedVersion = 2;
         private const int BvhVersion = 1;
         
         private static readonly ConcurrentBag<byte[]> Buffers = new ConcurrentBag<byte[]>();
@@ -101,7 +107,10 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
                 Buffers.Add(buffer);
 
-                return hb.Build();
+                var hash = hb.Build();
+                if (DebugFlags.Debug(typeof(DerivedModelManager)))
+                    _log.Info($"Generated model hash for {model} = {hash}");
+                return hash;
             });
         }
 
@@ -137,12 +146,15 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             try
             {
                 var resolvedPath = ResolveGeneratedModel(rawModel, finalHash.Value, out var existing);
-                if (existing)
+                if (existing && _useCaching)
                 {
+                    if (DebugFlags.Debug(typeof(DerivedModelManager)))
+                        _log.Info($"Loading derived model of {rawModel} with {builder} from {resolvedPath}");
                     return _derivedModels[finalHash.Value] = resolvedPath;
                 }
 
                 using (PoolManager.Get(out Dictionary<string, string> materialMapping))
+                using (PoolManager.Get(out Dictionary<string, string> materialMappingInverse))
                 {
                     using (ReadModel(rawModel, out var tags))
                     {
@@ -150,24 +162,38 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                         using (PoolManager.Get(out List<MaterialEdit> edits))
                         using (PoolManager.Get(out HashSet<string> usedMaterials))
                         {
+                            string SafeMaterialName(string baseName)
+                            {
+                                var safeName = baseName;
+                                for (var i = 0; !usedMaterials.Add(safeName); i++)
+                                {
+                                    safeName = $"{baseName}`{i}";
+                                }
+                                return safeName;
+                            }
+
                             foreach (var part in meshParts)
                             {
                                 var originalMaterialName = part.m_MaterialDesc.MaterialName;
                                 edits.Clear();
                                 builder.Get(originalMaterialName, edits);
-                                usedMaterials.Add(originalMaterialName);
                                 if (edits.Count == 0)
-                                    continue;
-                                foreach (var edit in edits)
-                                    edit.ApplyTo(part.m_MaterialDesc);
-                                var newBaseMaterialName = GenerateMaterialName(part.m_MaterialDesc);
-                                var newMaterialName = newBaseMaterialName;
-                                for (var i = 0; !usedMaterials.Add(newMaterialName); i++)
                                 {
-                                    newMaterialName = $"{newBaseMaterialName}`{i}";
+                                    var safeName = SafeMaterialName(part.m_MaterialDesc.MaterialName);
+                                    if (safeName != part.m_MaterialDesc.MaterialName)
+                                    {
+                                        part.m_MaterialDesc = part.m_MaterialDesc.Clone(safeName);
+                                        part.m_MaterialHash = part.m_MaterialDesc.MaterialName.GetHashCode();
+                                    }
+                                    continue;
                                 }
 
-                                materialMapping[originalMaterialName] = newMaterialName;
+                                foreach (var edit in edits)
+                                    edit.ApplyTo(part.m_MaterialDesc);
+
+                                var newMaterialName = SafeMaterialName(GenerateMaterialName(part.m_MaterialDesc));
+                                materialMapping.Add(originalMaterialName, newMaterialName);
+                                materialMappingInverse.Add(newMaterialName, originalMaterialName);
                                 part.m_MaterialDesc = part.m_MaterialDesc.Clone(newMaterialName);
                                 part.m_MaterialHash = part.m_MaterialDesc.MaterialName.GetHashCode();
                             }
@@ -182,6 +208,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                                     foreach (var e in edits)
                                         e.ApplyTo(tmp);
                                     var newMaterialName = GenerateMaterialName(tmp);
+                                    if (!usedMaterials.Add(newMaterialName))
+                                        continue;
                                     meshParts.Add(new MyMeshPartInfo
                                     {
                                         m_indices = new List<int> {0, 0, 0}, // single degenerate tris
@@ -213,6 +241,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                             Save(resolvedPath, finalHash.Value, materialMapping, tags);
                         }
                     }
+                    if (DebugFlags.Debug(typeof(DerivedModelManager)))
+                        _log.Info($"Generated derived model of {rawModel} with {builder} at {resolvedPath}");
 
                     return _derivedModels[finalHash.Value] = resolvedPath;
                 }
@@ -225,8 +255,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             }
         }
 
-        private const string DerivedModelPrefix = "derivedModel";
-        private const string ModelBvhPrefix = "modelBvh";
+        private const string DerivedModelPrefix = "derived";
+        private const string ModelBvhPrefix = "bvh";
 
         /// <summary>
         /// Determines the content-relative path of the given derived model. 
@@ -235,7 +265,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         {
             if (rawModel.EndsWith(".mwm", StringComparison.OrdinalIgnoreCase))
                 rawModel = rawModel.Substring(0, rawModel.Length - 4);
-            var fileName = $"{DerivedModelPrefix}_v{DerivedVersion}_{rawModel.AsAlphaNumeric()}_{key.ToString()}.mwm";
+            var fileName = $"{DerivedModelPrefix}_v{DerivedVersion}_{TrimAndSanitize(rawModel)}_{key.ToString()}.mwm";
 
             var modCachedPath = Path.Combine("Models/Generated", fileName);
             if (MyAPIUtilities.Static.ContentFileExists(modCachedPath))
@@ -299,12 +329,12 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             return _originalModelsBvh.GetOrAdd(modelPath, (rawPath) =>
             {
                 var modelHash = GetModelHash(modelPath);
-                var bvhName = $"{ModelBvhPrefix}_v{BvhVersion}_{Path.GetFileNameWithoutExtension(modelPath)}_{modelHash}.ebvh";
+                var bvhName = $"{ModelBvhPrefix}_v{BvhVersion}_{TrimAndSanitize(modelPath)}_{modelHash}.ebvh";
                 var utils = (IMyUtilities) MyAPIUtilities.Static;
                 MaterialBvh bvh;
 
                 var modCachedPath = Path.Combine("Models/Generated", bvhName);
-                if (MyAPIUtilities.Static.ContentFileExists(modCachedPath))
+                if (MyAPIUtilities.Static.ContentFileExists(modCachedPath) && _useCaching)
                 {
                     try
                     {
@@ -312,6 +342,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                         using (var reader = new BinaryReader(stream))
                         {
                             MaterialBvh.Serializer.Read(reader, out bvh);
+                            if (DebugFlags.Debug(typeof(DerivedModelManager)))
+                                _log.Info($"Loaded material BVH of {modelPath} from mod cache {modCachedPath}");
                             return bvh;
                         }
                     }
@@ -321,13 +353,15 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     }
                 }
 
-                if (utils.FileExistsInGlobalStorage(bvhName))
+                if (utils.FileExistsInGlobalStorage(bvhName) && _useCaching)
                 {
                     try
                     {
                         using (var reader = utils.ReadBinaryFileInGlobalStorage(bvhName))
                         {
                             MaterialBvh.Serializer.Read(reader, out bvh);
+                            if (DebugFlags.Debug(typeof(DerivedModelManager)))
+                                _log.Info($"Loaded material BVH of {modelPath} from local cache {bvhName}");
                             return bvh;
                         }
                     }
@@ -346,6 +380,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     {
                         MaterialBvh.Serializer.Write(reader, in bvh);
                     }
+                    if (DebugFlags.Debug(typeof(DerivedModelManager)))
+                        _log.Info($"Generated material BVH of {modelPath} and stored in local cache {bvhName}");
                 }
                 catch (Exception e)
                 {
@@ -539,6 +575,13 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                 handle.Handle.ImportData(reader);
             tags = handle.Handle.GetTagData();
             return handle;
+        }
+
+        private static string TrimAndSanitize(string modelName)
+        {
+            if (modelName.Length > 16)
+                modelName = modelName.Substring(modelName.Length - 16, 16);
+            return modelName.AsAlphaNumeric();
         }
 
         #endregion

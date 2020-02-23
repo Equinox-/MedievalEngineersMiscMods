@@ -19,6 +19,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
     public static class EquiModifierOutputHelpers
     {
+        private static NamedLogger _log = new NamedLogger(nameof(EquiModifierOutputHelpers), MyLog.Default);
+
         private static bool IsDedicated => ((IMyUtilities) MyAPIUtilities.Static).IsDedicated;
 
         public static void Apply(in ModifierOutput modifier, MyEntity target)
@@ -35,9 +37,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     model = MySession.Static.Components.Get<DerivedModelManager>().CreateModel(model, modifier.MaterialEditsBuilder);
 
                 var modelData = MyModels.GetModelOnlyData(model);
-                if (modelData != null && modelComp.Model != modelData)
+                var collisionData = MyModels.GetModelOnlyData(modifier.Model) ?? modelData;
+                if (modelData != null && (modelComp.Model != modelData || modelComp.ModelCollision != collisionData))
                 {
-                    modelComp.SetModel(modelData);
+                    modelComp.SetModel(modelData, collisionData);
                     if (render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
                     {
                         foreach (var renderObj in render.RenderObjectIDs)
@@ -66,6 +69,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 }
 
                 render?.UpdateColorMask(modelComp.ColorMask);
+                if (DebugFlags.Trace(typeof(EquiModifierOutputHelpers)))
+                    _log.Info($"Applied modifiers to {target} produced model={model} color={modifier.ColorMaskHsv}");
             }
             catch (Exception ex)
             {
@@ -90,6 +95,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 var colorMaskHsv = modifier.ColorMaskHsv ?? Vector3.Zero;
                 foreach (var renderable in gridRender.GetBlockRenderObjectIDs(block.Id))
                     MyRenderProxy.UpdateRenderEntity(renderable, null, colorMaskHsv);
+                
+                if (DebugFlags.Trace(typeof(EquiModifierOutputHelpers)))
+                    _log.Info($"Applied modifiers to {block} on {gridData.Entity} produced model={model} color={modifier.ColorMaskHsv}");
             }
             catch (Exception ex)
             {
