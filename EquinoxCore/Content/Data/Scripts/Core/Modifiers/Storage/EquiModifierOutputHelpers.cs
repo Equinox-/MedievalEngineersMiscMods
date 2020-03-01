@@ -11,6 +11,7 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Game.Models;
 using VRage.Logging;
+using VRage.Models;
 using VRage.Session;
 using VRageMath;
 using VRageRender;
@@ -29,7 +30,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             {
                 var modelComp = target.Get<MyModelComponent>();
                 var render = target.Get<MyRenderComponentBase>();
-                if (modelComp == null)
+                if (modelComp == null || modelComp.Model is MyFracturedCompoundModel)
                     return;
 
                 var model = modifier.Model;
@@ -38,7 +39,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
                 var modelData = MyModels.GetModelOnlyData(model);
                 var collisionData = MyModels.GetModelOnlyData(modifier.Model) ?? modelData;
-                if (modelData != null && (modelComp.Model != modelData || modelComp.ModelCollision != collisionData))
+                if (modelData != null && (modelComp.Model != modelData || modelComp.ModelCollision != collisionData) && !(modelComp.Model is MyFracturedCompoundModel))
                 {
                     modelComp.SetModel(modelData, collisionData);
                     if (render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
@@ -83,11 +84,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             try
             {
                 var model = modifier.Model;
-                if (modifier.MaterialEditsBuilder != null && !((IMyUtilities) MyAPIUtilities.Static).IsDedicated)
+                if (modifier.MaterialEditsBuilder != null && !IsDedicated)
                     model = MySession.Static.Components.Get<DerivedModelManager>().CreateModel(model, modifier.MaterialEditsBuilder);
 
                 var modelData = MyModels.GetModelOnlyData(model);
-                if (modelData != null && block.Model != modelData)
+                if (modelData != null && block.Model != modelData && !(block.Model is MyFracturedCompoundModel))
                     gridData.ChangeModel(block, modelData);
 
                 if (IsDedicated || gridRender == null)
