@@ -147,6 +147,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 {
                     return result;
                 }
+
                 if (!TryGetParent(tmp, out tmp))
                 {
                     return InterningBag<EquiModifierBaseDefinition>.Empty;
@@ -530,8 +531,17 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     foreach (var mod in ob.Modifiers)
                         if (mod.Blocks != null && mod.Modifiers != null && mod.Modifiers.Length > 0 && mod.Blocks.Length > 0)
                         {
-                            var bag = InterningBag<EquiModifierBaseDefinition>.Of(mod.Modifiers.Select(x =>
-                                MyDefinitionManager.Get<EquiModifierBaseDefinition>(x)));
+                            var bag = InterningBag<EquiModifierBaseDefinition>.Of(mod.Modifiers
+                                .Select(x =>
+                                {
+                                    var def = MyDefinitionManager.Get<EquiModifierBaseDefinition>(x);
+                                    if (def == null)
+                                        this.GetLogger().Error($"Failed to find modifier definition {x}.  Dropping it.");
+                                    return def;
+                                })
+                                .Where(def => def != null));
+                            if (bag.Count == 0)
+                                continue;
                             foreach (var block in mod.Blocks)
                             {
                                 Modifiers[block.ToRuntime()] = bag;
@@ -543,6 +553,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         if (dataSet.Blocks != null && !string.IsNullOrEmpty(dataSet.Seed))
                         {
                             var definition = MyDefinitionManager.Get<EquiModifierBaseDefinition>(dataSet.Modifier);
+                            if (definition == null)
+                            {
+                                this.GetLogger().Error($"Failed to find modifier definition {dataSet.Modifier}.  Dropping it.");
+                                continue;
+                            }
                             foreach (var data in dataSet.Blocks)
                                 ModifierData[new ModifierDataKey(data.ToRuntime(), dataSet.Modifier)] = definition.CreateData(dataSet.Seed);
                         }
@@ -616,7 +631,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     if (modifier.Blocks != null)
                         for (var i = 0; i < modifier.Blocks.Length; i++)
                             modifier.Blocks[i].Remap(remapper);
-            
+
             if (Storage != null)
                 foreach (var storage in Storage)
                     if (storage.Blocks != null)

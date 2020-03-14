@@ -27,6 +27,7 @@ using VRage.Library.Threading;
 using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
+using VRage.Serialization;
 using VRage.Session;
 using VRage.Utils;
 using VRageMath;
@@ -365,6 +366,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             public ulong Block;
 
             [XmlAttribute("Point")]
+            [Serialize(Flags = MyObjectFlags.Nullable)]
             public string AttachmentPoint;
 
             public bool ShouldSerializeAttachmentPoint() => !string.IsNullOrEmpty(AttachmentPoint);
