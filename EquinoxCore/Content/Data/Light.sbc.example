@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+        <Id Type="Block" Subtype="TorchStand" />
+
+        <Component Type="MyObjectBuilder_EquiLightComponent" Subtype="SpotlightDemo" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+        <Id Type="Block" Subtype="TorchWall" />
+
+        <Component Type="MyObjectBuilder_EquiLightComponent" Subtype="SpotlightDemo" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiLightComponentDefinition">
+        <Id Type="MyObjectBuilder_EquiLightComponent" Subtype="SpotlightDemo" />
+        <Light Id="test">
+            <!-- Only show this light when the entity state is this -->
+            <!-- Can be repeated for the light to be on in multiple states -->
+            <!-- If ommitted the light is always on -->
+            <State>On</State>
+            <!-- default offset is zero -->
+            <Offset x="-.1" y=".525" z="0" />
+            <!-- Default direction is 0,0,-1 -->
+            <Direction x="0" y="1" z="0" />
+            
+            <!-- All values are the ommitable default -->
+            <Point Enabled="true">
+                <Radius>10</Radius>
+                <Falloff>1.7</Falloff>
+                <Intensity>2</Intensity>
+                <ColorRgb x="1" y="1" z="1" />
+                <GlossFactor>1</GlossFactor>
+                <DiffuseFactor>1</DiffuseFactor>
+            </Point>
+            <Spot Enabled="true">
+                <Radius>100</Radius>
+                <Falloff>1.7</Falloff>
+                <Intensity>2</Intensity>
+                <GlossFactor>1</GlossFactor>
+                <DiffuseFactor>1</DiffuseFactor>
+                <ColorRgb x="1" y="1" z="1" />
+                <ConeDegrees>30</ConeDegrees>
+                <Mask>Textures/Lights/reflector_white.dds</Mask>
+                <CastShadows>true</CastShadows>
+            </Spot>
+            <Flare Definition="DefaultFlare">
+                <SizeMultiplier>1</SizeMultiplier>
+                <IntensityMultiplier>1</IntensityMultiplier>
+                <!-- radius of the occlusion query.  The more of this that is behind something, the darker the flare will be -->
+                <OcclusionQuerySize>.1</OcclusionQuerySize>
+                <!-- point where the flare finishes fading out -->
+                <!-- defaults to the MaxDistance of the flare definition -->
+                <MaxDistanceOverride>100</MaxDistanceOverride>
+            </Flare>
+        </Light>
+    </Definition>
+</Definitions>

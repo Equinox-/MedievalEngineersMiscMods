@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <!-- Adapted from SE Flares -->
+    <Definition xsi:type="MyObjectBuilder_EquiFlareDefinition">
+        <Id Type="MyObjectBuilder_EquiFlareDefinition" Subtype="DefaultFlare" />
+        <Intensity>1</Intensity>
+        <Size x=".1" y=".1" />
+        <!-- point where the flare finishes fading out -->
+        <MaxDistance>100</MaxDistance>
+        <SubGlare>
+            <!-- Burst Glare -->
+            <Type>Oriented</Type>
+            <!--Non-Fixed rotation-->
+            <Material>GlareHeadlight</Material>
+            <Size x=".2" y=".2" />
+            <ScreenIntensityMultiplierCenter>0.5</ScreenIntensityMultiplierCenter>
+            <ScreenIntensityMultiplierEdge>0.1</ScreenIntensityMultiplierEdge>
+            <OcclusionToIntensityCurve>
+                <Stop Occlusion="0" Intensity="1" />
+                <Stop Occlusion=".29" Intensity="1" />
+                <Stop Occlusion=".8" Intensity="0" />
+            </OcclusionToIntensityCurve>
+        </SubGlare>
+
+        <SubGlare>
+            <!--Rays-->
+            <Type>Rotated</Type>
+            <Material>LightGlare</Material>
+            <Size x=".2" y=".2" />
+            <ScreenIntensityMultiplierCenter>0.5</ScreenIntensityMultiplierCenter>
+            <ScreenIntensityMultiplierEdge>0.1</ScreenIntensityMultiplierEdge>
+            <OcclusionToIntensityCurve>
+                <Stop Occlusion="0" Intensity="1" />
+                <Stop Occlusion=".29" Intensity="1" />
+                <Stop Occlusion=".8" Intensity="0" />
+            </OcclusionToIntensityCurve>
+        </SubGlare>
+
+        <SubGlare>
+            <!--Rays-->
+            <Type>Oriented</Type>
+            <Material>LightGlare</Material>
+            <Size x=".2" y=".2" />
+            <ScreenIntensityMultiplierCenter>0.5</ScreenIntensityMultiplierCenter>
+            <ScreenIntensityMultiplierEdge>0.1</ScreenIntensityMultiplierEdge>
+            <OcclusionToIntensityCurve>
+                <Stop Occlusion="0" Intensity="1" />
+                <Stop Occlusion=".29" Intensity="1" />
+                <Stop Occlusion=".8" Intensity="0" />
+            </OcclusionToIntensityCurve>
+        </SubGlare>
+    </Definition>
+</Definitions>
