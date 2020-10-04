@@ -18,6 +18,7 @@ using VRage.Library.Threading;
 using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
+using VRage.Serialization;
 using VRage.Session;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
@@ -597,6 +598,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
     public class MyObjectBuilder_EquiModifierStorageComponent<TKey> : MyObjectBuilder_EntityComponent, IMyRemappable where TKey : struct, IMyRemappable
     {
         [XmlElement("Modifiers")]
+        [Nullable]
         public ModifierSet[] Modifiers;
 
         public struct ModifierSet
@@ -609,6 +611,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         }
 
         [XmlElement("Storage")]
+        [Nullable]
         public DataSet[] Storage;
 
         public struct DataSet
