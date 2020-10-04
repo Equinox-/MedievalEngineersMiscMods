@@ -129,10 +129,10 @@ namespace Equinox76561198048419394.Core.Misc
                     ID = light,
                     Position = pos.Translation,
                     // Point light
-                    PointLightOn = feature.PointLight.HasValue,
+                    PointLightOn = turnedOn && feature.PointLight.HasValue,
                     PointLight = feature.PointLight ?? default,
                     // Spot light
-                    SpotLightOn = feature.SpotLight.HasValue,
+                    SpotLightOn = turnedOn && feature.SpotLight.HasValue,
                     SpotLight = feature.SpotLight ?? default,
                     ShadowDistance = feature.SpotLight?.ShadowsRange ?? 0,
                     CastShadows = feature.SpotLightCastsShadows,
@@ -143,6 +143,7 @@ namespace Equinox76561198048419394.Core.Misc
                     PositionChanged = true,
                     AabbChanged = true,
                 };
+                msg.Glare.Enabled &= turnedOn;
                 msg.SpotLight.Direction = (Vector3) pos.Forward;
                 msg.SpotLight.Up = (Vector3) pos.Up;
 
