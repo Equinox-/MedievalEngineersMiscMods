@@ -7,4 +7,12 @@
     <Category>Character</Category>
     <Primary Key="F" />
   </Definition>
+  <Definition xsi:type="MyObjectBuilder_ControlDefinition">
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="DeveloperScreenMods" />
+    <DisplayName>Mod Developer Screen</DisplayName>
+    <Description>Show mod developer screen.</Description>
+    <Category>Dev</Category>
+    <Primary Key="F12" Alt="true" />
+    <Public>false</Public>
+  </Definition>
 </Definitions>

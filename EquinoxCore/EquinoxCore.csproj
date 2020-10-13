@@ -623,6 +623,9 @@
     <Compile Include="Content\Data\Scripts\Core\Controller\SerializableControlledId.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiDebugDefinition.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Debug\GuiScreenDebugMods.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Debug\ModDebugScreenComponent.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Debug\ModDebugScreenRegistration.cs" />
     <Compile Include="Content\Data\Scripts\Core\Harvest\EquiHarvestableComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Harvest\EquiHarvesterToolBehavior.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\EquiOpenInventoryComponent.cs" />
