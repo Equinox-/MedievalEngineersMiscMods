@@ -480,7 +480,7 @@ namespace Equinox76561198048419394.Core.Misc
         }
 
         [XmlElement("Light")]
-        [FieldMerger(typeof(IdentifiableListMerger<LightFeature, List<LightFeature>>))]
+        // [FieldMerger(typeof(IdentifiableListMerger<LightFeature, List<LightFeature>>))]
         public List<LightFeature> Features;
     }
     // ReSharper restore MemberCanBePrivate.Global, UnassignedField.Global
