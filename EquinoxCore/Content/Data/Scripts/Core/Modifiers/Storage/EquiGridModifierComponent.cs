@@ -13,6 +13,7 @@ using Medieval.Entities.Block;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
+using VRage.Components.Block;
 using VRage.Components.Entity;
 using VRage.Components.Entity.CubeGrid;
 using VRage.Definitions.Components;
@@ -24,6 +25,7 @@ using VRage.Game.Models;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
 using VRage.Library.Threading;
+using VRage.Logging;
 using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
@@ -117,6 +119,33 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 _gridConnectivity.BeforeGridSplit += BeforeSplit;
             if (_gridRender != null)
                 _gridRender.BlockRenderablesChanged += BlockRenderablesChanged;
+            if (_gridHierarchy != null)
+            {
+                foreach (var child in _gridHierarchy.Children)
+                    if (child.Entity != null)
+                        BlockEntityAdded(child.Entity);
+                _gridHierarchy.ChildAdded += BlockEntityAdded;
+                _gridHierarchy.ChildRemoved += BlockEntityRemoved;
+            }
+        }
+
+        public override void OnRemovedFromScene()
+        {
+            _gridData.BlockAdded -= BlockAdded;
+            _gridData.BlockRemoved -= BlockRemoved;
+            _gridData.BlockChanged -= BlockChanged;
+            _gridData.BeforeMerge -= BeforeMerge;
+            if (_gridConnectivity != null)
+                _gridConnectivity.BeforeGridSplit -= BeforeSplit;
+            if (_gridRender != null)
+                _gridRender.BlockRenderablesChanged -= BlockRenderablesChanged;
+            if (_gridHierarchy != null)
+            {
+                _gridHierarchy.ChildAdded -= BlockEntityAdded;
+                _gridHierarchy.ChildRemoved -= BlockEntityRemoved;
+            }
+
+            base.OnRemovedFromScene();
         }
 
         protected override bool TryGetParent(in BlockModifierKey key, out BlockModifierKey parent)
@@ -168,7 +197,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 }
             }
 
-            var attachedModels = _gridHierarchy?.GetBlockEntity(parent.Block)?.Definition.Get<MyModelAttachmentComponentDefinition>();
+            var attachedModels = _gridHierarchy?.GetBlockEntity(parent.Block)?.Definition?.Get<MyModelAttachmentComponentDefinition>();
             if (attachedModels != null)
             {
                 foreach (var point in attachedModels.AttachmentPoints.Keys)
@@ -228,6 +257,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 {
                     this.GetLogger().Warning($"Attempted to apply modifier output for {key}@{context.Modifiers} -> {output} but found no block with that ID");
                 }
+
                 return;
             }
 
@@ -244,6 +274,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 {
                     this.GetLogger().Warning($"Attempted to apply modifier output for {key}@{context.Modifiers} -> {output} but found no matching attachments");
                 }
+
                 return;
             }
 
@@ -263,48 +294,42 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             }
         }
 
-        protected override void RaiseAddModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, string data)
+        protected override void RaiseAddModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, string data, bool recursive)
         {
-            MyAPIGateway.Multiplayer.RaiseEvent(this, (x) => x.AddModifierInternalNet, key.ToObjectBuilder(), (SerializableDefinitionId) modifier, data);
+            MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.AddModifierInternalNet,
+                key.ToObjectBuilder(), (SerializableDefinitionId) modifier, data, recursive);
         }
 
-        protected override void RaiseUpdateModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, string data)
+        protected override void RaiseUpdateModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, string data, bool recursive)
         {
-            MyAPIGateway.Multiplayer.RaiseEvent(this, (x) => x.UpdateModifierInternalNet, key.ToObjectBuilder(), (SerializableDefinitionId) modifier, data);
+            MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.UpdateModifierInternalNet,
+                key.ToObjectBuilder(), (SerializableDefinitionId) modifier, data, recursive);
         }
 
-        protected override void RaiseRemoveModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier)
+        protected override void RaiseRemoveModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, bool recursive)
         {
-            MyAPIGateway.Multiplayer.RaiseEvent(this, (x) => x.RemoveModifierInternalNet, key.ToObjectBuilder(), (SerializableDefinitionId) modifier);
-        }
-
-        [Event, Server, Broadcast, Reliable]
-        private void AddModifierInternalNet(MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey key, SerializableDefinitionId id, string data)
-        {
-            AddModifierInternal(key.ToRuntime(), id, data);
+            MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.RemoveModifierInternalNet,
+                key.ToObjectBuilder(), (SerializableDefinitionId) modifier, recursive);
         }
 
         [Event, Server, Broadcast, Reliable]
-        private void UpdateModifierInternalNet(MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey key, SerializableDefinitionId id, string data)
+        private void AddModifierInternalNet(MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey key, SerializableDefinitionId id, string data,
+            bool recursive)
         {
-            UpdateModifierInternal(key.ToRuntime(), id, data);
+            AddModifierInternal(key.ToRuntime(), id, data, recursive);
         }
 
         [Event, Server, Broadcast, Reliable]
-        private void RemoveModifierInternalNet(MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey key, SerializableDefinitionId id)
+        private void UpdateModifierInternalNet(MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey key, SerializableDefinitionId id, string data,
+            bool recursive)
         {
-            RemoveModifierInternal(key.ToRuntime(), id);
+            UpdateModifierInternal(key.ToRuntime(), id, data, recursive);
         }
 
-        public override void OnRemovedFromScene()
+        [Event, Server, Broadcast, Reliable]
+        private void RemoveModifierInternalNet(MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey key, SerializableDefinitionId id, bool recursive)
         {
-            _gridData.BlockAdded -= BlockAdded;
-            _gridData.BlockRemoved -= BlockRemoved;
-            _gridData.BlockChanged -= BlockChanged;
-            _gridData.BeforeMerge -= BeforeMerge;
-            if (_gridConnectivity != null)
-                _gridConnectivity.BeforeGridSplit -= BeforeSplit;
-            base.OnRemovedFromScene();
+            RemoveModifierInternal(key.ToRuntime(), id, recursive);
         }
 
         private static void BeforeMerge(MyGridDataComponent selfData, MyGridDataComponent otherData, List<MyBlock> selfBlocks, List<MyBlock> otherBlocks)
@@ -343,7 +368,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         private void BlockRenderablesChanged(MyRenderComponentGrid owner, BlockId block, ListReader<uint> renderables)
         {
-            if (_gridData.TryGetBlock(block, out var blockObj))
+            if (_gridData.TryGetBlock(block, out _))
                 ApplyModifiers(new BlockModifierKey(block, MyStringHash.NullOrEmpty));
         }
 
@@ -352,13 +377,39 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             using (Lock.AcquireExclusiveUsing())
                 RemoveOrMoveInternal(new BlockModifierKey(block.Id, MyStringHash.NullOrEmpty), null);
         }
+
+        private void BlockEntityAdded(MyEntity child)
+        {
+            var modelAttachmentComponent = child.Get<MyModelAttachmentComponent>();
+            if (modelAttachmentComponent == null) return;
+            // No need to call BlockEntityChildAttached for already existing children since it will be handled
+            // during EquiModifierStorageComponent#OnAddedToScene 
+            modelAttachmentComponent.OnEntityAttached += BlockEntityChildAttached;
+        }
+
+        private void BlockEntityRemoved(MyEntity child)
+        {
+            var modelAttachmentComponent = child.Get<MyModelAttachmentComponent>();
+            if (modelAttachmentComponent == null) return;
+            modelAttachmentComponent.OnEntityAttached -= BlockEntityChildAttached;
+        }
+
+        private void BlockEntityChildAttached(MyModelAttachmentComponent attachmentComponent, MyEntity entity)
+        {
+            var blockId = attachmentComponent.Container?.Get<MyBlockComponent>()?.BlockId;
+            if (!blockId.HasValue || !_gridData.Contains(blockId.Value))
+                return;
+            var attachmentPoint = attachmentComponent.GetEntityAttachmentPoint(entity);
+            if (attachmentPoint == MyStringHash.NullOrEmpty)
+                return;
+            ApplyModifiers(new BlockModifierKey(blockId.Value, attachmentPoint));
+        }
     }
 
     [MyObjectBuilderDefinition]
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiGridModifierComponent :
-        MyObjectBuilder_EquiModifierStorageComponent<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>,
-        IMyRemappable
+        MyObjectBuilder_EquiModifierStorageComponent<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
     {
         public struct BlockModifierKey : IModifierObKey<EquiGridModifierComponent.BlockModifierKey>, IMyRemappable
         {

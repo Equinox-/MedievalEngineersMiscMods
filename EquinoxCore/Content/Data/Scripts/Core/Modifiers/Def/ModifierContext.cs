@@ -6,6 +6,7 @@ using VRage.Components.Entity.CubeGrid;
 using VRage.Definitions.Components.Entity;
 using VRage.Entity.Block;
 using VRage.Game.Entity;
+using VRageMath;
 
 namespace Equinox76561198048419394.Core.Modifiers.Def
 {
@@ -36,6 +37,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         public readonly string OriginalModel;
         public readonly InterningBag<EquiModifierBaseDefinition> Modifiers;
+
+        public Vector3D? Position => GridData != null && Block != null ? GridData.GetBlockWorldBounds(Block).Center : Entity?.PositionComp?.WorldVolume.Center;
 
         private static string GetOriginalBlockModel(MyGridDataComponent gridData, MyBlock block)
         {

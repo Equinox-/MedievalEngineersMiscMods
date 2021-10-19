@@ -17,7 +17,7 @@ namespace Equinox76561198048419394.Core.Util
         /// </summary>
         private const double TrustedDistance = 50d;
 
-        public static bool IsTrusted(MyEntityComponent target)
+        public static bool IsTrusted(MyEntityComponent target, Vector3D? overrideLocation = null)
         {
             if (!MyMultiplayerModApi.Static.IsServer)
                 return true;
@@ -32,14 +32,15 @@ namespace Equinox76561198048419394.Core.Util
             if (playerEntity == null)
                 return false;
 
-            if (Vector3D.DistanceSquared(playerEntity.WorldMatrix.Translation, target.Entity.WorldMatrix.Translation) > TrustedDistance * TrustedDistance)
+            var loc = overrideLocation ?? target.Entity.WorldMatrix.Translation;
+            if (Vector3D.DistanceSquared(playerEntity.WorldMatrix.Translation, loc) > TrustedDistance * TrustedDistance)
                 return false;
 
             var access = target.Container.Get<MyAccessPermissionComponent>();
             if (access != null && !access.Permissions.HasPermission(player.Identity.Id))
                 return false;
 
-            var areaOwnership = MySession.Static.Components.Get<MyAreaOwnershipSystem>()?.GetAreaPermissions(target.Entity.GetPosition());
+            var areaOwnership = MySession.Static.Components.Get<MyAreaOwnershipSystem>()?.GetAreaPermissions(loc);
             if (areaOwnership.HasValue && !areaOwnership.Value.HasPermission(player.Identity.Id))
                 return false;
             

@@ -34,12 +34,12 @@ namespace Equinox76561198048419394.Core.Util.EqMath
         /// <param name="t"></param>
         /// <returns></returns>
         [Pure]
-        public bool Intersects(in Ray ray, out double t)
+        public bool Intersects(in Ray ray, out float t)
         {
             var edge2 = C - A;
             var edge1 = B - A;
             
-            t = double.NaN;
+            t = float.NaN;
             const float epsilon = 0.0000001f;
             var h = ray.Direction.Cross(edge2);
             var a = h.Dot(ref edge1);

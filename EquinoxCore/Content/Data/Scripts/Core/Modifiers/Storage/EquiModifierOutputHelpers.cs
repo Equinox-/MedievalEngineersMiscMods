@@ -5,8 +5,10 @@ using Equinox76561198048419394.Core.Modifiers.Def;
 using Sandbox.ModAPI;
 using VRage.Components;
 using VRage.Components.Entity.CubeGrid;
+using VRage.Components.Entity.Render;
 using VRage.Entity.Block;
 using VRage.Entity.EntityComponents;
+using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Game.Models;
@@ -18,6 +20,15 @@ using VRageRender;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
+    [MyComponent]
+    public sealed class ForceOldPipelineRenderComponent : MyRenderComponent
+    {
+        public override RenderFlags GetRenderFlags()
+        {
+            return base.GetRenderFlags() | RenderFlags.ForceOldPipeline;
+        }
+    }
+
     public static class EquiModifierOutputHelpers
     {
         private static NamedLogger _log = new NamedLogger(nameof(EquiModifierOutputHelpers), MyLog.Default);
@@ -33,13 +44,31 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 if (modelComp == null || modelComp.Model is MyFracturedCompoundModel)
                     return;
 
+                var forceRenderInit = false;
+                if (!IsDedicated)
+                {
+                    modelComp.ColorMask = modifier.ColorMaskHsv ?? Vector3.Zero;
+                    if (render != null && !render.EnableColorMaskHsv)
+                        render.EnableColorMaskHsv = true;
+                    if (modifier.ColorMaskHsv.HasValue && render is MyRenderComponent && !(render is ForceOldPipelineRenderComponent))
+                    {
+                        // Big hack...
+                        target.Components.Remove(render);
+                        render = new ForceOldPipelineRenderComponent();
+                        target.Render = render;
+                        forceRenderInit = true;
+                    }
+                }
+
                 var model = modifier.Model;
                 if (modifier.MaterialEditsBuilder != null && !IsDedicated)
                     model = MySession.Static.Components.Get<DerivedModelManager>().CreateModel(model, modifier.MaterialEditsBuilder);
 
                 var modelData = MyModels.GetModelOnlyData(model);
                 var collisionData = MyModels.GetModelOnlyData(modifier.Model) ?? modelData;
-                if (modelData != null && (modelComp.Model != modelData || modelComp.ModelCollision != collisionData) && !(modelComp.Model is MyFracturedCompoundModel))
+                if (modelData != null && (forceRenderInit ||
+                                          (modelComp.Model != modelData || modelComp.ModelCollision != collisionData) &&
+                                          !(modelComp.Model is MyFracturedCompoundModel)))
                 {
                     modelComp.SetModel(modelData, collisionData);
                     if (render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
@@ -55,21 +84,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         }
                     }
                 }
-
-                if (IsDedicated || render == null)
-                    return;
-                if (modifier.ColorMaskHsv.HasValue)
+                else if (!IsDedicated && render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
                 {
-                    render.EnableColorMaskHsv = true;
-                    modelComp.ColorMask = modifier.ColorMaskHsv.Value;
-                }
-                else
-                {
-                    render.EnableColorMaskHsv = false;
-                    modelComp.ColorMask = Vector3.Zero;
+                    foreach (var renderObj in render.RenderObjectIDs)
+                        MyRenderProxy.UpdateRenderEntity(renderObj, render.GetDiffuseColor(), modifier.ColorMaskHsv ?? Vector3.Zero);
                 }
 
-                render?.UpdateColorMask(modelComp.ColorMask);
                 if (DebugFlags.Trace(typeof(EquiModifierOutputHelpers)))
                     _log.Info($"Applied modifiers to {target} produced model={model} color={modifier.ColorMaskHsv}");
             }
@@ -96,7 +116,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 var colorMaskHsv = modifier.ColorMaskHsv ?? Vector3.Zero;
                 foreach (var renderable in gridRender.GetBlockRenderObjectIDs(block.Id))
                     MyRenderProxy.UpdateRenderEntity(renderable, null, colorMaskHsv);
-                
+
                 if (DebugFlags.Trace(typeof(EquiModifierOutputHelpers)))
                     _log.Info($"Applied modifiers to {block} on {gridData.Entity} produced model={model} color={modifier.ColorMaskHsv}");
             }

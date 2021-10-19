@@ -102,10 +102,10 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             return ref _triangles[triangleId].Triangle;
         }
         
-        public bool RayCast(in Ray ray, out string section, out string material, out double dist)
+        public bool RayCast(in Ray ray, out string section, out string material, out float dist, float distanceLimit = float.MaxValue)
         {
             var bestTriId = -1;
-            var bestTriDist = double.MaxValue;
+            var bestTriDist = distanceLimit;
             using (var itr = _bvh.IntersectRayOrdered(in ray))
             {
                 while (itr.MoveNext())
@@ -133,7 +133,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
             section = null;
             material = null;
-            dist = double.MaxValue;
+            dist = float.MaxValue;
             return false;
         }
 

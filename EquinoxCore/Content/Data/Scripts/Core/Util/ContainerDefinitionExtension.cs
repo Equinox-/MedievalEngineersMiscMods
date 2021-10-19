@@ -42,6 +42,8 @@ namespace Equinox76561198048419394.Core.Util
 
         public static T Get<T>(this MyContainerDefinition container) where T : MyEntityComponentDefinition
         {
+            if (container.Components == null)
+                return null;
             if (container.Components.Count < 4)
             {
                 foreach (var c in container.Components)

@@ -33,7 +33,7 @@ namespace Equinox76561198048419394.Core.Debug
                 _screen = null;
             }
 
-            if (_ctx.InStack)
+            if (_ctx != null && _ctx.InStack)
                 _ctx.Pop();
 
             foreach (var screen in _screens)

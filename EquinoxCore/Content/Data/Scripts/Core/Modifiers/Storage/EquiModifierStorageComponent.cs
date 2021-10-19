@@ -5,7 +5,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Debug;
-using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Util;
@@ -19,7 +18,6 @@ using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
 using VRage.Serialization;
-using VRage.Session;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
@@ -39,7 +37,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         public event ModifiersAppliedDelegate ModifiersApplied;
 
-        protected struct ModifierDataKey : IEquatable<ModifierDataKey>
+        protected readonly struct ModifierDataKey : IEquatable<ModifierDataKey>
         {
             public readonly TRtKey Host;
             public readonly MyDefinitionId Modifier;
@@ -141,19 +139,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         private InterningBag<EquiModifierBaseDefinition> GetModifiersUnsafe(in TRtKey block)
         {
-            var tmp = block;
-            while (true)
-            {
-                if (Modifiers.TryGetValue(tmp, out var result))
-                {
-                    return result;
-                }
-
-                if (!TryGetParent(tmp, out tmp))
-                {
-                    return InterningBag<EquiModifierBaseDefinition>.Empty;
-                }
-            }
+            return Modifiers.TryGetValue(block, out var result) ? result : InterningBag<EquiModifierBaseDefinition>.Empty;
         }
 
         public InterningBag<EquiModifierBaseDefinition> GetModifiers(in TRtKey block)
@@ -162,7 +148,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return GetModifiersUnsafe(block);
         }
 
-        public void AddModifier(in TRtKey key, EquiModifierBaseDefinition modifier, IModifierData useData = null)
+        public void AddModifier(in TRtKey key, EquiModifierBaseDefinition modifier, IModifierData useData = null, bool recursive = false)
         {
             if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
             {
@@ -179,10 +165,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             }
 
             var modifierData = (useData ?? modifier.CreateDefaultData(in ctx))?.Serialize() ?? "";
-            RaiseAddModifierInternal(in key, in modifier.Id, modifierData);
+            RaiseAddModifierInternal(in key, in modifier.Id, modifierData, recursive);
         }
 
-        public void UpdateModifierData(in TRtKey key, EquiModifierBaseDefinition modifier, IModifierData useData)
+        public void UpdateModifierData(in TRtKey key, EquiModifierBaseDefinition modifier, IModifierData useData, bool recursive = false)
         {
             if (!GetModifiers(in key).Contains(modifier))
             {
@@ -191,44 +177,56 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return;
             }
 
-            RaiseUpdateModifierInternal(in key, modifier.Id, useData?.Serialize() ?? "");
+            RaiseUpdateModifierInternal(in key, modifier.Id, useData?.Serialize() ?? "", recursive);
         }
 
-        public void RemoveModifier(in TRtKey key, EquiModifierBaseDefinition modifier)
+        public void RemoveModifier(in TRtKey key, EquiModifierBaseDefinition modifier, bool recursive = false)
         {
             if (!GetModifiers(in key).Contains(modifier))
                 return;
-            RaiseRemoveModifierInternal(in key, in modifier.Id);
+            RaiseRemoveModifierInternal(in key, in modifier.Id, recursive);
         }
 
-        protected abstract void RaiseAddModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data);
+        protected abstract void RaiseAddModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data, bool recursive);
 
-        protected void AddModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data)
+        private bool AddUpdateRemoveModifierSetup(in TRtKey key, in MyDefinitionId modifier,
+            string op,
+            out EquiModifierBaseDefinition modifierDef,
+            out ModifierContext ctx)
         {
-            var modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
+            modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
             if (modifierDef == null)
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not adding {modifier} to {key} since {modifier} doesn't seem to exist");
+                    this.GetLogger().Info($"Not {op} {modifier} on {key} since {modifier} doesn't seem to exist");
                 MyEventContext.ValidationFailed();
-                return;
+                ctx = default;
+                return false;
             }
 
-            if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this))
+            if (!TryCreateContext(in key, GetModifiers(in key), out ctx))
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not adding {modifier} to {key} since {MyEventContext.Current.Sender} isn't trusted");
+                    this.GetLogger().Info($"Not {op} {modifier} on {key} since context creation failed");
                 MyEventContext.ValidationFailed();
-                return;
+                return false;
             }
 
-            if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
+            if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this, ctx.Position))
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not adding {modifier} to {key} since context creation failed");
+                    this.GetLogger().Info($"Not {op} {modifier} on {key} since {MyEventContext.Current.Sender} isn't trusted");
                 MyEventContext.ValidationFailed();
-                return;
+                return false;
             }
+
+            return true;
+        }
+
+        protected void AddModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data, bool recursive)
+        {
+            if (!AddUpdateRemoveModifierSetup(in key, in modifier, "adding", out var modifierDef, out var ctx))
+                return;
 
             if (!modifierDef.CanApply(in ctx))
             {
@@ -238,62 +236,80 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return;
             }
 
-            using (Lock.AcquireExclusiveUsing())
+            using (PoolManager.Get(out List<TRtKey> modifiedKeys))
             {
-                var mods = GetModifiersUnsafe(key);
-                var edited = mods.With(modifierDef);
-                if (mods.Equals(edited))
+                using (Lock.AcquireExclusiveUsing())
                 {
-                    if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                        this.GetLogger().Info($"Adding {modifier} / {data} to {key} was a no-op");
-                    MyEventContext.ValidationFailed();
-                    return;
+                    var modifiedData = string.IsNullOrEmpty(data) ? null : modifierDef.CreateData(data);
+                    modifiedKeys.Add(key);
+                    AddModifierUnsafe(in key, modifierDef, modifiedData);
+                    if (recursive)
+                        AddModifierRecursiveUnsafe(in key, modifierDef, modifiedData, modifiedKeys);
                 }
 
-                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Adding {modifier} / {data} to {key}");
-
-                foreach (var k in mods)
-                    if (modifierDef.ShouldEvict(k))
-                    {
-                        if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                            this.GetLogger().Info($"Evicting {k} from {key} while adding {modifier}");
-                        ModifierData.Remove(new ModifierDataKey(key, k.Id));
-                        edited = edited.Without(k);
-                    }
-
-                RemoveOrphanedModifiers(in key, ref edited);
-
-                Modifiers[key] = edited;
-                if (!string.IsNullOrEmpty(data))
-                    ModifierData[new ModifierDataKey(key, modifier)] = modifierDef.CreateData(data);
+                foreach (var modified in modifiedKeys)
+                    ApplyModifiers(in modified);
             }
-
-            DispatchModifiersChanged(key);
         }
 
-        protected abstract void RaiseUpdateModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data);
-
-        protected void UpdateModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data)
+        private void AddModifierRecursiveUnsafe(in TRtKey root, EquiModifierBaseDefinition modifier, IModifierData data, List<TRtKey> modifiedKeys)
         {
-            var modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
-            if (modifierDef == null)
+            using (PoolManager.Get(out List<TRtKey> children))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not updating {modifier} on {key} since {modifier} doesn't seem to exist");
+                GetChildren(in root, children);
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (var i = 0; i < children.Count; i++)
+                {
+                    var child = children[i];
+                    GetChildren(in child, children);
+                    if (!TryCreateContext(in child, GetModifiersUnsafe(in child), out var childCtx) || !modifier.CanApply(in childCtx))
+                        continue;
+                    AddModifierUnsafe(in child, modifier, data);
+                    modifiedKeys.Add(child);
+                }
+            }
+        }
+
+        private void AddModifierUnsafe(in TRtKey key, EquiModifierBaseDefinition modifier, IModifierData data)
+        {
+            var mods = GetModifiersUnsafe(key);
+            var edited = mods.With(modifier);
+            if (mods.Equals(edited))
+            {
+                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
+                    this.GetLogger().Info($"Adding {modifier.Id} / {data} to {key} was a no-op");
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this))
-            {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not updating {modifier} on {key} since {MyEventContext.Current.Sender} isn't trusted");
-                MyEventContext.ValidationFailed();
-                return;
-            }
+            if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
+                this.GetLogger().Info($"Adding {modifier.Id} / {data} to {key}");
 
-            if (!GetModifiers(in key).Contains(modifierDef))
+            foreach (var k in mods)
+                if (modifier.ShouldEvict(k))
+                {
+                    if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
+                        this.GetLogger().Info($"Evicting {k} from {key} while adding {modifier.Id}");
+                    ModifierData.Remove(new ModifierDataKey(key, k.Id));
+                    edited = edited.Without(k);
+                }
+
+            RemoveOrphanedModifiers(in key, ref edited);
+
+            Modifiers[key] = edited;
+            var dataKey = new ModifierDataKey(key, modifier.Id);
+            if (data != null)
+                ModifierData[dataKey] = data;
+        }
+
+        protected abstract void RaiseUpdateModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data, bool recursive);
+
+        protected void UpdateModifierInternal(in TRtKey key, in MyDefinitionId modifier, string data, bool recursive)
+        {
+            if (!AddUpdateRemoveModifierSetup(in key, in modifier, "updating", out var modifierDef, out var ctx))
+                return;
+
+            if (!ctx.Modifiers.Contains(modifierDef))
             {
                 if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Not updating {modifier} on {key} since it doesn't exist");
@@ -301,69 +317,99 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return;
             }
 
-            var dataKey = new ModifierDataKey(key, modifier);
             var dataObj = modifierDef.CreateData(data);
-            using (Lock.AcquireExclusiveUsing())
+            using (PoolManager.Get(out List<TRtKey> modifiedKeys))
             {
-                ModifierData[dataKey] = dataObj;
-                DispatchModifiersChanged(in key);
+                using (Lock.AcquireExclusiveUsing())
+                {
+                    ModifierData[new ModifierDataKey(key, modifier)] = dataObj;
+                    modifiedKeys.Add(key);
+                    if (recursive)
+                        using (PoolManager.Get(out List<TRtKey> children))
+                        {
+                            GetChildren(in key, children);
+                            // ReSharper disable once ForCanBeConvertedToForeach
+                            for (var i = 0; i < children.Count; i++)
+                            {
+                                var child = children[i];
+                                GetChildren(in child, children);
+                                if (!GetModifiersUnsafe(in child).Contains(modifierDef)) continue;
+                                ModifierData[new ModifierDataKey(child, modifier)] = dataObj;
+                                modifiedKeys.Add(child);
+                            }
+                        }
+                }
+
+                foreach (var modified in modifiedKeys)
+                    ApplyModifiers(in modified);
             }
         }
 
-        protected abstract void RaiseRemoveModifierInternal(in TRtKey key, in MyDefinitionId modifier);
+        protected abstract void RaiseRemoveModifierInternal(in TRtKey key, in MyDefinitionId modifier, bool recursive);
 
-        protected void RemoveModifierInternal(in TRtKey key, in MyDefinitionId modifier)
+        protected void RemoveModifierInternal(in TRtKey key, in MyDefinitionId modifier, bool recursive)
         {
-            var modifierDef = MyDefinitionManager.Get<EquiModifierBaseDefinition>(modifier);
-            if (modifierDef == null)
-            {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not removing {modifier} from {key} since {modifier} doesn't seem to exist");
-                MyEventContext.ValidationFailed();
+            if (!AddUpdateRemoveModifierSetup(in key, in modifier, "removing", out var modifierDef, out _))
                 return;
-            }
 
-            if (!MyEventContext.Current.IsLocallyInvoked && !NetworkTrust.IsTrusted(this))
+            using (PoolManager.Get(out List<TRtKey> modifiedKeys))
             {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not removing {modifier} from {key} since {MyEventContext.Current.Sender} isn't trusted");
-                MyEventContext.ValidationFailed();
-                return;
-            }
-
-            if (!TryCreateContext(in key, GetModifiers(key), out var ctx))
-            {
-                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Not removing {modifier} from {key} since context creation failed");
-                MyEventContext.ValidationFailed();
-                return;
-            }
-
-            using (Lock.AcquireExclusiveUsing())
-            {
-                var mods = GetModifiersUnsafe(in key);
-                var edited = mods.Without(modifierDef);
-                if (ReferenceEquals(edited, mods))
+                using (Lock.AcquireExclusiveUsing())
                 {
-                    if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                        this.GetLogger().Info($"Removing {modifier} from {key} was a no-op");
-                    MyEventContext.ValidationFailed();
-                    return;
+                    if (!RemoveModifierInternalUnsafe(in key, modifierDef))
+                    {
+                        MyEventContext.ValidationFailed();
+                        return;
+                    }
+                    modifiedKeys.Add(key);
+
+                    if (recursive)
+                        RemoveModifierRecursiveUnsafe(in key, modifierDef, modifiedKeys);
                 }
 
+                foreach (var modified in modifiedKeys)
+                    ApplyModifiers(in modified);
+            }
+        }
+
+        private void RemoveModifierRecursiveUnsafe(in TRtKey root, EquiModifierBaseDefinition modifier, List<TRtKey> modifiedKeys)
+        {
+            using (PoolManager.Get(out List<TRtKey> children))
+            {
+                GetChildren(in root, children);
+                // ReSharper disable once ForCanBeConvertedToForeach
+                for (var i = 0; i < children.Count; i++)
+                {
+                    var child = children[i];
+                    GetChildren(in child, children);
+                    if (RemoveModifierInternalUnsafe(in child, modifier))
+                        modifiedKeys.Add(child);
+                }
+            }
+        }
+
+        private bool RemoveModifierInternalUnsafe(in TRtKey key, EquiModifierBaseDefinition modifier)
+        {
+            var mods = GetModifiersUnsafe(in key);
+            var edited = mods.Without(modifier);
+            if (ReferenceEquals(edited, mods))
+            {
                 if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Removing {modifier} from {key}");
-
-                ModifierData.Remove(new ModifierDataKey(key, modifier));
-                RemoveOrphanedModifiers(in key, ref edited);
-
-                if (edited.Count > 0)
-                    Modifiers[key] = edited;
-                else
-                    Modifiers.Remove(key);
+                    this.GetLogger().Info($"Removing {modifier.Id} from {key} was a no-op");
+                return false;
             }
 
-            DispatchModifiersChanged(in key);
+            if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
+                this.GetLogger().Info($"Removing {modifier.Id} from {key}");
+
+            ModifierData.Remove(new ModifierDataKey(key, modifier.Id));
+            RemoveOrphanedModifiers(in key, ref edited);
+
+            if (edited.Count > 0)
+                Modifiers[key] = edited;
+            else
+                Modifiers.Remove(key);
+            return true;
         }
 
         // No locking
@@ -417,24 +463,6 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 if (ReferenceEquals(input, edited))
                     break;
                 input = edited;
-            }
-        }
-
-        /// <summary>
-        /// Modifiers changed, we need to apply them to this block AND its generated pieces.
-        /// </summary>
-        private void DispatchModifiersChanged(in TRtKey invoker)
-        {
-            using (PoolManager.Get(out List<TRtKey> children))
-            {
-                children.Add(invoker);
-                // ReSharper disable once ForCanBeConvertedToForeach
-                for (var i = 0; i < children.Count; i++)
-                {
-                    var key = children[i];
-                    ApplyModifiers(in key);
-                    GetChildren(in key, children);
-                }
             }
         }
 
@@ -559,6 +587,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                                 this.GetLogger().Error($"Failed to find modifier definition {dataSet.Modifier}.  Dropping it.");
                                 continue;
                             }
+
                             foreach (var data in dataSet.Blocks)
                                 ModifierData[new ModifierDataKey(data.ToRuntime(), dataSet.Modifier)] = definition.CreateData(dataSet.Seed);
                         }

@@ -64,12 +64,22 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             if (!MyMultiplayerModApi.Static.IsServer)
                 return;
             var block = Target.Block;
-            var grid = (Target.Entity?.Get<MyBlockComponent>()?.GridData) ?? (Target.Entity?.Get<MyGridDataComponent>());
-            if (block == null || grid == null)
+            var grid = Target.Entity?.Get<MyBlockComponent>()?.GridData ?? Target.Entity?.Get<MyGridDataComponent>();
+            MatrixD matrix = default;
+            string asset = null;
+            if (block != null && grid != null)
+            {
+                matrix = MatrixD.Invert(grid.GetBlockWorldMatrix(block, true));
+                asset = block.Model.AssetName;
+            } else if (Target.Entity != null)
+            {
+                matrix = Target.Entity.PositionComp.WorldMatrixInvScaled;
+                asset = Target.Entity.Model?.AssetName;
+            }
+            if (asset == null)
                 return;
-            var bvh = MySession.Static.Components.Get<DerivedModelManager>().GetMaterialBvh(block.Model.AssetName);
-            var caster = Holder.Get<MyCharacterDetectorComponent>();
-            var matrix = MatrixD.Invert(grid.GetBlockWorldMatrix(block, true));
+            var bvh = MySession.Static.Components.Get<DerivedModelManager>().GetMaterialBvh(asset);
+            var caster = Holder.Get<MyCharacterDetectorComponent>(); 
             var localRay = new Ray((Vector3) Vector3D.Transform(caster.StartPosition, matrix),
                 (Vector3) Vector3D.TransformNormal(caster.Direction, matrix));
 
@@ -78,8 +88,6 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
             else
                 MyAPIGateway.Utilities.ShowNotification("Nothing");
         }
-
-        private MyFixedUpdate render;
     }
 
 
