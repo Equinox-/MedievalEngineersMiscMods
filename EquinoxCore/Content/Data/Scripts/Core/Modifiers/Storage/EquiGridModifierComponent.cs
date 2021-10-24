@@ -106,9 +106,6 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         public override void OnAddedToScene()
         {
-            if (_gridData.BlockCount < Modifiers.Count)
-                RemoveExtraModifiers();
-
             base.OnAddedToScene();
 
             _gridData.BlockAdded += BlockAdded;
@@ -127,6 +124,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 _gridHierarchy.ChildAdded += BlockEntityAdded;
                 _gridHierarchy.ChildRemoved += BlockEntityRemoved;
             }
+            
+            AddScheduledCallback(RemoveExtraModifiers, 1000L);
         }
 
         public override void OnRemovedFromScene()
@@ -246,6 +245,18 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 context = new ModifierContext(e.Current, modifiers);
                 return true;
             }
+        }
+
+        protected override bool KeyExists(in BlockModifierKey key)
+        {
+            var blockObj = _gridData.GetBlock(key.Block);
+            if (blockObj == null)
+                return false;
+            if (key.AttachmentPoint == MyStringHash.NullOrEmpty)
+                return true;
+
+            var containerDef = MyDefinitionManager.Get<MyContainerDefinition>(blockObj.DefinitionId);
+            return containerDef?.Get<MyModelAttachmentComponentDefinition>()?.AttachmentPoints.ContainsKey(key.AttachmentPoint) ?? false;
         }
 
         protected override void ApplyOutput(in BlockModifierKey key, in ModifierContext context, in ModifierOutput output)

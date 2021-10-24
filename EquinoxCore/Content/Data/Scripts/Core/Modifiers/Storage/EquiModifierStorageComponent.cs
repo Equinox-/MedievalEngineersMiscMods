@@ -95,14 +95,17 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             }
         }
 
-        protected void RemoveExtraModifiers()
+        [Update(false)]
+        protected void RemoveExtraModifiers(long dt)
         {
+            if (Entity == null || !Entity.InScene)
+                return;
             using (Lock.AcquireExclusiveUsing())
             {
                 using (PoolManager.Get(out List<TRtKey> toRemove))
                 {
                     foreach (var id in Modifiers.Keys)
-                        if (!TryCreateContext(in id, InterningBag<EquiModifierBaseDefinition>.Empty, out _))
+                        if (!KeyExists(in id))
                             toRemove.Add(id);
 
                     foreach (var rem in toRemove)
@@ -116,7 +119,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 using (PoolManager.Get(out List<ModifierDataKey> toRemove))
                 {
                     foreach (var id in ModifierData.Keys)
-                        if (!TryCreateContext(in id.Host, InterningBag<EquiModifierBaseDefinition>.Empty, out _))
+                        if (!KeyExists(in id.Host))
                             toRemove.Add(id);
 
                     foreach (var rem in toRemove)
@@ -134,6 +137,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         protected abstract void GetChildren(in TRtKey parent, List<TRtKey> children);
 
         public abstract bool TryCreateContext(in TRtKey key, InterningBag<EquiModifierBaseDefinition> modifiers, out ModifierContext context);
+
+        protected abstract bool KeyExists(in TRtKey key);
 
         protected abstract void ApplyOutput(in TRtKey key, in ModifierContext context, in ModifierOutput output);
 
