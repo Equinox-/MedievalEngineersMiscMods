@@ -408,7 +408,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         private void BlockEntityChildAttached(MyModelAttachmentComponent attachmentComponent, MyEntity entity)
         {
             var blockId = attachmentComponent.Container?.Get<MyBlockComponent>()?.BlockId;
-            if (!blockId.HasValue || !_gridData.Contains(blockId.Value))
+            if (Entity == null || !Entity.InScene || _gridData == null || !blockId.HasValue || !_gridData.Contains(blockId.Value))
                 return;
             var attachmentPoint = attachmentComponent.GetEntityAttachmentPoint(entity);
             if (attachmentPoint == MyStringHash.NullOrEmpty)

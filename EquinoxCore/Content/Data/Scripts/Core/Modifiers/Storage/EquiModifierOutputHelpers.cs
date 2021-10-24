@@ -74,20 +74,23 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     if (render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
                     {
                         foreach (var renderObj in render.RenderObjectIDs)
-                            MyRenderProxy.UpdateHighlightOverlappingModel(renderObj, false);
+                            if (renderObj != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                                MyRenderProxy.UpdateHighlightOverlappingModel(renderObj, false);
                         render.RemoveRenderObjects();
                         render.AddRenderObjects();
                         foreach (var renderObj in render.RenderObjectIDs)
-                        {
-                            MyRenderProxy.UpdateHighlightOverlappingModel(renderObj, false);
-                            MyRenderProxy.UpdateLodImmediately(renderObj);
-                        }
+                            if (renderObj != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                            {
+                                MyRenderProxy.UpdateHighlightOverlappingModel(renderObj, false);
+                                MyRenderProxy.UpdateLodImmediately(renderObj);
+                            }
                     }
                 }
                 else if (!IsDedicated && render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
                 {
                     foreach (var renderObj in render.RenderObjectIDs)
-                        MyRenderProxy.UpdateRenderEntity(renderObj, render.GetDiffuseColor(), modifier.ColorMaskHsv ?? Vector3.Zero);
+                        if (renderObj != MyRenderProxy.RENDER_ID_UNASSIGNED)
+                            MyRenderProxy.UpdateRenderEntity(renderObj, render.GetDiffuseColor(), modifier.ColorMaskHsv ?? Vector3.Zero);
                 }
 
                 if (DebugFlags.Trace(typeof(EquiModifierOutputHelpers)))
