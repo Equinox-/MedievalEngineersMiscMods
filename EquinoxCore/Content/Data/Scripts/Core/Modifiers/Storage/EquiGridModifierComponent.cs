@@ -128,6 +128,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             AddScheduledCallback(RemoveExtraModifiers, 1000L);
         }
 
+        [Update(false)]
+        protected override void RemoveExtraModifiers(long dt)
+        {
+            base.RemoveExtraModifiers(dt);
+        }
+
         public override void OnRemovedFromScene()
         {
             _gridData.BlockAdded -= BlockAdded;

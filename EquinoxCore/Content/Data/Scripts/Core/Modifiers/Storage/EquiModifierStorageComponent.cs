@@ -95,8 +95,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             }
         }
 
-        [Update(false)]
-        protected void RemoveExtraModifiers(long dt)
+        protected virtual void RemoveExtraModifiers(long dt)
         {
             if (Entity == null || !Entity.InScene)
                 return;
