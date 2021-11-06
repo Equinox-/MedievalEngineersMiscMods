@@ -664,6 +664,7 @@
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiFlareDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiLightComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiPhysicsTweakerComponent.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Misc\EquiVoxelReplacer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedOwnershipComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedSkeletonComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEdit.cs" />
@@ -715,10 +716,12 @@
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\SahBvhBuilder.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\TriangleBvhBad.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Extensions.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\FarmingExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\IdentifiableListMerger.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\InterningBag.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\HasFlagExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Triangle.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\InventoryObserver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ISerializer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\LruCache.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqSpan.cs" />
@@ -730,8 +733,12 @@
     <Compile Include="Content\Data\Scripts\Core\Util\NetworkTrust.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PowerObserver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ReturnHandle.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\SerializableOrientedBoundingBoxD.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\SerializableVector4.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\SingletonEnumerator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\StackArray.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\VoxelMiningBuffer.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\VoxelPlacementBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Data\Debug.sbc.example" />

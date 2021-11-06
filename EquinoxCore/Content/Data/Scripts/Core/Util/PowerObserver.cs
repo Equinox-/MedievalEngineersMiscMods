@@ -58,6 +58,7 @@ namespace Equinox76561198048419394.Core.Util
             container.ComponentRemoved += _unregisterComponent;
             foreach (var k in container)
                 _registerComponent(k);
+            Recompute();
         }
 
         public void OnRemovedFromContainer()
@@ -67,6 +68,7 @@ namespace Equinox76561198048419394.Core.Util
             foreach (var k in _container)
                 _unregisterComponent(k);
             _container = null;
+            Recompute();
         }
 
         public delegate void PoweredChangedDel(bool oldState, bool newState);
