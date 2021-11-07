@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-using System.Threading;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Sandbox.Definitions;
 using Sandbox.Game.Entities;
 using Sandbox.Game.EntityComponents;
-using Sandbox.Game.World;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
@@ -24,6 +22,7 @@ using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions;
 using VRage.Scene;
+using VRage.Session;
 using VRage.Utils;
 using VRage.Voxels;
 using VRageMath;
@@ -128,21 +127,22 @@ namespace Equinox76561198048419394.Core.Misc
 
         public EquiVoxelReplacerDefinition Definition { get; private set; }
 
-        private int _updateScheduled;
+        private bool _updateScheduled;
         private readonly VoxelPlacementBuffer _placementBuffer = new VoxelPlacementBuffer();
         private readonly VoxelMiningBuffer _miningBuffer = new VoxelMiningBuffer();
 
         private void ScheduleUpdate()
         {
             if (!Entity.InScene || !MyMultiplayerModApi.Static.IsServer) return;
-            if (Interlocked.Exchange(ref _updateScheduled, 1) == 0)
-                Scheduler.AddScheduledCallback(ExecuteUpdate, MyEngineConstants.UPDATE_STEP_SIZE_IN_MILLISECONDS * 2);
+            if (_updateScheduled) return;
+            _updateScheduled = true;
+            Scheduler.AddScheduledCallback(ExecuteUpdate, MyEngineConstants.UPDATE_STEP_SIZE_IN_MILLISECONDS * 2);
         }
 
         [Update(false)]
         private void ExecuteUpdate(long dt)
         {
-            _updateScheduled = 0;
+            _updateScheduled = false;
             if (!_powerObserver.IsPowered) return;
             if (Definition.RequiredStates.Count > 0 && _state != null && !Definition.RequiredStates.Contains(_state.CurrentState)) return;
             using (PoolManager.Get(out List<OrientedBoundingBoxD> boxes))
@@ -255,28 +255,30 @@ namespace Equinox76561198048419394.Core.Misc
         {
             var data = VoxelData;
             var usedMaterial = 0;
-            using (PoolManager.Get(out List<OrientedBoundingBoxD> localBoxes))
+            using (PoolManager.Get(out List<OrientedBoundingBoxD> storageBoxes))
                 foreach (var voxel in voxels)
                 {
                     if (materialLimit < usedMaterial)
                         break;
                     var invWorld = voxel.PositionComp.WorldMatrixInvScaled;
-                    var localBounds = BoundingBoxD.CreateInvalid();
-                    localBoxes.Clear();
+                    var storageBounds = BoundingBoxD.CreateInvalid();
+                    storageBoxes.Clear();
                     var voxelOffset = (voxel.Size >> 1) + voxel.StorageMin;
                     foreach (var obb in boxes)
                     {
-                        var localObb = obb;
-                        localObb.Transform(invWorld);
-                        localObb.HalfExtent /= voxel.VoxelSize;
-                        localObb.Center = localObb.Center / voxel.VoxelSize + voxelOffset;
-                        localBoxes.Add(localObb);
-                        localBounds.Include(localObb.GetAABB());
+                        var storageObb = obb;
+                        storageObb.Transform(invWorld);
+                        storageObb.HalfExtent /= voxel.VoxelSize;
+                        storageObb.Center = storageObb.Center / voxel.VoxelSize + voxelOffset;
+                        storageBoxes.Add(storageObb);
+                        storageBounds.Include(storageObb.GetAABB());
                     }
 
-                    var storageMin = Vector3I.Max(Vector3I.Floor(localBounds.Min), voxel.StorageMin);
-                    var storageMax = Vector3I.Min(Vector3I.Ceiling(localBounds.Max), voxel.StorageMax);
-                    if (voxel.Storage.Intersect(new BoundingBoxI(storageMin, storageMax), 0, false) == ContainmentType.Disjoint)
+                    var storageMin = Vector3I.Max(Vector3I.Floor(storageBounds.Min), voxel.StorageMin);
+                    var storageMax = Vector3I.Min(Vector3I.Ceiling(storageBounds.Max), voxel.StorageMax);
+                    var localBox = new BoundingBox(storageMin, storageMax);
+                    localBox.Translate(-voxel.SizeInMetresHalf - voxel.StorageMin);
+                    if (voxel.IntersectStorage(ref localBox, false) == ContainmentType.Disjoint)
                         continue;
                     data.Resize(storageMin, storageMax);
                     voxel.Storage.ReadRange(data, MyStorageDataTypeFlags.ContentAndMaterial, 0, storageMin, storageMax);
@@ -288,8 +290,8 @@ namespace Equinox76561198048419394.Core.Misc
                             break;
                         var contained = false;
                         var voxelBox = new BoundingBoxD(storageMin + pt, storageMin + pt + 1);
-                        foreach (var localBox in localBoxes)
-                            if (localBox.Intersects(ref voxelBox))
+                        foreach (var storageBox in storageBoxes)
+                            if (storageBox.Intersects(ref voxelBox))
                             {
                                 contained = true;
                                 break;
