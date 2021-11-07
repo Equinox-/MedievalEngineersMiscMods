@@ -85,5 +85,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Data
             IntToChar3(MathHelper.Clamp(Math.Abs(Color.V), 0, 100), buffer, 8);
             return new string(buffer);
         }
+
+        public override string ToString() => Color.ToString();
     }
 }

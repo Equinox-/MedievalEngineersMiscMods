@@ -54,30 +54,31 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             foreach (var part in parts)
             {
                 var materialName = part.m_MaterialDesc?.MaterialName ?? "<<no material>>";
-                using (PoolManager.Get(out List<KeyValuePair<string, MyMeshSectionMeshInfo>> mtlSections))
-                {
-                    foreach (var section in sections)
-                    foreach (var mesh in section.Meshes)
-                        if (mesh.MaterialName == materialName)
-                            mtlSections.Add(new KeyValuePair<string, MyMeshSectionMeshInfo>(section.Name, mesh));
-
-                    mtlSections.Sort((a, b) => a.Value.StartIndex.CompareTo(b.Value.StartIndex));
-
-                    var processed = 0;
-                    var idx = part.m_indices;
-                    foreach (var section in mtlSections)
+                var processed = 0;
+                var idx = part.m_indices;
+                if (sections != null)
+                    using (PoolManager.Get(out List<KeyValuePair<string, MyMeshSectionMeshInfo>> mtlSections))
                     {
-                        for (var i = processed; i < section.Value.StartIndex - 2; i += 3)
-                            AddTriangle(null, materialName, idx[i], idx[i + 1], idx[i + 2]);
-                        var endOfSection = section.Value.StartIndex + section.Value.IndexCount;
-                        for (var i = section.Value.StartIndex; i < endOfSection - 2; i += 3)
-                            AddTriangle(section.Key, materialName, idx[i], idx[i + 1], idx[i + 2]);
-                        processed = endOfSection;
+                        foreach (var section in sections)
+                        foreach (var mesh in section.Meshes)
+                            if (mesh.MaterialName == materialName)
+                                mtlSections.Add(new KeyValuePair<string, MyMeshSectionMeshInfo>(section.Name, mesh));
+
+                        mtlSections.Sort((a, b) => a.Value.StartIndex.CompareTo(b.Value.StartIndex));
+
+                        foreach (var section in mtlSections)
+                        {
+                            for (var i = processed; i < section.Value.StartIndex - 2; i += 3)
+                                AddTriangle(null, materialName, idx[i], idx[i + 1], idx[i + 2]);
+                            var endOfSection = section.Value.StartIndex + section.Value.IndexCount;
+                            for (var i = section.Value.StartIndex; i < endOfSection - 2; i += 3)
+                                AddTriangle(section.Key, materialName, idx[i], idx[i + 1], idx[i + 2]);
+                            processed = endOfSection;
+                        }
                     }
 
-                    for (var i = processed; i < idx.Count - 2; i += 3)
-                        AddTriangle(null, materialName, idx[i], idx[i + 1], idx[i + 2]);
-                }
+                for (var i = processed; i < idx.Count - 2; i += 3)
+                    AddTriangle(null, materialName, idx[i], idx[i + 1], idx[i + 2]);
             }
 
             PackedBvh bvh;
@@ -101,7 +102,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         {
             return ref _triangles[triangleId].Triangle;
         }
-        
+
         public bool RayCast(in Ray ray, out string section, out string material, out float dist, float distanceLimit = float.MaxValue)
         {
             var bestTriId = -1;
