@@ -1,20 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Planet;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
+using VRage.Components.Session;
 using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Logging;
+using VRage.Library.Collections;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Session;
+using VRage.Utils;
+using VRage.Voxels;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Controller
@@ -66,7 +71,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         internal bool RequestControlInternal(EquiPlayerAttachmentComponent.Slot slot)
         {
-            var seed = (float) Rand.NextDouble();
+            var seed = (float)Rand.NextDouble();
             ChangeSlotInternal(slot, seed);
             MyAPIGateway.Multiplayer?.RaiseEvent(this, x => x.ChangeControlledClient, slot.Controllable.Entity.EntityId, slot.Definition.Name, seed);
             return true;
@@ -129,23 +134,51 @@ namespace Equinox76561198048419394.Core.Controller
                 if (relMatrix.Scale.AbsMax() < 1)
                     relMatrix = MatrixD.Identity;
                 var outPos = relMatrix * old.AttachMatrix;
-                var transformedCenter = Vector3.TransformNormal(Entity.PositionComp.LocalAABB.Center, outPos);
-                var orientation = Quaternion.CreateFromRotationMatrix(Entity.PositionComp.WorldMatrix.GetOrientation());
-                var halfExtents = Entity.PositionComp.LocalAABB.HalfExtents;
-                halfExtents.X *= 0.25f;
-                halfExtents.Z *= 0.25f;
-                var translate = MyEntities.FindFreePlace(outPos.Translation + transformedCenter, orientation, 
-                    halfExtents, 200,20, 0.1f, false);
-                if (translate.HasValue)
-                    outPos.Translation = translate.Value - transformedCenter;
-                else
-                    outPos = old.AttachMatrix;
                 var gravity = Vector3.Normalize(MyGravityProviderSystem.CalculateTotalGravityInPoint(outPos.Translation));
-                if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + 10 * gravity, out var hit))
+                var rightCandidate = Vector3.Cross(gravity, (Vector3)outPos.Forward);
+                if (rightCandidate.LengthSquared() < 0.5f)
+                    rightCandidate = MyUtils.GetRandomVector3();
+                var correctedForward = Vector3.Normalize(Vector3.Cross(rightCandidate, gravity));
+                outPos = MatrixD.CreateWorld(outPos.Translation, correctedForward, -gravity);
+                var transformedCenter = Vector3.TransformNormal(Entity.PositionComp.LocalAABB.Center, outPos);
+                var orientation = Quaternion.CreateFromRotationMatrix(outPos);
+                var originalHalfExtents = Entity.PositionComp.LocalAABB.HalfExtents;
+                var halfExtents = new Vector3(originalHalfExtents.X * 0.8f, originalHalfExtents.Y, originalHalfExtents.Z * 0.8f);
+
+                const int maxUpwardShifts = 4;
+                var shiftDistance = 0f;
+                for (var i = 0; i <= maxUpwardShifts; i++)
                 {
-                    outPos.Translation = hit.Position;
+                    shiftDistance = (float)Math.Pow(i, 1.5f);
+                    var outPosCenter = outPos.Translation + transformedCenter - gravity * shiftDistance;
+                    if (i < maxUpwardShifts)
+                    {
+                        var translate = FindFreePlaceImproved(outPosCenter, orientation, halfExtents, gravity);
+                        if (!translate.HasValue) continue;
+                        outPos.Translation = translate.Value - transformedCenter;
+                        break;
+                    }
+                    else
+                    {
+                        var translate = MyEntities.FindFreePlace(outPosCenter, orientation, halfExtents,
+                            1000, 50, 0.1f,
+                            /* on the last try push to the surface */ true);
+                        if (translate.HasValue)
+                            outPos.Translation = translate.Value - transformedCenter;
+                        else
+                            outPos.Translation = old.AttachMatrix.Translation;
+                        break;
+                    }
                 }
 
+                // Final clean up with minor shift to get out of overlapping any surfaces
+                var finalShift = MyEntities.FindFreePlace(outPos.Translation + transformedCenter, orientation,
+                    originalHalfExtents * 1.05f, 250, 50, 0.025f, false);
+                if (finalShift.HasValue)
+                    outPos.Translation = finalShift.Value - transformedCenter;
+
+                if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + (1 + shiftDistance) * gravity, out var hit))
+                    outPos.Translation = hit.Position;
                 Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
             }
 
@@ -191,6 +224,86 @@ namespace Equinox76561198048419394.Core.Controller
                 slot.AttachedCharacter = Entity;
             ControlledChanged?.Invoke(this, old, slot);
             _tracker.RaiseControlledChange(this, old, slot);
+        }
+
+        private static Vector3D? FindFreePlaceImproved(Vector3D pos, Quaternion orientation, Vector3 halfExtents, Vector3 gravity)
+        {
+            if (IsFreePlace(pos, orientation, halfExtents))
+                return pos;
+            var distanceStepSize = halfExtents.Length() / 10f;
+            for (var distanceStep = 1; distanceStep <= 20; distanceStep++)
+            {
+                var distance = distanceStep * distanceStepSize;
+                for (var attempt = 0; attempt < 50; attempt++)
+                {
+                    var dir = MyUtils.GetRandomVector3HemisphereNormalized(-gravity);
+                    var testPos = pos + dir * distance;
+                    if (IsFreePlace(testPos, orientation, halfExtents))
+                    {
+                        var planet = MyPlanets.GetPlanets()[0];
+                        var centerVoxData = planet.WorldPositionToStorage(testPos);
+                        VoxelData.Resize(new Vector3I(1));
+                        planet.Storage.ReadRange(VoxelData, MyStorageDataTypeFlags.Content, 0, centerVoxData, centerVoxData);
+                        return testPos;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsFreePlace(Vector3D pos, Quaternion orientation, Vector3 halfExtents)
+        {
+            return MyEntities.FindFreePlace(pos, orientation, halfExtents, 0, 1, 1, false).HasValue
+                   && !IntersectsVoxelSurface(new OrientedBoundingBoxD(pos, halfExtents, orientation));
+        }
+
+        private static readonly MyStorageData VoxelData = new MyStorageData(MyStorageDataTypeFlags.Content);
+
+        private static bool IntersectsVoxelSurface(OrientedBoundingBoxD box)
+        {
+            var data = VoxelData;
+            using (PoolManager.Get(out List<MyEntity> entities))
+            {
+                MyGamePruningStructure.GetTopmostEntitiesInBox(box.GetAABB(), entities, MyEntityQueryType.Static);
+                foreach (var ent in entities)
+                    if (ent is MyVoxelBase voxel && !(ent is MyVoxelPhysics))
+                    {
+                        var invWorld = voxel.PositionComp.WorldMatrixInvScaled;
+                        var storageBounds = BoundingBoxD.CreateInvalid();
+                        var voxelOffset = (voxel.Size >> 1) + voxel.StorageMin;
+                        var storageObb = box;
+                        storageObb.Transform(invWorld);
+                        storageObb.HalfExtent /= voxel.VoxelSize;
+                        storageObb.Center = storageObb.Center / voxel.VoxelSize + voxelOffset;
+                        storageBounds.Include(storageObb.GetAABB());
+
+                        var storageMin = Vector3I.Max(Vector3I.Floor(storageBounds.Min), voxel.StorageMin);
+                        var storageMax = Vector3I.Min(Vector3I.Ceiling(storageBounds.Max), voxel.StorageMax);
+                        var localBox = new BoundingBoxI(storageMin, storageMax);
+                        localBox.Inflate(1);
+                        if (voxel.Storage.Intersect(localBox, 0) == ContainmentType.Disjoint)
+                            continue;
+                        data.Resize(storageMin, storageMax);
+                        voxel.Storage.ReadRange(data, MyStorageDataTypeFlags.Content, 0, storageMin, storageMax);
+                        foreach (var pt in new BoundingBoxI(Vector3I.Zero, storageMax - storageMin).EnumeratePoints())
+                        {
+                            var voxelBox = new BoundingBoxD(storageMin + pt, storageMin + pt + 1);
+                            var containment = storageObb.Contains(ref voxelBox);
+                            if (containment == ContainmentType.Disjoint)
+                                continue;
+                            var tmpPt = pt;
+                            var index = data.ComputeLinear(ref tmpPt);
+                            var content = data.Content(index);
+                            if (containment == ContainmentType.Intersects && content >= 127)
+                                return true;
+                            if (containment == ContainmentType.Contains && content > 0)
+                                return true;
+                        }
+                    }
+            }
+
+            return false;
         }
 
         private const int PriorityOverride = int.MaxValue;
@@ -246,7 +359,7 @@ namespace Equinox76561198048419394.Core.Controller
                 if (MyMultiplayerModApi.Static.IsServer)
                     RequestControl(ctl);
                 else
-                    ChangeSlotInternal(ctl, (float) Rand.NextDouble());
+                    ChangeSlotInternal(ctl, (float)Rand.NextDouble());
             }
 
             MyEntities.OnEntityAdd -= CheckForEntity;
