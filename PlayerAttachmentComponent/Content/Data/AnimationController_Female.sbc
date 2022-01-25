@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Definition xsi:type="AnimationControllerDefinition" Enabled="true" Merge="Append">
-    <Id Type="MyObjectBuilder_CharacterAnimationControllerComponent" Subtype="Medieval_female" />
+  <Definition xsi:type="AnimationControllerDefinition" Abstract="false" Enabled="true" Merge="Append">
+    <Id Type="CharacterAnimationControllerComponent" Subtype="Medieval_female" />
     <CopyFrom xsi:nil="true" />
     <Layers>
       <Layer>
@@ -134,6 +134,82 @@
             <Type>Normal</Type>
           </Node>
           <Node>
+            <Name>SitFeetUpFlat</Name>
+            <AnimationTree>
+              <EdPos>
+                <X>-54</X>
+                <Y>-6</Y>
+              </EdPos>
+              <Child xsi:type="MyObjectBuilder_AnimationTreeNodeSetter">
+                <EdPos>
+                  <X>171</X>
+                  <Y>-66</Y>
+                </EdPos>
+                <Child xsi:type="MyObjectBuilder_AnimationTreeNodeTrack">
+                  <EdPos>
+                    <X>315</X>
+                    <Y>-99</Y>
+                  </EdPos>
+                  <PathToModel>Models\Characters\Animations\FemaleChairPose_FeetUp_Flat.mwm</PathToModel>
+                  <AnimationName>AnimStack::Armature|ArmatureAction</AnimationName>
+                  <Loop>false</Loop>
+                  <Speed>1</Speed>
+                  <Interpolate>true</Interpolate>
+                </Child>
+                <Time>0</Time>
+                <Value>
+                  <Name>sitting</Name>
+                  <Value>1</Value>
+                </Value>
+                <ResetValueEnabled>false</ResetValueEnabled>
+                <ResetValue>0</ResetValue>
+              </Child>
+            </AnimationTree>
+            <EdPos>
+              <X>-442</X>
+              <Y>-345</Y>
+            </EdPos>
+            <Type>Normal</Type>
+          </Node>
+          <Node>
+            <Name>SitFeetUpLow</Name>
+            <AnimationTree>
+              <EdPos>
+                <X>-54</X>
+                <Y>-6</Y>
+              </EdPos>
+              <Child xsi:type="MyObjectBuilder_AnimationTreeNodeSetter">
+                <EdPos>
+                  <X>171</X>
+                  <Y>-66</Y>
+                </EdPos>
+                <Child xsi:type="MyObjectBuilder_AnimationTreeNodeTrack">
+                  <EdPos>
+                    <X>315</X>
+                    <Y>-99</Y>
+                  </EdPos>
+                  <PathToModel>Models\Characters\Animations\FemaleChairPose_FeetUp_Lowered.mwm</PathToModel>
+                  <AnimationName>AnimStack::Armature|ArmatureAction</AnimationName>
+                  <Loop>false</Loop>
+                  <Speed>1</Speed>
+                  <Interpolate>true</Interpolate>
+                </Child>
+                <Time>0</Time>
+                <Value>
+                  <Name>sitting</Name>
+                  <Value>1</Value>
+                </Value>
+                <ResetValueEnabled>false</ResetValueEnabled>
+                <ResetValue>0</ResetValue>
+              </Child>
+            </AnimationTree>
+            <EdPos>
+              <X>-329</X>
+              <Y>-331</Y>
+            </EdPos>
+            <Type>Normal</Type>
+          </Node>
+          <Node>
             <Name>FloorSitCrossed</Name>
             <EdPos>
               <X>-814</X>
@@ -174,8 +250,8 @@
               </Child>
             </AnimationTree>
             <EdPos>
-              <X>-439</X>
-              <Y>-303</Y>
+              <X>-248</X>
+              <Y>-223</Y>
             </EdPos>
             <Type>Normal</Type>
           </Node>
@@ -199,8 +275,8 @@
                   <X>155</X>
                   <Y>-18</Y>
                 </EdPos>
-              	<PathToModel>Models\Characters\Animations\Female\Female_idle.mwm</PathToModel>
-              	<AnimationName>AnimStack::idle01</AnimationName>
+                <PathToModel>Models\Characters\Animations\Female\Female_idle.mwm</PathToModel>
+                <AnimationName>AnimStack::idle01</AnimationName>
                 <Loop>true</Loop>
                 <Speed>1</Speed>
                 <Interpolate>true</Interpolate>
@@ -231,6 +307,22 @@
             <Curve>Smooth</Curve>
           </Transition>
           <Transition Name="equi_sit_standard" From="Nothing" To="SitStandard" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_flat" From="Nothing" To="SitFeetUpFlat" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_attach_end" From="SitFeetUpFlat" To="Nothing" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_low" From="Nothing" To="SitFeetUpLow" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_attach_end" From="SitFeetUpLow" To="Nothing" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
