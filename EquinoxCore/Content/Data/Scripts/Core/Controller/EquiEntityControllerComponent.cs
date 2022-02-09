@@ -5,6 +5,7 @@ using Equinox76561198048419394.Core.Util;
 using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
+using Sandbox.Game.EntityComponents.Character;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
@@ -180,6 +181,10 @@ namespace Equinox76561198048419394.Core.Controller
                 if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + (1 + shiftDistance) * gravity, out var hit))
                     outPos.Translation = hit.Position;
                 Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
+
+                // Give the player 5 seconds of health immunity when they leave a chair to prevent collisions from killing them if we couldn't
+                // find a free space
+                Entity?.Get<MyCharacterDamageComponent>()?.AddTemporaryHealthImmunity(2);
             }
 
             // Handles storing the character's position when attaching
@@ -282,7 +287,8 @@ namespace Equinox76561198048419394.Core.Controller
                         var storageMax = Vector3I.Min(Vector3I.Ceiling(storageBounds.Max), voxel.StorageMax);
                         var localBox = new BoundingBoxI(storageMin, storageMax);
                         localBox.Inflate(1);
-                        if (voxel.Storage.Intersect(localBox, 0) == ContainmentType.Disjoint)
+                        var floatBox = new BoundingBox(localBox);
+                        if (voxel.IntersectStorage(ref floatBox) == ContainmentType.Disjoint)
                             continue;
                         data.Resize(storageMin, storageMax);
                         voxel.Storage.ReadRange(data, MyStorageDataTypeFlags.Content, 0, storageMin, storageMax);
