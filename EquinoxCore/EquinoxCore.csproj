@@ -683,6 +683,7 @@
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Def\ModifierChangeModel.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Def\ModifierContext.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Def\ModifierOutput.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Modifiers\Extra\EquiEventModifierComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiGridModifierComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiModifierStorageComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Modifiers\Storage\EquiModifierOutputHelpers.cs" />
