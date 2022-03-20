@@ -20,145 +20,73 @@
         <MaxStackSize>1</MaxStackSize>
     </Definition>
 
-    <!-- Small Diameter, Slack -->
+    <!-- Small Diameter -->
     <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
-        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small_Slack" />
-        <DisplayName>Decorative Rope (Slack, Small)</DisplayName>
-        <Description>A basic rope used for decoration, loosely connected with a small diameter.</Description>
+        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small" />
+        <DisplayName>Small Decorative Rope</DisplayName>
+        <Description>A basic rope used for decoration with a small diameter.</Description>
         <Icon>Textures\GUI\Icons\cubes\BasicRope.dds</Icon>
         <Category>Weaving</Category>
         <Prerequisites>
             <Item Type="InventoryItem" Subtype="StringLinen" Amount="2" />
         </Prerequisites>
         <Results>
-            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Small_Slack" />
+            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Small" />
         </Results>
         <CraftingTime Seconds="5" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
-        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Small_Slack"/>
+        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Small"/>
         <CopyFrom Type="HandItem" Subtype="Equi_DecorativeRope_Base" />
-        <DisplayName>Decorative Rope (Slack, Small)</DisplayName>
-        <Description>A basic rope used for decoration, loosely connected with a small diameter.</Description>
+        <DisplayName>Small Decorative Rope</DisplayName>
+        <Description>A basic rope used for decoration with a small diameter.</Description>
         <MaxDurability>100</MaxDurability>
         <StanceToBehavior>
             <StanceName>NormalMode</StanceName>
-            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small_Slack" />
+            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small" />
         </StanceToBehavior>
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition">
-        <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small_Slack"/>
+        <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small"/>
         <CopyFrom Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base" />
         <CatenaryFactor>0.05</CatenaryFactor>
         <Width>0.05</Width>
     </Definition>
 
-    <!-- Small Diameter, Taut -->
+    <!-- Large Diameter -->
     <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
-        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small_Taut" />
-        <DisplayName>Decorative Rope (Taut, Small)</DisplayName>
-        <Description>A basic rope used for decoration, tightly connected with a small diameter.</Description>
-        <Icon>Textures\GUI\Icons\cubes\BasicRope.dds</Icon>
-        <Category>Weaving</Category>
-        <Prerequisites>
-            <Item Type="InventoryItem" Subtype="StringLinen" Amount="2" />
-        </Prerequisites>
-        <Results>
-            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Small_Taut" />
-        </Results>
-        <CraftingTime Seconds="5" />
-    </Definition>
-
-    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
-        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Small_Taut"/>
-        <CopyFrom Type="HandItem" Subtype="Equi_DecorativeRope_Base" />
-        <DisplayName>Decorative Rope (Taut, Small)</DisplayName>
-        <Description>A basic rope used for decoration, tightly connected with a small diameter.</Description>
-        <MaxDurability>100</MaxDurability>
-        <StanceToBehavior>
-            <StanceName>NormalMode</StanceName>
-            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small_Taut" />
-        </StanceToBehavior>
-    </Definition>
-
-    <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition">
-        <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small_Taut"/>
-        <CopyFrom Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base" />
-        <CatenaryFactor>0</CatenaryFactor>
-        <Width>0.05</Width>
-    </Definition>
-
-    <!-- Large Diameter, Slack -->
-    <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
-        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large_Slack" />
-        <DisplayName>Decorative Rope (Slack, Large)</DisplayName>
-        <Description>A basic rope used for decoration, loosely connected with a large diameter.</Description>
+        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large" />
+        <DisplayName>Large Decorative Rope</DisplayName>
+        <Description>A basic rope used for decoration with a large diameter.</Description>
         <Icon>Textures\GUI\Icons\cubes\BasicRope.dds</Icon>
         <Category>Weaving</Category>
         <Prerequisites>
             <Item Type="InventoryItem" Subtype="StringLinen" Amount="6" />
         </Prerequisites>
         <Results>
-            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack" />
+            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Large" />
         </Results>
         <CraftingTime Seconds="5" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
-        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack"/>
+        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Large"/>
         <CopyFrom Type="HandItem" Subtype="Equi_DecorativeRope_Base" />
-        <DisplayName>Decorative Rope (Slack, Large)</DisplayName>
-        <Description>A basic rope used for decoration, loosely connected with a large diameter.</Description>
+        <DisplayName>Large Decorative Rope</DisplayName>
+        <Description>A basic rope used for decoration with a large diameter.</Description>
         <MaxDurability>100</MaxDurability>
         <StanceToBehavior>
             <StanceName>NormalMode</StanceName>
-            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large_Slack" />
+            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large" />
         </StanceToBehavior>
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition">
-        <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large_Slack"/>
+        <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large"/>
         <CopyFrom Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base" />
         <CatenaryFactor>0.05</CatenaryFactor>
-        <Width>0.15</Width>
-        <UvTangentPerMeter x="3.5" y="0" />
-        <HalfSideSegments>4</HalfSideSegments>
-    </Definition>
-
-    <!-- Large Diameter, Taut -->
-    <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
-        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large_Taut" />
-        <DisplayName>Decorative Rope (Taut, Large)</DisplayName>
-        <Description>A basic rope used for decoration, tightly connected with a large diameter.</Description>
-        <Icon>Textures\GUI\Icons\cubes\BasicRope.dds</Icon>
-        <Category>Weaving</Category>
-        <Prerequisites>
-            <Item Type="InventoryItem" Subtype="StringLinen" Amount="6" />
-        </Prerequisites>
-        <Results>
-            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Large_Taut" />
-        </Results>
-        <CraftingTime Seconds="5" />
-    </Definition>
-
-    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
-        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Large_Taut"/>
-        <CopyFrom Type="HandItem" Subtype="Equi_DecorativeRope_Base" />
-        <DisplayName>Decorative Rope (Taut, Large)</DisplayName>
-        <Description>A basic rope used for decoration, tightly connected with a large diameter.</Description>
-        <MaxDurability>100</MaxDurability>
-        <StanceToBehavior>
-            <StanceName>NormalMode</StanceName>
-            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large_Taut" />
-        </StanceToBehavior>
-    </Definition>
-
-    <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition">
-        <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large_Taut"/>
-        <CopyFrom Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base" />
-        <CatenaryFactor>0</CatenaryFactor>
         <Width>0.15</Width>
         <UvTangentPerMeter x="3.5" y="0" />
         <HalfSideSegments>4</HalfSideSegments>

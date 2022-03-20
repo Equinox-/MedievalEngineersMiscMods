@@ -220,10 +220,13 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (bvh == null || !bvh.RayCast(in localRay, out _, out _, out var dist, bestDistance) || dist > bestDistance)
                         continue;
                     bestDistance = dist;
+                    var pos = localRay.Position + localRay.Direction * dist;
+                    const float snapSize = 0.25f / 8;
+                    pos = Vector3.Round(pos / snapSize) * snapSize;
                     anchor = new DecorAnchor(tmpCandidate.Grid, tmpCandidate.Block,
                         EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
                             tmpCandidate.Block,
-                            localRay.Position + localRay.Direction * dist),
+                            pos),
                         AnchorSource.Mesh);
                     found = true;
                 }
@@ -315,7 +318,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
         protected override void Hit()
         {
-            if (!MyMultiplayerModApi.Static.IsServer) return;
+            if (!IsLocallyControlled) return;
             if (!TryGetAnchor(out var anchor)) return;
             for (var i = 0; i < _anchors.Count; i++)
             {

@@ -3,43 +3,33 @@
     <Definition xsi:type="ResearchDefinition" Merge="Append">
         <Id Type="SearchCategoryDefinition" Subtype="Equipment" />
 
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small_Slack" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small_Taut" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Taut" />
+        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small" />
+        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large" />
 
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack"/>
+        <Entry Type="HandItem" Subtype="Equi_DecorativeCanvas"/>
     </Definition>
 
     <Definition xsi:type="ResearchDefinition" Merge="Append">
         <Id Type="ResearchDefinition" Subtype="EconomicWeaving" />
 
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small_Slack" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small_Slack" />
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small_Taut" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small_Taut" />
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large_Slack" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack" />
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large_Taut" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Taut" />
+        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small" />
+        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small" />
+        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large" />
+        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large" />
 
         <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeCanvas" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack"/>
+        <Entry Type="HandItem" Subtype="Equi_DecorativeCanvas"/>
     </Definition>
 
     <Definition xsi:type="ResearchDefinition" Merge="Append">
         <Id Type="ResearchDefinition" Subtype="CivilianMetalTools" />
 
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small_Slack" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small_Slack" />
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small_Taut" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small_Taut" />
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large_Slack" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack" />
-        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large_Taut" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Taut" />
+        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small" />
+        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Small" />
+        <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large" />
+        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large" />
 
         <Entry Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeCanvas" />
-        <Entry Type="HandItem" Subtype="Equi_DecorativeRope_Large_Slack"/>
+        <Entry Type="HandItem" Subtype="Equi_DecorativeCanvas"/>
     </Definition>
 </Definitions>

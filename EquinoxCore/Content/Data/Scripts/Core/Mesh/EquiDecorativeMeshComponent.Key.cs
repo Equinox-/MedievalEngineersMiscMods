@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using Equinox76561198048419394.Core.Util;
 using VRage.Components.Entity.CubeGrid;
 using VRage.Entity.Block;
+using VRage.Network;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Mesh
@@ -12,6 +13,7 @@ namespace Equinox76561198048419394.Core.Mesh
         // Changing this breaks serialization.  Do not modify.
         public static readonly PackedBoundedVec AnchorPacking = new PackedBoundedVec(-0.5f, 1.5f, 10);
 
+        [RpcSerializable]
         public readonly struct BlockAndAnchor : IEquatable<BlockAndAnchor>
         {
             public readonly BlockId Block;

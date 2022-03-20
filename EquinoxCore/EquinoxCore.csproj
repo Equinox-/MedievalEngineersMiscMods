@@ -755,6 +755,8 @@
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelPlacementBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Data\Characters.sbc" />
+    <Content Include="Content\Data\Control.sbc" />
     <Content Include="Content\Data\Debug.sbc.example" />
     <Content Include="Content\Data\Flares.sbc" />
     <Content Include="Content\Data\Light.sbc.example" />

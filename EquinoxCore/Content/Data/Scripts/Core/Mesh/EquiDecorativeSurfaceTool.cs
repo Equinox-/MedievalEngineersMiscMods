@@ -8,17 +8,21 @@ using Medieval.Constants;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Inventory;
+using Sandbox.ModAPI;
 using VRage;
 using VRage.Collections;
 using VRage.Components;
 using VRage.Components.Entity.CubeGrid;
 using VRage.Entities.Gravity;
+using VRage.Entity.Block;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
 using VRage.Library.Collections;
+using VRage.Network;
 using VRage.ObjectBuilders;
+using VRage.Scene;
 using VRageMath;
 using VRageRender;
 using VRageRender.Import;
@@ -27,6 +31,7 @@ using VRageRender.Messages;
 namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeSurfaceToolDefinition))]
+    [StaticEventOwner]
     public class EquiDecorativeSurfaceTool : EquiDecorativeToolBase
     {
         private EquiDecorativeSurfaceToolDefinition _definition;
@@ -65,27 +70,107 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (unique.Count < 3) return;
                 var gridData = points[0].Grid;
                 var gridPos = gridData.Container.Get<MyPositionComponentBase>();
-                var gridDecor = gridData.Container.GetOrAdd<EquiDecorativeMeshComponent>();
-                if (ActiveAction == MyHandItemActionEnum.Secondary)
+                var remove = ActiveAction == MyHandItemActionEnum.Secondary;
+                if (!remove)
                 {
-                    gridDecor.RemoveSurface(
-                        unique[0].Anchor,
-                        unique[1].Anchor,
-                        unique[2].Anchor,
-                        unique.Count > 3 ? unique[3].Anchor : EquiDecorativeMeshComponent.BlockAndAnchor.Null);
+                    var surfData = CreateSurfaceData<DecorAnchor>(gridPos, unique, pt => pt.GridLocalPosition);
+                    var durabilityRequired = (int)Math.Ceiling(_definition.DurabilityBase + surfData.Area * _definition.DurabilityPerSquareMeter);
+                    if (!TryRemoveDurability(durabilityRequired))
+                        return;
+                }
+
+                var anchor3 = unique.Count > 3 ? unique[3].Anchor : EquiDecorativeMeshComponent.BlockAndAnchor.Null;
+                if (MyMultiplayerModApi.Static.IsServer)
+                {
+                    var gridDecor = unique[0].Grid.Container.GetOrAdd<EquiDecorativeMeshComponent>();
+                    if (remove)
+                        gridDecor.RemoveSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3);
+                    else
+                        gridDecor.AddSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3, _definition);
                     return;
                 }
-                var surfData = CreateSurfaceData<DecorAnchor>(gridPos, unique, pt => pt.GridLocalPosition);
-                var durabilityRequired = (int)Math.Ceiling(_definition.DurabilityBase + surfData.Area * _definition.DurabilityPerSquareMeter);
-                if (!TryRemoveDurability(durabilityRequired))
-                    return;
-                gridDecor.AddSurface(
-                    unique[0].Anchor,
-                    unique[1].Anchor,
-                    unique[2].Anchor,
-                    unique.Count > 3 ? unique[3].Anchor : EquiDecorativeMeshComponent.BlockAndAnchor.Null,
-                    _definition);
+
+                MyMultiplayer.RaiseStaticEvent(x => PerformOp,
+                    unique[0].Grid.Entity.Id, unique[0].Anchor, unique[1].Anchor, unique[2].Anchor,
+                    anchor3, ActiveAction == MyHandItemActionEnum.Secondary);
             }
+        }
+
+        [Event, Reliable, Server]
+        private static void PerformOp(EntityId grid,
+            EquiDecorativeMeshComponent.BlockAndAnchor pt0,
+            EquiDecorativeMeshComponent.BlockAndAnchor pt1,
+            EquiDecorativeMeshComponent.BlockAndAnchor pt2,
+            EquiDecorativeMeshComponent.BlockAndAnchor pt3,
+            bool remove)
+        {
+            if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeSurfaceTool behavior)
+                || !behavior.Scene.TryGetEntity(grid, out var gridEntity))
+            {
+                MyEventContext.ValidationFailed();
+                return;
+            }
+
+            if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData))
+            {
+                MyEventContext.ValidationFailed();
+                return;
+            }
+
+            using (PoolManager.Get(out List<Vector3> points))
+            {
+                if (!pt0.TryGetGridLocalAnchor(gridData, out var local0)
+                    || !pt1.TryGetGridLocalAnchor(gridData, out var local1)
+                    || !pt2.TryGetGridLocalAnchor(gridData, out var local2))
+                {
+                    MyEventContext.ValidationFailed();
+                    return;
+                }
+
+                points.EnsureCapacity(4);
+                points.Add(local0);
+                points.Add(local1);
+                points.Add(local2);
+                if (pt3.Block != BlockId.Null)
+                {
+                    if (pt3.TryGetGridLocalAnchor(gridData, out var local3))
+                        points.Add(local3);
+                    else
+                    {
+                        MyEventContext.ValidationFailed();
+                        return;
+                    }
+                }
+
+                var com = Vector3.Zero;
+                foreach (var pos in points)
+                    com += pos;
+                com /= points.Count;
+
+                if (!NetworkTrust.IsTrusted(gridData, Vector3D.Transform(com, gridEntity.PositionComp.WorldMatrix)))
+                {
+                    MyEventContext.ValidationFailed();
+                    return;
+                }
+
+                if (!remove)
+                {
+                    var surfData = behavior.CreateSurfaceData<Vector3>(gridEntity.PositionComp, points, pt => pt);
+                    var durabilityRequired =
+                        (int)Math.Ceiling(behavior._definition.DurabilityBase + surfData.Area * behavior._definition.DurabilityPerSquareMeter);
+                    if (!behavior.TryRemoveDurability(durabilityRequired))
+                    {
+                        MyEventContext.ValidationFailed();
+                        return;
+                    }
+                }
+            }
+
+            var gridDecor = gridEntity.Components.GetOrAdd<EquiDecorativeMeshComponent>();
+            if (remove)
+                gridDecor.RemoveSurface(pt0, pt1, pt2, pt3);
+            else
+                gridDecor.AddSurface(pt0, pt1, pt2, pt3, behavior._definition);
         }
 
         private EquiMeshHelpers.SurfaceData CreateSurfaceData<T>(MyPositionComponentBase gridPos, ListReader<T> values, Func<T, Vector3> gridLocalPos)

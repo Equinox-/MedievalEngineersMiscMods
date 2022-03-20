@@ -112,7 +112,25 @@ namespace Equinox76561198048419394.Core.Mesh
                     }
                 }
 
-                mesh.Indices.EnsureCapacity(mesh.Indices.Count + (6 * sideSegments * (points.Count - 1)));
+                mesh.Indices.EnsureCapacity(mesh.Indices.Count + 6 * sideSegments * (points.Count - 1) + 3 * (sideSegments - 2));
+                for (var end = 0; end < 2; end++)
+                {
+                    var io = indexOffset + verticesPerRing * end * (points.Count - 1);
+                    for (var i = 2; i < sideSegments; i++)
+                    {
+                        mesh.Indices.Add(io);
+                        if (end == 0)
+                        {
+                            mesh.Indices.Add(io + i - 1);
+                            mesh.Indices.Add(io + i);
+                        }
+                        else
+                        {
+                            mesh.Indices.Add(io + i);
+                            mesh.Indices.Add(io + i - 1);
+                        }
+                    }
+                }
                 for (var ring = 0; ring < points.Count - 1; ring++)
                 {
                     var io = indexOffset + verticesPerRing * ring;

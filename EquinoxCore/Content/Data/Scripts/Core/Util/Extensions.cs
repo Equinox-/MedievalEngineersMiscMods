@@ -1,10 +1,14 @@
 ﻿using System.Collections.Generic;
 using Medieval.GameSystems;
+using Medieval.GameSystems.Tools;
+using Sandbox.Game.EntityComponents.Character;
+using Sandbox.Game.Players;
 using Sandbox.ModAPI;
 using VRage.Components.Physics;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
+using VRage.Network;
 using VRage.Utils;
 using VRageMath;
 using VRageRender.Animations;
@@ -111,6 +115,19 @@ namespace Equinox76561198048419394.Core.Util
         public static bool HasPermission(this IMyPlayer player, Vector3D location, MyStringId id)
         {
             return MyAreaPermissionSystem.Static == null || MyAreaPermissionSystem.Static.HasPermission(player.IdentityId, location, id);
+        }
+
+        public static bool TryGetSendersHeldBehavior<T>(this MyEventContext context, out T behavior) where T : MyHandItemBehaviorBase
+        {
+            behavior = default;
+            var player = MyPlayers.Static.GetPlayer(new MyPlayer.PlayerId(context.Sender.Value, 0));
+            var playerEntity = player?.ControlledEntity;
+            if (playerEntity == null)
+                return false;
+            if (!playerEntity.Components.TryGet(out MyCharacterHandItemsComponent handItems))
+                return false;
+            behavior = handItems.GetBehavior<T>();
+            return behavior != null;
         }
     }
 }

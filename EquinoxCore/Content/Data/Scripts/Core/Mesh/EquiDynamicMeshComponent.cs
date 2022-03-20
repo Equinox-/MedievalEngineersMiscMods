@@ -48,8 +48,9 @@ namespace Equinox76561198048419394.Core.Mesh
         public override void OnAddedToScene()
         {
             base.OnAddedToScene();
-            if (!IsDedicated)
-                _gridRender.BlockRenderablesChanged += BlockRenderablesChanged;
+            if (IsDedicated) return;
+            _gridRender.BlockRenderablesChanged += BlockRenderablesChanged;
+            MarkDirty();
         }
 
         private void BlockRenderablesChanged(MyRenderComponentGrid owner, BlockId block, ListReader<uint> renderObjects)
@@ -61,7 +62,12 @@ namespace Equinox76561198048419394.Core.Mesh
         public override void OnRemovedFromScene()
         {
             if (!IsDedicated)
+            {
                 _gridRender.BlockRenderablesChanged -= BlockRenderablesChanged;
+                foreach (var cell in _renderCells.Values)
+                    cell.RemoveRenderObject();
+            }
+
             base.OnRemovedFromScene();
         }
 

@@ -14,7 +14,9 @@ using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
 using VRage.Network;
+using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
+using VRage.Scene;
 using VRage.Utils;
 using VRageMath;
 using VRageMath.PackedVector;
@@ -109,7 +111,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (moved.Contains(triplet.A.Block) && moved.Contains(triplet.B.Block) && (triplet.IsLine || moved.Contains(triplet.C.Block)))
                     {
                         if (splitMesh == null) splitEntity.Components.Add(splitMesh = new EquiDecorativeMeshComponent());
-                        splitMesh.AddFeatureInternal(triplet, feature.Def);
+                        splitMesh.AddFeatureInternal(triplet, feature.Def, feature.CatenaryFactor);
                     }
 
                     originalMesh.DestroyFeatureInternal(triplet);
@@ -141,7 +143,7 @@ namespace Equinox76561198048419394.Core.Mesh
             // Move all connections to new grid
             var finalMesh = finalGridData.Container.GetOrAdd<EquiDecorativeMeshComponent>();
             foreach (var kv in otherMesh._features)
-                finalMesh._features[kv.Key] = new RenderData(kv.Value.Def, EquiDynamicMeshComponent.NullId);
+                finalMesh._features[kv.Key] = new RenderData(kv.Value.Def, kv.Value.CatenaryFactor, EquiDynamicMeshComponent.NullId);
             foreach (var kv in otherMesh._featureByBlock)
                 finalMesh._featureByBlock.Add(kv.Key, kv.Value);
 
@@ -185,21 +187,23 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public readonly MyDefinitionBase Def;
             public readonly ulong RenderId;
+            public readonly float CatenaryFactor;
 
-            public RenderData(MyDefinitionBase def, ulong renderId)
+            public RenderData(MyDefinitionBase def, float catenaryFactor, ulong renderId)
             {
                 Def = def;
+                CatenaryFactor = catenaryFactor;
                 RenderId = renderId;
             }
         }
 
-        private void AddFeatureInternal(in FeatureKey triplet, MyDefinitionBase def)
+        private void AddFeatureInternal(in FeatureKey triplet, MyDefinitionBase def, float catenaryFactor)
         {
             if (_features.TryGetValue(triplet, out var data))
-                data = new RenderData(def, data.RenderId);
+                data = new RenderData(def, catenaryFactor, data.RenderId);
             else
             {
-                data = new RenderData(def, EquiDynamicMeshComponent.NullId);
+                data = new RenderData(def, catenaryFactor, EquiDynamicMeshComponent.NullId);
                 _featureByBlock.Add(triplet.A.Block, triplet);
                 _featureByBlock.Add(triplet.B.Block, triplet);
                 if (triplet.C.Block != BlockId.Null)
@@ -273,11 +277,15 @@ namespace Equinox76561198048419394.Core.Mesh
             return new BlockAndAnchor(block.Id, AnchorPacking.Pack(norm));
         }
 
-        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition def, Vector3 a, Vector3 b)
+        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition def, Vector3 a, Vector3 b, float catenaryFactor)
         {
             var length = Vector3.Distance(a, b);
-            var segmentCount = Math.Max(1, (int)Math.Ceiling(length * def.SegmentsPerMeter + Math.Sqrt(length) * def.SegmentsPerMeterSqrt));
-            var catenaryLength = def.CatenaryFactor > 0 ? length * (1 + def.CatenaryFactor) : 0;
+            var defaultSegmentsPerMeterSqrt = 0f;
+            if (catenaryFactor > 0)
+                defaultSegmentsPerMeterSqrt = MathHelper.Lerp(4, 8, MathHelper.Clamp(catenaryFactor, 0, 1));
+            var segmentsPerMeterSqrt = def.SegmentsPerMeterSqrt ?? defaultSegmentsPerMeterSqrt;
+            var segmentCount = Math.Max(1, (int)Math.Ceiling(length * def.SegmentsPerMeter + Math.Sqrt(length) * segmentsPerMeterSqrt));
+            var catenaryLength = catenaryFactor > 0 ? length * (1 + catenaryFactor) : 0;
             return new EquiMeshHelpers.LineData
             {
                 Material = def.Material.MaterialName,
@@ -362,7 +370,7 @@ namespace Equinox76561198048419394.Core.Mesh
             if (triplet.IsLine)
             {
                 if (!(data.Def is EquiDecorativeLineToolDefinition lineDef)) return true;
-                newRenderable = _dynamicMesh.CreateLine(CreateLineData(lineDef, blockA, blockB));
+                newRenderable = _dynamicMesh.CreateLine(CreateLineData(lineDef, blockA, blockB, data.CatenaryFactor));
             }
             else
             {
@@ -382,7 +390,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 newRenderable = _dynamicMesh.CreateSurface(CreateSurfaceData(surfDef, blockA, blockB, blockC, blockD, -localGravity));
             }
 
-            _features[triplet] = new RenderData(data.Def, newRenderable);
+            _features[triplet] = new RenderData(data.Def, data.CatenaryFactor, newRenderable);
             return false;
         }
 
@@ -393,9 +401,9 @@ namespace Equinox76561198048419394.Core.Mesh
             return val;
         }
 
-        private bool TryAddFeatureInternal(in FeatureKey key, EquiDecorativeToolBaseDefinition def)
+        private bool TryAddFeatureInternal(in FeatureKey key, EquiDecorativeToolBaseDefinition def, float catenaryFactor)
         {
-            AddFeatureInternal(key, def);
+            AddFeatureInternal(key, def, catenaryFactor);
             if (!CommitFeatureInternal(key))
                 return true;
             DestroyFeatureInternal(key);
@@ -411,91 +419,79 @@ namespace Equinox76561198048419394.Core.Mesh
                 localPosCount++;
                 center += v;
             }
+
             if (key.B.TryGetGridLocalAnchor(_gridData, out v))
             {
                 localPosCount++;
                 center += v;
             }
+
             if (key.C.TryGetGridLocalAnchor(_gridData, out v))
             {
                 localPosCount++;
                 center += v;
             }
+
             if (key.D.TryGetGridLocalAnchor(_gridData, out v))
             {
                 localPosCount++;
                 center += v;
             }
+
             center /= localPosCount;
 
             return localPosCount > 0;
         }
 
-        [Event, Reliable, Server, Broadcast]
-        private void AddFeature_Sync(FeatureKey key, SerializableDefinitionId id)
+        [Event, Reliable, Broadcast]
+        private void AddFeature_Sync(FeatureKey key, SerializableDefinitionId id, float catenaryFactor)
         {
-            Vector3D? worldPos = null;
-            if (TryGetCenter(in key, out var localCenter))
-                worldPos = Vector3D.Transform(localCenter, Container.Get<MyPositionComponentBase>().WorldMatrix);
-            if (!NetworkTrust.IsTrusted(this, worldPos))
-            {
-                MyEventContext.ValidationFailed();
-                return;
-            }
             var def = MyDefinitionManager.Get<EquiDecorativeToolBaseDefinition>(id);
-            if (def == null || !TryAddFeatureInternal(key, def))
-                MyEventContext.ValidationFailed();
+            if (def != null)
+                TryAddFeatureInternal(key, def, catenaryFactor);
         }
 
-        [Event, Reliable, Server, Broadcast]
+        [Event, Reliable, Broadcast]
         private void RemoveFeature_Sync(FeatureKey key)
         {
-            Vector3D? worldPos = null;
-            if (TryGetCenter(in key, out var localCenter))
-                worldPos = Vector3D.Transform(localCenter, Container.Get<MyPositionComponentBase>().WorldMatrix);
-            if (!NetworkTrust.IsTrusted(this, worldPos) || !DestroyFeatureInternal(in key))
-                MyEventContext.ValidationFailed();
+            DestroyFeatureInternal(in key);
         }
 
-        public void AddLine(BlockAndAnchor a, BlockAndAnchor b, EquiDecorativeLineToolDefinition def)
+        public void AddLine(BlockAndAnchor a, BlockAndAnchor b, EquiDecorativeLineToolDefinition def, float catenaryFactor)
         {
+            if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
             var mp = MyAPIGateway.Multiplayer;
-            if (mp != null)
-                mp.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Id);
-            else
-                TryAddFeatureInternal(in key, def);
+            if (TryAddFeatureInternal(in key, def, catenaryFactor))
+                mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Id, catenaryFactor);
         }
 
         public void AddSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d,
             EquiDecorativeSurfaceToolDefinition def)
         {
+            if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, c, d);
             var mp = MyAPIGateway.Multiplayer;
-            if (mp != null)
-                mp.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Id);
-            else
-                TryAddFeatureInternal(in key, def);
+            if (TryAddFeatureInternal(in key, def, 0))
+                mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Id, 0f);
         }
 
         public void RemoveLine(BlockAndAnchor a, BlockAndAnchor b)
         {
+            if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
             var mp = MyAPIGateway.Multiplayer;
-            if (mp != null)
-                mp.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
-            else
-                DestroyFeatureInternal(in key);
+            if (DestroyFeatureInternal(in key))
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
         }
 
         public void RemoveSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
         {
+            if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, c, d);
             var mp = MyAPIGateway.Multiplayer;
-            if (mp != null)
-                mp.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
-            else
-                DestroyFeatureInternal(in key);
+            if (DestroyFeatureInternal(in key))
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
         }
 
         public override bool IsSerialized => _features.Count > 0;
@@ -517,6 +513,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             AOffset = triplet.A.PackedAnchor,
                             B = triplet.B.Block.Value,
                             BOffset = triplet.B.PackedAnchor,
+                            CatenaryFactor = kv.Value.CatenaryFactor,
                         });
                     else
                         GetOrCreate(triangles, def).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder
@@ -539,9 +536,9 @@ namespace Equinox76561198048419394.Core.Mesh
                         Definition = entry.Key,
                         Lines = entry.Value,
                     });
-                ob.Surfaces = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeTriangles>(triangles.Count);
+                ob.Surfaces = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeSurfaces>(triangles.Count);
                 foreach (var entry in triangles)
-                    ob.Surfaces.Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeTriangles
+                    ob.Surfaces.Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeSurfaces
                     {
                         Definition = entry.Key,
                         Surfaces = entry.Value,
@@ -571,7 +568,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                 new BlockAndAnchor(item.A, item.AOffset),
                                 new BlockAndAnchor(item.B, item.BOffset),
                                 BlockAndAnchor.Null,
-                                BlockAndAnchor.Null), def);
+                                BlockAndAnchor.Null), def, item.CatenaryFactor);
                 }
 
             if (ob.Surfaces != null)
@@ -586,14 +583,14 @@ namespace Equinox76561198048419394.Core.Mesh
                                 new BlockAndAnchor(item.A, item.AOffset),
                                 new BlockAndAnchor(item.B, item.BOffset),
                                 new BlockAndAnchor(item.C, item.COffset),
-                                item.ShouldSerializeD() ? new BlockAndAnchor(item.D, item.DOffset) : BlockAndAnchor.Null), def);
+                                item.ShouldSerializeD() ? new BlockAndAnchor(item.D, item.DOffset) : BlockAndAnchor.Null), def, 0);
                 }
         }
     }
 
     [MyObjectBuilderDefinition]
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-    public class MyObjectBuilder_EquiDecorativeMeshComponent : MyObjectBuilder_EntityComponent
+    public class MyObjectBuilder_EquiDecorativeMeshComponent : MyObjectBuilder_EntityComponent, IMyRemappable
     {
         public struct LineBuilder
         {
@@ -608,15 +605,30 @@ namespace Equinox76561198048419394.Core.Mesh
 
             [XmlAttribute("BO")]
             public uint BOffset;
+
+            [XmlAttribute("CF")]
+            public float CatenaryFactor;
         }
 
-        public class DecorativeLines
+        public class DecorativeLines : IMyRemappable
         {
             [XmlElement("Definition")]
             public SerializableDefinitionId Definition;
 
             [XmlElement("Line")]
             public List<LineBuilder> Lines;
+
+            public void Remap(IMySceneRemapper remapper)
+            {
+                if (Lines == null) return;
+                for (var i = 0; i < Lines.Count; i++)
+                {
+                    var line = Lines[i];
+                    remapper.RemapObject(MyBlock.SceneType, ref line.A);
+                    remapper.RemapObject(MyBlock.SceneType, ref line.B);
+                    Lines[i] = line;
+                }
+            }
         }
 
         [XmlElement("Lines")]
@@ -652,16 +664,41 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool ShouldSerializeDOffset() => ShouldSerializeD();
         }
 
-        public class DecorativeTriangles
+        public class DecorativeSurfaces : IMyRemappable
         {
             [XmlElement("Definition")]
             public SerializableDefinitionId Definition;
 
             [XmlElement("Surf")]
             public List<SurfaceBuilder> Surfaces;
+
+            public void Remap(IMySceneRemapper remapper)
+            {
+                if (Surfaces == null) return;
+                for (var i = 0; i < Surfaces.Count; i++)
+                {
+                    var surf = Surfaces[i];
+                    remapper.RemapObject(MyBlock.SceneType, ref surf.A);
+                    remapper.RemapObject(MyBlock.SceneType, ref surf.B);
+                    remapper.RemapObject(MyBlock.SceneType, ref surf.C);
+                    if (surf.ShouldSerializeD())
+                        remapper.RemapObject(MyBlock.SceneType, ref surf.D);
+                    Surfaces[i] = surf;
+                }
+            }
         }
 
         [XmlElement("Surfaces")]
-        public List<DecorativeTriangles> Surfaces;
+        public List<DecorativeSurfaces> Surfaces;
+
+        public void Remap(IMySceneRemapper remapper)
+        {
+            if (Lines != null)
+                foreach (var line in Lines)
+                    line.Remap(remapper);
+            if (Surfaces != null)
+                foreach (var surf in Surfaces)
+                    surf.Remap(remapper);
+        }
     }
 }
