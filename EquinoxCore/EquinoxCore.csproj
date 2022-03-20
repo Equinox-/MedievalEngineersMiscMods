@@ -633,6 +633,13 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryActionApplier.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\ItemCollection.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Key.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeToolBase.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeSurfaceTool.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDynamicMeshComponent.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeLineTool.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiMeshHelpers.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mirz\Behaviors\MrzAddItemsBehavior.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mirz\Behaviors\MrzVoxelPainterBehavior.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mirz\Behaviors\MrzVoxelPainterBehavior.Operations.cs" />
@@ -671,6 +678,8 @@
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEditsBuilder.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEditSet.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\DerivedModelManager.cs" />
+    <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialSpec.cs" />
+    <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialTable.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\ModelIO\ModelExporter.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\ModelIO\ModelImporter.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialBvh.cs" />
@@ -705,15 +714,18 @@
     <Compile Include="Content\Data\Scripts\Core\Stats\EquiVoxelEffectComponentDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ActionWithArg.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ArrayPool.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\BubbleSort.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\CollectionExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ContainerDefinitionExtension.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\BooleanMath.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\EqMath\CatenarySolver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Hashing.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\MiscMath.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\NumericRange.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\PackedBvh.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\PrimeHelpers.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Range.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\EqMath\RootSolver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\SahBvhBuilder.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\TriangleBvhBad.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Extensions.cs" />
@@ -738,6 +750,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\SerializableVector4.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\SingletonEnumerator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\StackArray.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\PackedBoundedVec.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelMiningBuffer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelPlacementBuffer.cs" />
   </ItemGroup>

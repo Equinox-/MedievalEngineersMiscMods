@@ -1,6 +1,8 @@
-﻿using Medieval.GameSystems;
+﻿using System.Collections.Generic;
+using Medieval.GameSystems;
 using Sandbox.ModAPI;
 using VRage.Components.Physics;
+using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Utils;
@@ -16,6 +18,12 @@ namespace Equinox76561198048419394.Core.Util
             var q = Quaternion.CreateFromRotationMatrix(matrix);
             var t = matrix.Translation;
             bone.SetTransform(ref t, ref q);
+        }
+
+        public static void EnsureCapacity<T>(this List<T> list, int capacity)
+        {
+            if (list.Capacity < capacity)
+                list.Capacity = MathHelper.GetNearestBiggerPowerOfTwo(capacity);
         }
 
         public static MyPhysicsComponentBase ParentedPhysics(this MyEntity e)

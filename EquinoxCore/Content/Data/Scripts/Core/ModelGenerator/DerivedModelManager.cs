@@ -9,6 +9,7 @@ using Equinox76561198048419394.Core.ModelGenerator.ModelIO;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using Sandbox.ModAPI;
+using VRage.Collections;
 using VRage.Components;
 using VRage.Game.ModAPI;
 using VRage.Library.Collections;
@@ -16,6 +17,10 @@ using VRage.Library.Collections.Concurrent;
 using VRage.Library.Threading;
 using VRage.Logging;
 using VRage.Session;
+using VRageMath;
+using VRageMath.PackedVector;
+using VRageRender;
+using VRageRender.Animations;
 using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.ModelGenerator
@@ -30,6 +35,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         
         private const int DerivedVersion = 2;
         private const int BvhVersion = 1;
+        private const int MaterialModelVersion = 1;
         
         private static readonly ConcurrentBag<byte[]> Buffers = new ConcurrentBag<byte[]>();
         private readonly FastResourceLock _lock = new FastResourceLock();
@@ -58,6 +64,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             base.OnLoad();
             var readmeDerived = $"{DerivedModelPrefix}_0ReadMe.txt";
             var readmeBvh = $"{ModelBvhPrefix}_0ReadMe.txt";
+            var readmeMtl = $"{MaterialModelPrefix}_0ReadMe.txt";
             var utils = (IMyUtilities) MyAPIUtilities.Static;
             using (var writer = utils.WriteFileInGlobalStorage(readmeDerived))
             {
@@ -83,6 +90,17 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                 writer.WriteLine("any that are still in use will be regenerated on demand.");
                 writer.WriteLine();
                 writer.WriteLine($"The current version is {BvhVersion}.  Anything that uses a lower version number can be deleted.");
+            }
+
+            using (var writer = utils.WriteFileInGlobalStorage(readmeMtl))
+            {
+                writer.WriteLine("== Equinox Core Model Material Cache ==");
+                writer.WriteLine("This folder contains all the single material models Equinox Core has generated at runtime");
+                writer.WriteLine("to allow for loading of arbitrary materials for usage with runtime models");
+                writer.WriteLine($"All the files that start with {MaterialModelPrefix} can be safely deleted and");
+                writer.WriteLine("any that are still in use will be regenerated on demand.");
+                writer.WriteLine();
+                writer.WriteLine($"The current version is {MaterialModelVersion}.  Anything that uses a lower version number can be deleted.");
             }
         }
 
@@ -257,6 +275,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         private const string DerivedModelPrefix = "derived";
         private const string ModelBvhPrefix = "bvh";
+        private const string MaterialModelPrefix = "mtl";
 
         /// <summary>
         /// Determines the content-relative path of the given derived model. 
@@ -392,6 +411,97 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             });
         }
 
+        #endregion
+
+        #region Single Material Models
+        private readonly HashSet<string> _preparedMaterials = new HashSet<string>();
+        public void PrepareMaterial(MyMaterialDescriptor descriptor)
+        {
+            var id = descriptor.MaterialName;
+            if (_preparedMaterials.Contains(id))
+                return;
+            var path = ResolveMaterialModel(id, out var existing);
+            if (!existing)
+                GenerateMaterialModel(path, descriptor);
+
+            MyRenderProxy.PreloadModel(path);
+            MyRenderProxy.PreloadModel(path, forceOldPipeline: true);
+            _preparedMaterials.Add(id);
+        }
+
+        private static readonly Byte4[] SingleMaterialModelNormals = { default, default, default };
+
+        private readonly DictionaryReader<string, object> _singleMaterialModel = new Dictionary<string, object>
+        {
+            [MyImporterConstants.TAG_DEBUG] = Array.Empty<string>(),
+            [MyImporterConstants.TAG_DUMMIES] = new Dictionary<string, MyModelDummy>(),
+            [MyImporterConstants.TAG_VERTICES] = new[] { Vector3.Zero, Vector3.Zero, Vector3.Zero },
+            [MyImporterConstants.TAG_NORMALS] = SingleMaterialModelNormals,
+            [MyImporterConstants.TAG_TEXCOORDS0] = new[] { default(HalfVector2), default, default },
+            [MyImporterConstants.TAG_BINORMALS] = SingleMaterialModelNormals,
+            [MyImporterConstants.TAG_TANGENTS] = SingleMaterialModelNormals,
+            [MyImporterConstants.TAG_TEXCOORDS1] = Array.Empty<HalfVector2>(),
+            [MyImporterConstants.TAG_RESCALE_FACTOR] = 1f,
+            [MyImporterConstants.TAG_USE_CHANNEL_TEXTURES] = false,
+            [MyImporterConstants.TAG_BOUNDING_BOX] = default(BoundingBox),
+            [MyImporterConstants.TAG_BOUNDING_SPHERE] = default(BoundingSphere),
+            [MyImporterConstants.TAG_SWAP_WINDING_ORDER] = false,
+            // MeshParts
+            [MyImporterConstants.TAG_MESH_SECTIONS] = new List<MyMeshSectionInfo>(),
+            [MyImporterConstants.TAG_MODEL_BVH] = Array.Empty<byte>(),
+            [MyImporterConstants.TAG_MODEL_INFO] = new MyModelInfo(1, 3, default),
+            [MyImporterConstants.TAG_BLENDINDICES] = Array.Empty<Vector4I>(),
+            [MyImporterConstants.TAG_BLENDWEIGHTS] = Array.Empty<Vector4>(),
+            [MyImporterConstants.TAG_ANIMATIONS] = new ModelAnimations(),
+            [MyImporterConstants.TAG_BONES] = Array.Empty<MyModelBone>(),
+            [MyImporterConstants.TAG_BONE_MAPPING] = Array.Empty<Vector3I>(),
+            [MyImporterConstants.TAG_HAVOK_COLLISION_GEOMETRY] = Array.Empty<byte>(),
+            [MyImporterConstants.TAG_PATTERN_SCALE] = 1f,
+            [MyImporterConstants.TAG_LODS] = Array.Empty<MyLODDescriptor>(),
+        };
+
+        private void GenerateMaterialModel(string path, MyMaterialDescriptor material)
+        {
+            var tags = new Dictionary<string, object>(_singleMaterialModel.Count + 1);
+            foreach (var kv in _singleMaterialModel)
+                tags.Add(kv.Key, kv.Value);
+            tags[MyImporterConstants.TAG_MESH_PARTS] = new List<MyMeshPartInfo>
+            {
+                new MyMeshPartInfo
+                {
+                    m_MaterialHash = material.MaterialName.GetHashCode(),
+                    m_MaterialDesc = material,
+                    m_indices = new List<int> { 0, 1, 2 },
+                    Technique = material.TechniqueEnum,
+                }
+            };
+            var api = (IMyUtilities)MyAPIUtilities.Static;
+            using (var writer = api.WriteBinaryFileInGlobalStorage(Path.GetFileName(path)))
+                ModelExporter.ExportModelData(writer, tags);
+        }
+
+        private string ResolveMaterialModel(string id, out bool existing)
+        {
+            var fileName = $"{MaterialModelPrefix}_v{MaterialModelVersion}_{TrimAndSanitize(id)}.mwm";
+            var modCachedPath = Path.Combine("Models/Generated", fileName);
+            if (MyAPIUtilities.Static.ContentFileExists(modCachedPath))
+            {
+                existing = true;
+                return modCachedPath;
+            }
+
+            var api = (IMyUtilities) MyAPIUtilities.Static;
+            var absolutePath = Path.Combine(((IMyGamePaths) MyAPIUtilities.Static).UserDataPath, "Storage", fileName);
+            if (api.FileExistsInGlobalStorage(fileName))
+            {
+                existing = true;
+                return absolutePath;
+            }
+
+            existing = false;
+            return absolutePath;
+        }
+        
         #endregion
 
         #region Materials Per Model
@@ -559,7 +669,6 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         {
             if (!model.EndsWith(".mwm", StringComparison.OrdinalIgnoreCase))
                 model += ".mwm";
-            var handle = _modelImporterPool.GetHandle();
             var utils = (IMyUtilities) MyAPIUtilities.Static;
             var paths = (IMyGamePaths) MyAPIUtilities.Static;
             if (!model.StartsWith(paths.UserDataPath))

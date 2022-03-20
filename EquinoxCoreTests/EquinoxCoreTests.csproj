@@ -608,6 +608,8 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="TestArrayPool.cs" />
+        <Compile Include="TestBoundedVec30.cs" />
+        <Compile Include="TestBubbleSorter.cs" />
         <Compile Include="TestIdBag.cs" />
         <Compile Include="TestMaterialBvh.cs" />
         <Compile Include="TestModelSerializer.cs" />

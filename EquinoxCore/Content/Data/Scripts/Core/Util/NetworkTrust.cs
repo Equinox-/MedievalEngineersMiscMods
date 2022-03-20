@@ -32,7 +32,9 @@ namespace Equinox76561198048419394.Core.Util
             if (playerEntity == null)
                 return false;
 
-            var loc = overrideLocation ?? target.Entity.WorldMatrix.Translation;
+            var playerLoc = playerEntity.WorldMatrix.Translation;
+            var worldAabb = target.Entity.PositionComp.WorldAABB;
+            var loc = overrideLocation ?? Vector3D.Clamp(playerLoc, worldAabb.Min, worldAabb.Max);
             if (Vector3D.DistanceSquared(playerEntity.WorldMatrix.Translation, loc) > TrustedDistance * TrustedDistance)
                 return false;
 

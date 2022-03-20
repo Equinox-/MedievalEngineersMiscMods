@@ -45,29 +45,29 @@ namespace Equinox76561198048419394.Core.ModelGenerator.ModelIO
                 new TagReader<Byte4[]>(ReadArrayOfByte4)
             },
             {
-                "TexCoords1",
+                MyImporterConstants.TAG_TEXCOORDS1,
                 new TagReader<HalfVector2[]>(
                     ReadArrayOfHalfVector2)
             },
             {
-                "UseChannelTextures",
+                MyImporterConstants.TAG_USE_CHANNEL_TEXTURES,
                 new TagReader<bool>(x => x.ReadBoolean())
             },
             {
-                "BoundingBox",
+                MyImporterConstants.TAG_BOUNDING_BOX,
                 new TagReader<BoundingBox>(ReadBoundingBox)
             },
             {
-                "BoundingSphere",
+                MyImporterConstants.TAG_BOUNDING_SPHERE,
                 new TagReader<BoundingSphere>(
                     ReadBoundingSphere)
             },
             {
-                "RescaleFactor",
+                MyImporterConstants.TAG_RESCALE_FACTOR,
                 new TagReader<float>(x => x.ReadSingle())
             },
             {
-                "SwapWindingOrder",
+                MyImporterConstants.TAG_SWAP_WINDING_ORDER,
                 new TagReader<bool>(x => x.ReadBoolean())
             },
             {
@@ -81,52 +81,52 @@ namespace Equinox76561198048419394.Core.ModelGenerator.ModelIO
                     ReadMeshParts)
             },
             {
-                "Sections",
+                MyImporterConstants.TAG_MESH_SECTIONS,
                 new TagReader<List<MyMeshSectionInfo>>(
                     ReadMeshSections)
             },
             {
-                "ModelBvh",
+                MyImporterConstants.TAG_MODEL_BVH,
                 new TagReader<byte[]>(ReadArrayOfBytes) // Normalized GImpactQuantizedBvh
             },
             {
-                "ModelInfo",
+                MyImporterConstants.TAG_MODEL_INFO,
                 new TagReader<MyModelInfo>(reader =>
                     new MyModelInfo(reader.ReadInt32(), reader.ReadInt32(), ImportVector3(reader)))
             },
             {
-                "BlendIndices",
+                MyImporterConstants.TAG_BLENDINDICES,
                 new TagReader<Vector4I[]>(
                     ReadArrayOfVector4Int)
             },
             {
-                "BlendWeights",
+                MyImporterConstants.TAG_BLENDWEIGHTS,
                 new TagReader<Vector4[]>(ReadArrayOfVector4)
             },
             {
-                "Animations",
+                MyImporterConstants.TAG_ANIMATIONS,
                 new TagReader<ModelAnimations>(
                     ReadAnimations)
             },
             {
-                "Bones",
+                MyImporterConstants.TAG_BONES,
                 new TagReader<MyModelBone[]>(ReadBones)
             },
             {
-                "BoneMapping",
+                MyImporterConstants.TAG_BONE_MAPPING,
                 new TagReader<Vector3I[]>(
                     ReadArrayOfVector3Int)
             },
             {
-                "HavokCollisionGeometry",
+                MyImporterConstants.TAG_HAVOK_COLLISION_GEOMETRY,
                 new TagReader<byte[]>(ReadArrayOfBytes)
             },
             {
-                "PatternScale",
+                MyImporterConstants.TAG_PATTERN_SCALE,
                 new TagReader<float>(x => x.ReadSingle())
             },
             {
-                "LODs",
+                MyImporterConstants.TAG_LODS,
                 new TagReader<MyLODDescriptor[]>(
                     ReadLODs)
             },

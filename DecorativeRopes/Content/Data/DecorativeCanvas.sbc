@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
+        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeCanvas" />
+        <DisplayName>Decorative Canvas</DisplayName>
+        <Description>A basic canvas used for decoration.</Description>
+        <Icon>Textures\GUI\Icons\Materials\Cloth.dds</Icon>
+        <Category>Weaving</Category>
+        <Prerequisites>
+            <Component Type="InventoryItem" Subtype="Cloth" Count="4" />
+        </Prerequisites>
+        <Results>
+            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeCanvas" />
+        </Results>
+        <CraftingTime Seconds="5" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+        <Id Type="HandItem" Subtype="Equi_DecorativeCanvas" />
+        <DisplayName>Decorative Canvas</DisplayName>
+        <Description>A basic canvas used for decoration.</Description>
+        <Icon>Textures\GUI\Icons\Materials\Cloth.dds</Icon>
+        <Size>
+            <X>1.2</X>
+            <Y>0.6</Y>
+            <Z>0.3</Z>
+        </Size>
+        <Mass>0.5</Mass>
+        <Model>Models\Components\Cloth.mwm</Model>
+        <PhysicalMaterial>Cloth</PhysicalMaterial>
+        <Animation>Rope</Animation>
+        <MaxStackAmount>1</MaxStackAmount>
+        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
+        <MaxDurability>100</MaxDurability>
+        <Position>
+            <Slot>MainHand</Slot>
+        </Position>
+        <StanceToBehavior>
+            <StanceName>NormalMode</StanceName>
+            <BehaviorId Type="MyObjectBuilder_EquiDecorativeSurfaceToolDefinition" Subtype="Equi_DecorativeCanvas" />
+        </StanceToBehavior>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiDecorativeSurfaceToolDefinition">
+        <Id Type="EquiDecorativeSurfaceToolDefinition" Subtype="Equi_DecorativeCanvas" />
+
+        <TextureSize x="3" y="3" />
+        <Material>
+            <Parameter Name="Technique">MESH</Parameter>
+            <Parameter Name="ColorMetalTexture">Textures\Models\Cubes\ClothFlag_cm.dds</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\Models\Cubes\ClothFlag_ng.dds</Parameter>
+        </Material>
+        <DurabilityBase>1</DurabilityBase>
+        <DurabilityPerSquareMeter>1</DurabilityPerSquareMeter>
+    </Definition>
+</Definitions>

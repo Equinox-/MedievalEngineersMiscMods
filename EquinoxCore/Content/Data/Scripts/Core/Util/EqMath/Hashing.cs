@@ -241,6 +241,12 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 _wipH1 = _wipH2 = 0;
             }
 
+            public void Add(float f) => Add(BitConverter.DoubleToInt64Bits(f));
+
+            public void Add(double f) => Add(BitConverter.DoubleToInt64Bits(f));
+
+            public void Add(bool v) => Add(v ? (byte)1 : (byte)0);
+
             public void Add(ulong k1, ulong k2)
             {
                 _count += 16;
