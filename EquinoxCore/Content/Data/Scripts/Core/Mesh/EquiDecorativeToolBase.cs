@@ -166,7 +166,7 @@ namespace Equinox76561198048419394.Core.Mesh
             }
         }
 
-        private bool TryGetAnchorFromModelBvh(out DecorAnchor anchor)
+        private bool TryGetAnchorFromModelBvh(bool snapToGrid, out DecorAnchor anchor)
         {
             anchor = default;
             var mm = MySession.Static.Components.Get<DerivedModelManager>();
@@ -221,8 +221,11 @@ namespace Equinox76561198048419394.Core.Mesh
                         continue;
                     bestDistance = dist;
                     var pos = localRay.Position + localRay.Direction * dist;
-                    const float snapSize = 0.25f / 16;
-                    pos = Vector3.Round(pos / snapSize) * snapSize;
+                    if (snapToGrid)
+                    {
+                        const float snapSize = 0.25f / 16;
+                        pos = Vector3.Round(pos / snapSize) * snapSize;
+                    }
                     anchor = new DecorAnchor(tmpCandidate.Grid, tmpCandidate.Block,
                         EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
                             tmpCandidate.Block,
@@ -289,9 +292,9 @@ namespace Equinox76561198048419394.Core.Mesh
 
         protected bool TryGetAnchor(out DecorAnchor anchor)
         {
-            if (!TryGetAnchorFromModelBvh(out anchor)) return false;
             var snap = _definition.RequireDummySnapping || !Modified;
-            if (TrySnapToDummy(in anchor, out var dummySnapped))
+            if (!TryGetAnchorFromModelBvh(snap, out anchor)) return false;
+            if (snap && TrySnapToDummy(in anchor, out var dummySnapped))
                 anchor = dummySnapped;
             else if (_definition.RequireDummySnapping)
                 return false;
