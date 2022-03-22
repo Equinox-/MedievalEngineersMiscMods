@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
@@ -285,7 +286,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     parent.GetRenderFlags() | RenderFlags.ForceOldPipeline,
                     parent.GetRenderCullingOptions(),
                     parent.GetDiffuseColor(),
-                    Vector3.One
+                    Vector3.One,
+                    depthBias: 255
                 );
                 return false;
             }

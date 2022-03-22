@@ -221,7 +221,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         continue;
                     bestDistance = dist;
                     var pos = localRay.Position + localRay.Direction * dist;
-                    const float snapSize = 0.25f / 8;
+                    const float snapSize = 0.25f / 16;
                     pos = Vector3.Round(pos / snapSize) * snapSize;
                     anchor = new DecorAnchor(tmpCandidate.Grid, tmpCandidate.Block,
                         EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
@@ -290,10 +290,13 @@ namespace Equinox76561198048419394.Core.Mesh
         protected bool TryGetAnchor(out DecorAnchor anchor)
         {
             if (!TryGetAnchorFromModelBvh(out anchor)) return false;
+            var snap = _definition.RequireDummySnapping || !Modified;
             if (TrySnapToDummy(in anchor, out var dummySnapped))
                 anchor = dummySnapped;
             else if (_definition.RequireDummySnapping)
                 return false;
+            if (!snap)
+                return true;
             if (TrySnapToExisting(in anchor, out var existingSnapped))
                 anchor = existingSnapped;
             if (TrySnapToStaged(in anchor, out var stagedSnapped))
