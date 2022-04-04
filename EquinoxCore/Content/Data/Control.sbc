@@ -8,6 +8,13 @@
     <Primary Key="F" />
   </Definition>
   <Definition xsi:type="MyObjectBuilder_ControlDefinition">
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ShiftAttached" />
+    <DisplayName>Shift Attachment Location</DisplayName>
+    <Description>Change the position relative to what you're attached to (move in a chair)</Description>
+    <Category>Character</Category>
+    <Primary Key="F" Control="true" />
+  </Definition>
+  <Definition xsi:type="MyObjectBuilder_ControlDefinition">
     <Id Type="MyObjectBuilder_ControlDefinition" Subtype="DeveloperScreenMods" />
     <DisplayName>Mod Developer Screen</DisplayName>
     <Description>Show mod developer screen.</Description>

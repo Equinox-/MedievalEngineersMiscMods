@@ -13,6 +13,7 @@ using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Components.Entity.Stats.Definitions;
 using VRage.Session;
 using VRage.Utils;
+using VRageMath;
 
 namespace Equinox76561198048419394.Core.Controller
 {
@@ -106,6 +107,13 @@ namespace Equinox76561198048419394.Core.Controller
 
             public readonly IReadOnlyList<ImmutableEffectOperations> EffectOperations;
 
+            public readonly MyStringHash ModelAttachment;
+            public readonly Vector3 MinLinearShift;
+            public readonly Vector3 MaxLinearShift;
+            public readonly Vector3 MinAngularShift;
+            public readonly Vector3 MaxAngularShift;
+            public bool CanShift => MinLinearShift != MaxLinearShift || MinAngularShift != MaxAngularShift;
+
             public ImmutableAttachmentInfo(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition @base,
                 MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.AttachmentInfo ob)
             {
@@ -132,6 +140,11 @@ namespace Equinox76561198048419394.Core.Controller
                     }
 
                 EffectOperations = tmpOps;
+                ModelAttachment = MyStringHash.GetOrCompute(ob.ModelAttachment);
+                MaxLinearShift = ob.MaxLinearShift ?? Vector3.Zero;
+                MinLinearShift = ob.MinLinearShift ?? -MaxLinearShift;
+                MaxAngularShift = MathHelper.ToRadians(ob.MaxAngularShift ?? Vector3.Zero);
+                MinAngularShift = ob.MinAngularShift.HasValue ? MathHelper.ToRadians(ob.MinAngularShift.Value) : -MaxAngularShift;
             }
 
             public ImmutableAttachmentInfo(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition ob)
@@ -189,6 +202,8 @@ namespace Equinox76561198048419394.Core.Controller
 
         private readonly Dictionary<string, ImmutableAttachmentInfo> _attachmentPointsByName = new Dictionary<string, ImmutableAttachmentInfo>();
         private readonly Dictionary<string, ImmutableAttachmentInfo> _attachmentPointByDummy = new Dictionary<string, ImmutableAttachmentInfo>();
+        private readonly Dictionary<MyStringHash, ImmutableAttachmentInfo> _attachmentPointByModelAttachment 
+            = new Dictionary<MyStringHash, ImmutableAttachmentInfo>(MyStringHash.Comparer);
         private ImmutableAttachmentInfo _wildcardAttachment;
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
@@ -231,6 +246,16 @@ namespace Equinox76561198048419394.Core.Controller
 
                 _attachmentPointByDummy.Add(dum, attachment);
             }
+
+            if (attachment.ModelAttachment == MyStringHash.NullOrEmpty) return;
+            if (_attachmentPointByModelAttachment.ContainsKey(attachment.ModelAttachment))
+            {
+                MyDefinitionErrors.Add(Package, $"Can't register attachment for model attachment {attachment.ModelAttachment} twice",
+                    LogSeverity.Critical);
+                return;
+            }
+
+            _attachmentPointByModelAttachment.Add(attachment.ModelAttachment, attachment);
         }
 
         public IReadOnlyCollection<ImmutableAttachmentInfo> Attachments => _attachmentPointsByName.Values;
@@ -243,6 +268,8 @@ namespace Equinox76561198048419394.Core.Controller
                 return pt;
             return _wildcardAttachment;
         }
+
+        public ImmutableAttachmentInfo AttachmentForModelAttachment(MyStringHash hash) => _attachmentPointByModelAttachment.GetValueOrDefault(hash);
 
         public struct AnimationDesc
         {
@@ -362,6 +389,12 @@ namespace Equinox76561198048419394.Core.Controller
 
             [XmlElement("Effects")]
             public EffectOperationsInfo[] EffectOperations;
+
+            public string ModelAttachment;
+            public SerializableVector3? MinLinearShift;
+            public SerializableVector3? MaxLinearShift;
+            public SerializableVector3? MinAngularShift;
+            public SerializableVector3? MaxAngularShift;
         }
 
         [XmlElement("Attachment")]

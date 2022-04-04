@@ -27,6 +27,7 @@ namespace Equinox76561198048419394.Core.Controller
 {
     [MyComponent(typeof(MyObjectBuilder_EquiEntityControllerComponent))]
     [MyDependency(typeof(MyAnimationControllerComponent), Critical = false)]
+    [MyDependency(typeof(MyCharacterMovementComponent), Critical = false)]
     [ReplicatedComponent]
     public class EquiEntityControllerComponent : MyEntityComponent, IMyEventProxy
     {
@@ -34,6 +35,9 @@ namespace Equinox76561198048419394.Core.Controller
         private EquiEntityControllerTracker _tracker;
 
         private EquiPlayerAttachmentComponent.Slot _controlledSlot;
+
+        [Automatic]
+        private readonly MyCharacterMovementComponent _characterMovement;
 
         public delegate void DelControlledChanged(EquiEntityControllerComponent controllerComponent, EquiPlayerAttachmentComponent.Slot old,
             EquiPlayerAttachmentComponent.Slot @new);
@@ -90,7 +94,8 @@ namespace Equinox76561198048419394.Core.Controller
         [Broadcast]
         private void ChangeControlledClient(long entity, string slot, float randSeed)
         {
-            ChangeSlotInternal(MyEntities.GetEntityByIdOrDefault(entity)?.Components.Get<EquiPlayerAttachmentComponent>()?.GetSlotOrDefault(slot),
+            Scene.TryGetEntity(entity, out var entityObj);
+            ChangeSlotInternal(entityObj?.Components.Get<EquiPlayerAttachmentComponent>()?.GetSlotOrDefault(slot),
                 randSeed);
         }
 
@@ -134,7 +139,7 @@ namespace Equinox76561198048419394.Core.Controller
                 var relMatrix = _saveData.RelativeOrientation.GetMatrix();
                 if (relMatrix.Scale.AbsMax() < 1)
                     relMatrix = MatrixD.Identity;
-                var outPos = relMatrix * old.AttachMatrix;
+                var outPos = relMatrix * old.RawAttachMatrix;
                 var gravity = Vector3.Normalize(MyGravityProviderSystem.CalculateTotalGravityInPoint(outPos.Translation));
                 var rightCandidate = Vector3.Cross(gravity, (Vector3)outPos.Forward);
                 if (rightCandidate.LengthSquared() < 0.5f)
@@ -184,12 +189,12 @@ namespace Equinox76561198048419394.Core.Controller
 
                 // Give the player 5 seconds of health immunity when they leave a chair to prevent collisions from killing them if we couldn't
                 // find a free space
-                Entity?.Get<MyCharacterDamageComponent>()?.AddTemporaryHealthImmunity(2);
+                Entity?.Get<MyCharacterDamageComponent>()?.AddTemporaryHealthImmunity(5);
             }
 
             // Handles storing the character's position when attaching
             if (slot != null)
-                _saveData.RelativeOrientation = new MyPositionAndOrientation(MatrixD.Normalize(Entity.WorldMatrix * MatrixD.Invert(slot.AttachMatrix)));
+                _saveData.RelativeOrientation = new MyPositionAndOrientation(MatrixD.Normalize(Entity.WorldMatrix * MatrixD.Invert(slot.RawAttachMatrix)));
 
 
             // Handle keeping the physics in check
@@ -208,7 +213,7 @@ namespace Equinox76561198048419394.Core.Controller
                 }
             }
 
-            _saveData.ControlledEntity = slot?.Controllable.Entity.EntityId ?? 0;
+            _saveData.ControlledEntity = slot?.Controllable?.Entity.EntityId ?? 0;
             _saveData.ControlledSlot = slot?.Definition.Name;
             if (slot == null)
                 _tracker.Unlink(Entity.EntityId);
@@ -316,6 +321,8 @@ namespace Equinox76561198048419394.Core.Controller
 
         private const double AutoDetachDistance = 25;
 
+        private bool LocallyControlled => MySession.Static.PlayerEntity == Entity;
+
         [FixedUpdate(false)]
         private void FixPosition()
         {
@@ -328,6 +335,40 @@ namespace Equinox76561198048419394.Core.Controller
                 ReleaseControl();
             else
                 Entity.PositionComp.WorldMatrix = slot.AttachMatrix;
+
+            if (!_tracker.ModifierShift || !LocallyControlled || _characterMovement == null || !slot.Definition.CanShift) return;
+            if (_characterMovement.MoveIndicator == Vector3.Zero && _characterMovement.RotationIndicator == Vector2.Zero) return;
+            var newLinearShift = slot.LinearShift + _characterMovement.MoveIndicator / 100;
+            var newAngularShift = slot.AngularShift + new Vector3(_characterMovement.RotationIndicator.X, -_characterMovement.RotationIndicator.Y, 0) * 0.0025f;
+            if (MyAPIGateway.Multiplayer != null)
+                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.UpdateShift, newLinearShift, newAngularShift);
+            else
+                slot.UpdateShift(newLinearShift, newAngularShift);
+        }
+
+        [Event]
+        [Reliable]
+        [Server]
+        [Broadcast]
+        private void UpdateShift(Vector3 linearShift, Vector3 angularShift)
+        {
+            var controlled = Controlled;
+            if (controlled == null || controlled.AttachedCharacter != Entity)
+            {
+                MyEventContext.ValidationFailed();
+                return;
+            }
+            if (!MyEventContext.Current.IsLocallyInvoked)
+            {
+                var player = MyAPIGateway.Players.GetPlayerControllingEntity(Entity);
+                if (player == null || player.SteamUserId != MyEventContext.Current.Sender.Value)
+                {
+                    MyEventContext.ValidationFailed();
+                    return;
+                }
+            }
+            if (!controlled.UpdateShift(linearShift, angularShift))
+                MyEventContext.ValidationFailed();
         }
 
         public override void OnAddedToScene()
@@ -352,7 +393,7 @@ namespace Equinox76561198048419394.Core.Controller
             }
 
             if (e == null)
-                MyEntities.TryGetEntityById(_saveData.ControlledEntity, out e);
+                Scene.TryGetEntity(_saveData.ControlledEntity, out e);
             if (e == null)
                 return;
 
@@ -375,9 +416,9 @@ namespace Equinox76561198048419394.Core.Controller
 
         public override void OnRemovedFromScene()
         {
-            base.OnRemovedFromScene();
             _tracker = null;
             MyEntities.OnEntityAdd -= CheckForEntity;
+            base.OnRemovedFromScene();
         }
 
         #region Serialization

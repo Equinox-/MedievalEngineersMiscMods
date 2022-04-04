@@ -4,6 +4,7 @@ using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Components;
 using VRage.Game.Input;
+using VRage.Input.Input;
 using VRage.Network;
 using VRage.Session;
 using VRage.Utils;
@@ -20,8 +21,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         internal void Link(long controller, ControlledId key)
         {
-            long existingController;
-            if (_controlledToController.TryGetValue(key, out existingController))
+            if (_controlledToController.TryGetValue(key, out var existingController))
             {
                 if (existingController == controller)
                     return;
@@ -29,8 +29,7 @@ namespace Equinox76561198048419394.Core.Controller
                 Unlink(existingController);
             }
 
-            ControlledId existingControlled;
-            if (_controllerToControlled.TryGetValue(controller, out existingControlled))
+            if (_controllerToControlled.TryGetValue(controller, out var existingControlled))
             {
                 if (existingControlled.Equals(key))
                     return;
@@ -44,8 +43,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         internal void Unlink(long controller)
         {
-            ControlledId existingControlled;
-            if (_controllerToControlled.TryGetValue(controller, out existingControlled))
+            if (_controllerToControlled.TryGetValue(controller, out var existingControlled))
                 _controlledToController.Remove(existingControlled);
             _controllerToControlled.Remove(controller);
         }
@@ -54,6 +52,7 @@ namespace Equinox76561198048419394.Core.Controller
             EquiPlayerAttachmentComponent.Slot controlledNew);
 
         public event DelControlledChanged ControlledChanged;
+        public bool ModifierShift { get; private set; }
 
         internal void RaiseControlledChange(EquiEntityControllerComponent controller, EquiPlayerAttachmentComponent.Slot controlledOld,
             EquiPlayerAttachmentComponent.Slot controlledNew)
@@ -61,7 +60,7 @@ namespace Equinox76561198048419394.Core.Controller
             ControlledChanged?.Invoke(controller, controlledOld, controlledNew);
 
             if (controller.Entity == MyAPIGateway.Session.ControlledObject)
-                CheckAttachedControls();
+                Scheduler.AddScheduledCallback(CheckAttachedControls);
         }
 
         private bool RequestControlInternal(EquiEntityControllerComponent controller, EquiPlayerAttachmentComponent.Slot controlled)
@@ -70,8 +69,7 @@ namespace Equinox76561198048419394.Core.Controller
             if (_controlledToController.ContainsKey(desiredControlling))
                 return false;
 
-            ControlledId currentlyControlling;
-            if (_controllerToControlled.TryGetValue(controller.Entity.EntityId, out currentlyControlling))
+            if (_controllerToControlled.TryGetValue(controller.Entity.EntityId, out var currentlyControlling))
             {
                 if (currentlyControlling.Equals(controlled))
                     return true;
@@ -179,33 +177,52 @@ namespace Equinox76561198048419394.Core.Controller
 
         private readonly MyInputContext _attachedControls = new MyInputContext("Attachment controls");
 
+        private readonly MyInputContext _attachedShiftControls = new MyInputContext("Attachment shift controls");
+
         public EquiEntityControllerTracker()
         {
             _attachedControls.UnregisterAllActions();
-            _attachedControls.RegisterAction(MyStringHash.GetOrCompute("LeaveAttached"),
+            _attachedControls.RegisterAction(MyStringHash.GetOrCompute("LeaveAttached"), 
                 () => MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>()?.ReleaseControl());
+            _attachedShiftControls.UnregisterAllActions();
+            _attachedShiftControls.RegisterAction(MyStringHash.GetOrCompute("ShiftAttached"),
+                () => ModifierShift = !ModifierShift);
         }
 
         protected override void OnSessionReady()
         {
             base.OnSessionReady();
-            CheckAttachedControls();
+            Scheduler.AddScheduledCallback(CheckAttachedControls);
         }
 
         protected override void OnUnload()
         {
+            if (_attachedShiftControls.InStack)
+                _attachedShiftControls.Pop();
             if (_attachedControls.InStack)
                 _attachedControls.Pop();
             base.OnUnload();
         }
 
-        private void CheckAttachedControls()
+        [Update(false)]
+        private void CheckAttachedControls(long dt)
         {
             var controlling = MyAPIGateway.Session.ControlledObject?.Get<EquiEntityControllerComponent>()?.Controlled != null;
-            if (controlling && !_attachedControls.InStack)
-                _attachedControls.Push();
-            else if (!controlling && _attachedControls.InStack)
-                _attachedControls.Pop();
+            if (controlling)
+            {
+                if (!_attachedControls.InStack)
+                    _attachedControls.Push();
+                if (!_attachedShiftControls.InStack)
+                    _attachedShiftControls.Push();
+            }
+            else
+            {
+                if (_attachedShiftControls.InStack)
+                    _attachedShiftControls.Pop();
+                if (_attachedControls.InStack)
+                    _attachedControls.Pop();
+                ModifierShift = false;
+            }
         }
 
         #endregion
