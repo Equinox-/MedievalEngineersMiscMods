@@ -160,6 +160,7 @@ namespace Equinox76561198048419394.Core.Controller
             public Vector3 LinearShift { get; private set; } = Vector3.Zero;
             public Vector3 AngularShift { get; private set; } = Vector3.Zero;
             public Matrix Shift { get; private set; } = Matrix.Identity;
+            public int? ForceAnimationId { get; private set; }
             
             public bool UpdateShift(Vector3 linear, Vector3 angular) {
                 LinearShift = Vector3.Clamp(linear, Definition.MinLinearShift, Definition.MaxLinearShift);
@@ -172,6 +173,13 @@ namespace Equinox76561198048419394.Core.Controller
                 if (Definition.ModelAttachment == MyStringHash.NullOrEmpty || mac == null) return true;
                 foreach (var entity in mac.GetAttachedEntities(Definition.ModelAttachment))
                     mac.SetAdditionalMatrix(entity, newMatrix);
+                return true;
+            }
+
+            public bool UpdatePose(int pose)
+            {
+                if (pose < 0 || pose >= Definition.AnimationCount) return false;
+                ForceAnimationId = pose;
                 return true;
             }
 
@@ -330,6 +338,7 @@ namespace Equinox76561198048419394.Core.Controller
 
             public SerializableVector3 LinearShift;
             public SerializableVector3 AngularShift;
+            public int? Pose;
         }
     }
 }

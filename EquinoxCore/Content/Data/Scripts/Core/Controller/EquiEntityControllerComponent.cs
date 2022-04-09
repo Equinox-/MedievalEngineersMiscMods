@@ -33,12 +33,13 @@ namespace Equinox76561198048419394.Core.Controller
     {
         private readonly MyObjectBuilder_EquiEntityControllerComponent _saveData = new MyObjectBuilder_EquiEntityControllerComponent();
         private EquiEntityControllerTracker _tracker;
-
         private EquiPlayerAttachmentComponent.Slot _controlledSlot;
 
         [Automatic]
         private readonly MyCharacterMovementComponent _characterMovement;
 
+        public int AnimationId => _saveData.AnimationId;
+        
         public delegate void DelControlledChanged(EquiEntityControllerComponent controllerComponent, EquiPlayerAttachmentComponent.Slot old,
             EquiPlayerAttachmentComponent.Slot @new);
 
@@ -105,8 +106,9 @@ namespace Equinox76561198048419394.Core.Controller
             var adata = _controlledSlot?.Definition.ByIndex(_saveData.AnimationId);
             if (!adata.HasValue)
                 return;
+            this.GetLogger().Debug($"Delayed animation start for {adata.Value.Start}");
             var animController = Entity.Components.Get<MyAnimationControllerComponent>();
-            animController?.TriggerAction(adata.Value.Start);
+            animController?.Controller?.TriggerAction(adata.Value.Start);
         }
 
         internal void ChangeSlotInternal(EquiPlayerAttachmentComponent.Slot slot, float randSeed)
@@ -120,6 +122,12 @@ namespace Equinox76561198048419394.Core.Controller
             EquiPlayerAttachmentComponentDefinition.AnimationDesc? newAnimData = null;
             if (slot != null && _saveData.ControlledSlot == slot.Definition.Name)
                 newAnimData = slot.Definition.ByIndex(_saveData.AnimationId);
+            if (slot?.ForceAnimationId != null)
+            {
+                newAnimData = slot.Definition.ByIndex(slot.ForceAnimationId.Value);
+                _saveData.AnimationId = slot.ForceAnimationId.Value;
+            }
+
             if (!newAnimData.HasValue)
                 newAnimData = slot?.Definition.SelectAnimation(Entity.DefinitionId ?? default(MyDefinitionId), randSeed, out _saveData.AnimationId);
 
@@ -127,10 +135,7 @@ namespace Equinox76561198048419394.Core.Controller
             var animController = Entity.Components.Get<MyAnimationControllerComponent>();
             if (animController != null)
             {
-                if (oldAnimData.HasValue)
-                    animController.TriggerAction(oldAnimData.Value.Stop);
-                if (newAnimData.HasValue)
-                    AddScheduledCallback(CommitAnimationStart);
+                PerformAnimationTransition(animController, oldAnimData, newAnimData);
             }
 
             // Handle restoring character's position
@@ -234,6 +239,28 @@ namespace Equinox76561198048419394.Core.Controller
                 slot.AttachedCharacter = Entity;
             ControlledChanged?.Invoke(this, old, slot);
             _tracker.RaiseControlledChange(this, old, slot);
+        }
+
+        private void PerformAnimationTransition(MyAnimationControllerComponent controller, 
+            EquiPlayerAttachmentComponentDefinition.AnimationDesc? from,
+            EquiPlayerAttachmentComponentDefinition.AnimationDesc? to)
+        {
+            if (from.HasValue && to.HasValue && _tracker.TryGetAnimationControllerIndex(controller, out var index)
+                && index.HasDirectTransition(from.Value.Start, to.Value.Start))
+            {
+                this.GetLogger().Debug($"Using direct transition from {from.Value.Start} to {to.Value.Start}");
+                controller.Controller?.TriggerAction(to.Value.Start);
+                return;
+            }
+
+            if (from.HasValue)
+            {
+                this.GetLogger().Debug($"Stopping animation for {from.Value.Start} using {from.Value.Stop}");
+                controller.Controller?.TriggerAction(from.Value.Stop);
+            }
+
+            if (to.HasValue)
+                AddScheduledCallback(CommitAnimationStart, MyEngineConstants.UPDATE_STEP_SIZE_IN_MILLISECONDS + 3);
         }
 
         private static Vector3D? FindFreePlaceImproved(Vector3D pos, Quaternion orientation, Vector3 halfExtents, Vector3 gravity)
@@ -340,23 +367,74 @@ namespace Equinox76561198048419394.Core.Controller
             if (_characterMovement.MoveIndicator == Vector3.Zero && _characterMovement.RotationIndicator == Vector2.Zero) return;
             var newLinearShift = slot.LinearShift + _characterMovement.MoveIndicator / 100;
             var newAngularShift = slot.AngularShift + new Vector3(_characterMovement.RotationIndicator.X, -_characterMovement.RotationIndicator.Y, 0) * 0.0025f;
+            RequestUpdateShift(newLinearShift, newAngularShift);
+        }
+
+        public void RequestUpdateShift(Vector3 linearShift, Vector3 angularShift)
+        {
+            var slot = Controlled;
+            if (slot == null) return;
             if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.UpdateShift, newLinearShift, newAngularShift);
+                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdateShift, linearShift, angularShift);
             else
-                slot.UpdateShift(newLinearShift, newAngularShift);
+                slot.UpdateShift(linearShift, angularShift);
         }
 
         [Event]
         [Reliable]
         [Server]
         [Broadcast]
-        private void UpdateShift(Vector3 linearShift, Vector3 angularShift)
+        private void NetUpdateShift(Vector3 linearShift, Vector3 angularShift)
+        {
+            var controlled = Controlled;
+            if (!CheckNetworkCall()) return;
+            if (!controlled.UpdateShift(linearShift, angularShift))
+                MyEventContext.ValidationFailed();
+        }
+
+        public void RequestUpdatePose(int nextPose)
+        {
+            var slot = Controlled;
+            if (slot == null) return;
+            if (MyAPIGateway.Multiplayer != null)
+                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdatePose, nextPose);
+            else
+                PerformUpdatePose(nextPose);
+        }
+
+        private bool PerformUpdatePose(int nextPose)
+        {
+            var controlled = Controlled;
+            if (controlled == null || !controlled.UpdatePose(nextPose)) return false;
+            var oldAnimData = controlled.Definition.ByIndex(_saveData.AnimationId);
+            var newAnimData = controlled.Definition.ByIndex(nextPose);
+            this.GetLogger().Debug($"Updating pose to {nextPose}.  (From {oldAnimData?.Stop} to {newAnimData?.Start})");
+            _saveData.AnimationId = nextPose;
+            var animController = Entity.Components.Get<MyAnimationControllerComponent>();
+            if (animController != null)
+                PerformAnimationTransition(animController, oldAnimData, newAnimData);
+            return true;
+        }
+
+        [Event]
+        [Reliable]
+        [Server]
+        [Broadcast]
+        private void NetUpdatePose(int pose)
+        {
+            var controlled = Controlled;
+            if (!CheckNetworkCall()) return;
+            if (!PerformUpdatePose(pose))
+                MyEventContext.ValidationFailed();
+        }
+
+        private bool CheckNetworkCall()
         {
             var controlled = Controlled;
             if (controlled == null || controlled.AttachedCharacter != Entity)
             {
                 MyEventContext.ValidationFailed();
-                return;
+                return false;
             }
             if (!MyEventContext.Current.IsLocallyInvoked)
             {
@@ -364,11 +442,11 @@ namespace Equinox76561198048419394.Core.Controller
                 if (player == null || player.SteamUserId != MyEventContext.Current.Sender.Value)
                 {
                     MyEventContext.ValidationFailed();
-                    return;
+                    return false;
                 }
             }
-            if (!controlled.UpdateShift(linearShift, angularShift))
-                MyEventContext.ValidationFailed();
+
+            return true;
         }
 
         public override void OnAddedToScene()

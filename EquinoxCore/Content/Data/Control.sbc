@@ -10,9 +10,16 @@
   <Definition xsi:type="MyObjectBuilder_ControlDefinition">
     <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ShiftAttached" />
     <DisplayName>Shift Attachment Location</DisplayName>
-    <Description>Change the position relative to what you're attached to (move in a chair)</Description>
+    <Description>Change the position relative to what you're attached to (move in a chair).  Double tap to reset.</Description>
     <Category>Character</Category>
     <Primary Key="H" Control="true" />
+  </Definition>
+  <Definition xsi:type="MyObjectBuilder_ControlDefinition">
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ShiftPose" />
+    <DisplayName>Shift Pose</DisplayName>
+    <Description>Change the pose you're in when attached to something (such as a chair).</Description>
+    <Category>Character</Category>
+    <Primary Key="H" Control="true" Shift="true" />
   </Definition>
   <Definition xsi:type="MyObjectBuilder_ControlDefinition">
     <Id Type="MyObjectBuilder_ControlDefinition" Subtype="DeveloperScreenMods" />

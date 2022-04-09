@@ -2,9 +2,16 @@ using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using VRage;
+using VRage.Collections;
 using VRage.Components;
+using VRage.Game;
+using VRage.Game.Components;
+using VRage.Game.Definitions.Animation;
 using VRage.Game.Input;
 using VRage.Input.Input;
+using VRage.Library.Collections;
+using VRage.Logging;
 using VRage.Network;
 using VRage.Session;
 using VRage.Utils;
@@ -18,6 +25,9 @@ namespace Equinox76561198048419394.Core.Controller
     {
         private readonly Dictionary<long, ControlledId> _controllerToControlled = new Dictionary<long, ControlledId>();
         private readonly Dictionary<ControlledId, long> _controlledToController = new Dictionary<ControlledId, long>();
+
+        private readonly Dictionary<MyDefinitionId, IndexedAnimationController> _indexedAnimationControllers =
+            new Dictionary<MyDefinitionId, IndexedAnimationController>(MyDefinitionId.Comparer);
 
         internal void Link(long controller, ControlledId key)
         {
@@ -182,17 +192,69 @@ namespace Equinox76561198048419394.Core.Controller
         public EquiEntityControllerTracker()
         {
             _attachedControls.UnregisterAllActions();
-            _attachedControls.RegisterAction(MyStringHash.GetOrCompute("LeaveAttached"), 
-                () => MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>()?.ReleaseControl());
+            _attachedControls.RegisterAction(MyStringHash.GetOrCompute("LeaveAttached"),  HandleLeave);
             _attachedShiftControls.UnregisterAllActions();
-            _attachedShiftControls.RegisterAction(MyStringHash.GetOrCompute("ShiftAttached"),
-                () => ModifierShift = !ModifierShift);
+            _attachedShiftControls.RegisterAction(MyStringHash.GetOrCompute("ShiftAttached"), HandleShiftPosition);
+            _attachedShiftControls.RegisterAction(MyStringHash.GetOrCompute("ShiftPose"), HandleShiftPose);
+        }
+
+        private void HandleLeave(ref MyInputContext.ActionEvent evt)
+        {
+            var controller = MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>();
+            if (controller?.Controlled == null)
+            {
+                evt.Captured = false;
+                return;
+            }
+            controller.ReleaseControl();
+        }
+
+        private static readonly TimeSpan ShiftPositionTapTimeout = TimeSpan.FromMilliseconds(175);
+        private DateTime _shiftPositionLastTap;
+        private void HandleShiftPosition(ref MyInputContext.ActionEvent evt)
+        {
+            var controller = MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>();
+            if (controller?.Controlled == null)
+            {
+                evt.Captured = false;
+                return;
+            }
+            ModifierShift = !ModifierShift;
+            var now = DateTime.Now;
+            if (_shiftPositionLastTap + ShiftPositionTapTimeout > now)
+            {
+                // Reset relative position
+                controller.RequestUpdateShift(Vector3.Zero, Vector3.Zero);
+            }
+            _shiftPositionLastTap = now;
+        }
+
+        private void HandleShiftPose(ref MyInputContext.ActionEvent evt)
+        {
+            var controller = MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>();
+            var controlled = controller?.Controlled;
+            if (controlled == null || controlled.Definition.AnimationCount == 0)
+            {
+                evt.Captured = false;
+                return;
+            }
+            controller.RequestUpdatePose((controller.AnimationId + 1) % controlled.Definition.AnimationCount);
         }
 
         protected override void OnSessionReady()
         {
             base.OnSessionReady();
             Scheduler.AddScheduledCallback(CheckAttachedControls);
+            _indexedAnimationControllers.Clear();
+            foreach (var def in MyDefinitionManager.GetOfType<MyAnimationControllerDefinition>())
+            {
+                _indexedAnimationControllers[def.Id] = new IndexedAnimationController(def);
+            }
+        }
+
+        public bool TryGetAnimationControllerIndex(MyAnimationControllerComponent controller, out IndexedAnimationController index)
+        {
+            return _indexedAnimationControllers.TryGetValue(controller.SourceId, out index);
         }
 
         protected override void OnUnload()

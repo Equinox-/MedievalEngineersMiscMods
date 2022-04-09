@@ -165,6 +165,8 @@ namespace Equinox76561198048419394.Core.Controller
                 EffectOperations = new List<ImmutableEffectOperations>();
             }
 
+            public int AnimationCount => _animations?.Length ?? 0;
+
 
             public AnimationDesc? ByIndex(int index)
             {
@@ -283,6 +285,13 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 Start = MyStringId.GetOrCompute(desc.Start);
                 Stop = MyStringId.GetOrCompute(desc.Stop);
+                HashSet<MyStringId> directBuilder = null;
+                if (desc.Direct != null)
+                {
+                    directBuilder = new HashSet<MyStringId>();
+                    foreach (var direct in desc.Direct)
+                        directBuilder.Add(MyStringId.GetOrCompute(direct));
+                }
                 Weight = desc.Weight;
                 Whitelist = desc.Whitelist;
                 if (desc.CharacterFilter == null || desc.CharacterFilter.Length == 0)
@@ -321,6 +330,9 @@ namespace Equinox76561198048419394.Core.Controller
 
             [XmlAttribute]
             public string Stop;
+
+            [XmlElement]
+            public HashSet<string> Direct;
 
             [XmlAttribute]
             [DefaultValue(1)]

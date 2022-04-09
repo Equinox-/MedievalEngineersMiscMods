@@ -290,11 +290,20 @@
           </Node>
         </Nodes>
         <Transitions>
-          <Transition Name="equi_attach_end" From="LayStandard" To="Nothing" TimeInSec="0" Sync="Restart">
+          <!-- Sitting: Standard -->
+          <Transition Name="equi_sit_standard" From="Nothing" To="SitStandard" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_attach_end" From="FloorSitCrossed" To="Nothing" TimeInSec="0" Sync="Restart">
+          <Transition Name="equi_sit_standard" From="SitAnkleCross" To="SitStandard" TimeInSec="1.5" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_standard" From="SitFeetUpFlat" To="SitStandard" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_standard" From="SitFeetUpLow" To="SitStandard" TimeInSec="3" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
@@ -302,15 +311,43 @@
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
+
+          <!-- Sitting: Ankles Crossed -->
+          <Transition Name="equi_sit_anklecross" From="Nothing" To="SitAnkleCross" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_anklecross" From="SitStandard" To="SitAnkleCross" TimeInSec="1.5" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_anklecross" From="SitFeetUpFlat" To="SitAnkleCross" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_anklecross" From="SitFeetUpLow" To="SitAnkleCross" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
           <Transition Name="equi_attach_end" From="SitAnkleCross" To="Nothing" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_sit_standard" From="Nothing" To="SitStandard" TimeInSec="0" Sync="Restart">
+
+          <!-- Sitting: Feet Up, Level -->
+          <Transition Name="equi_sit_feetup_flat" From="Nothing" To="SitFeetUpFlat" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_sit_feetup_flat" From="Nothing" To="SitFeetUpFlat" TimeInSec="0" Sync="Restart">
+          <Transition Name="equi_sit_feetup_flat" From="SitStandard" To="SitFeetUpFlat" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_flat" From="SitAnkleCross" To="SitFeetUpFlat" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_flat" From="SitFeetUpLow" To="SitFeetUpFlat" TimeInSec="1.5" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
@@ -318,7 +355,21 @@
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
+
+          <!-- Sitting: Feet Up, Lowered -->
           <Transition Name="equi_sit_feetup_low" From="Nothing" To="SitFeetUpLow" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_low" From="SitStandard" To="SitFeetUpLow" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_low" From="SitAnkleCross" To="SitFeetUpLow" TimeInSec="3" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_low" From="SitFeetUpFlat" To="SitFeetUpLow" TimeInSec="1.5" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
@@ -326,23 +377,19 @@
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_sit_anklecross" From="Nothing" To="SitAnkleCross" TimeInSec="0" Sync="Restart">
-            <Priority xsi:nil="true" />
-            <Curve>Smooth</Curve>
-          </Transition>
+
+          <!-- Sitting: Floor Sitting -->
           <Transition Name="equi_floorsit_crossed" From="Nothing" To="FloorSitCrossed" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_attach_end" From="LaySideLeft" To="Nothing" TimeInSec="0" Sync="Restart">
+          <Transition Name="equi_attach_end" From="FloorSitCrossed" To="Nothing" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_lay_side_left" From="Nothing" To="LaySideLeft" TimeInSec="0" Sync="Restart">
-            <Priority xsi:nil="true" />
-            <Curve>Smooth</Curve>
-          </Transition>
-          <Transition Name="equi_lay_standard" From="Nothing" To="LayStandard" TimeInSec="0" Sync="Restart">
+
+          <!-- Standing: Idle -->
+          <Transition Name="equi_stand_idle1" From="Nothing" To="Idle1" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
@@ -350,7 +397,31 @@
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
-          <Transition Name="equi_stand_idle1" From="Nothing" To="Idle1" TimeInSec="0" Sync="Restart">
+
+          <!-- Sleeping: Laying on the left side -->
+          <Transition Name="equi_lay_side_left" From="Nothing" To="LaySideLeft" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_lay_side_left" From="LayStandard" To="LaySideLeft" TimeInSec="1.5" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_attach_end" From="LaySideLeft" To="Nothing" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+
+          <!-- Sleeping: Laying on the back -->
+          <Transition Name="equi_lay_standard" From="Nothing" To="LayStandard" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_lay_standard" From="LaySideLeft" To="LayStandard" TimeInSec="1.5" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_attach_end" From="LayStandard" To="Nothing" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>

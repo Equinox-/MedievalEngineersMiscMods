@@ -620,6 +620,7 @@
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiEntityControllerTracker.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponentDefinition.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Controller\IndexedAnimationController.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\SerializableControlledId.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiDebugDefinition.cs" />
