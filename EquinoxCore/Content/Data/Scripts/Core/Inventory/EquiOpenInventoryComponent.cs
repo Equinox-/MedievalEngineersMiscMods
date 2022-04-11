@@ -1,6 +1,7 @@
 //#define VIS_INV_ACCESS
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
@@ -37,6 +38,7 @@ namespace Equinox76561198048419394.Core.Inventory
     {
         private MyPositionComponentBase _positionComponent;
         private readonly MultiComponentReference<MyInventoryBase> _inventories = new MultiComponentReference<MyInventoryBase>();
+        private readonly List<MyEntity> _entitiesToConsume = new List<MyEntity>();
 
         [Automatic]
         private readonly MyFloatingObjects _floatingObjects = null;
@@ -95,10 +97,25 @@ namespace Equinox76561198048419394.Core.Inventory
 
         private void PhantomEntered(MyPhantomComponent phantom, MyEntity ent)
         {
-            if (phantom != this)
+            if (phantom != this || AngleToUp >= Definition.FillMargin)
                 return;
-            if (AngleToUp < Definition.FillMargin)
-                ConsumeEntity(ent);
+            lock (_entitiesToConsume)
+            {
+                _entitiesToConsume.Add(ent);
+                if (_entitiesToConsume.Count == 1)
+                    AddScheduledCallback(ApplyPhantomEvents, 0);
+            }
+        }
+
+        [Update(false)]
+        private void ApplyPhantomEvents(long dt)
+        {
+            lock (_entitiesToConsume)
+            {
+                foreach (var ent in _entitiesToConsume)
+                    ConsumeEntity(ent);
+                _entitiesToConsume.Clear();
+            }
             CheckNeedsUpdate();
         }
 
