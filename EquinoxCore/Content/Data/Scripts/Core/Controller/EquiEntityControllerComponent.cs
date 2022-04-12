@@ -364,8 +364,11 @@ namespace Equinox76561198048419394.Core.Controller
                 Entity.PositionComp.WorldMatrix = slot.AttachMatrix;
 
             if (!_tracker.ModifierShift || !LocallyControlled || _characterMovement == null || !slot.Definition.CanShift) return;
-            if (_characterMovement.MoveIndicator == Vector3.Zero && _characterMovement.RotationIndicator == Vector2.Zero) return;
-            var newLinearShift = slot.LinearShift + _characterMovement.MoveIndicator / 100;
+            var moveIndicator = _characterMovement.MoveIndicator;
+            if (_characterMovement.WantsJump) moveIndicator.Y = 1;
+            if (_characterMovement.WantsCrouch) moveIndicator.Y = -1;
+            if (moveIndicator == Vector3.Zero && _characterMovement.RotationIndicator == Vector2.Zero) return;
+            var newLinearShift = slot.LinearShift + moveIndicator / 100;
             var newAngularShift = slot.AngularShift + new Vector3(_characterMovement.RotationIndicator.X, -_characterMovement.RotationIndicator.Y, 0) * 0.0025f;
             RequestUpdateShift(newLinearShift, newAngularShift);
         }

@@ -293,7 +293,7 @@ namespace Equinox76561198048419394.Core.Controller
             get
             {
                 foreach (var slot in _states.Values)
-                    if (slot.LinearShift != Vector3.Zero || slot.AngularShift != Vector3.Zero)
+                    if (slot.LinearShift != Vector3.Zero || slot.AngularShift != Vector3.Zero || slot.ForceAnimationId.HasValue)
                         return true;
                 return false;
             }
@@ -304,12 +304,13 @@ namespace Equinox76561198048419394.Core.Controller
             var ob = (MyObjectBuilder_EquiPlayerAttachmentComponent) base.Serialize(copy);
             ob.Attached = new List<MyObjectBuilder_EquiPlayerAttachmentComponent.AttachmentData>();
             foreach (var slot in _states)
-                if (slot.Value.LinearShift != Vector3.Zero || slot.Value.AngularShift != Vector3.Zero)
+                if (slot.Value.LinearShift != Vector3.Zero || slot.Value.AngularShift != Vector3.Zero || slot.Value.ForceAnimationId.HasValue)
                     ob.Attached.Add(new MyObjectBuilder_EquiPlayerAttachmentComponent.AttachmentData
                     {
                         Name = slot.Key,
                         LinearShift = slot.Value.LinearShift,
                         AngularShift = slot.Value.AngularShift,
+                        Pose = slot.Value.ForceAnimationId,
                     });
             return ob;
         }
@@ -321,7 +322,11 @@ namespace Equinox76561198048419394.Core.Controller
             if (ob.Attached == null) return;
             foreach (var attached in ob.Attached)
                 if (_states.TryGetValue(attached.Name, out var slot))
+                {
                     slot.UpdateShift(attached.LinearShift, attached.AngularShift);
+                    if (attached.Pose.HasValue)
+                        slot.UpdatePose(attached.Pose.Value);
+                }
         }
     }
 
@@ -337,7 +342,13 @@ namespace Equinox76561198048419394.Core.Controller
             public string Name;
 
             public SerializableVector3 LinearShift;
+
+            public bool ShouldSerializeLinearShift() => LinearShift != default;
+
             public SerializableVector3 AngularShift;
+
+            public bool ShouldSerializeAngularShift() => AngularShift != default;
+
             public int? Pose;
         }
     }
