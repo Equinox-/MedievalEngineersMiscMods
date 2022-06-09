@@ -274,8 +274,8 @@ namespace Equinox76561198048419394.Core.Misc
                         storageBounds.Include(storageObb.GetAABB());
                     }
 
-                    var storageMin = Vector3I.Max(Vector3I.Floor(storageBounds.Min), voxel.StorageMin);
-                    var storageMax = Vector3I.Min(Vector3I.Ceiling(storageBounds.Max), voxel.StorageMax);
+                    var storageMin = Vector3I.Max(Vector3I.Floor(storageBounds.Min) - 1, voxel.StorageMin);
+                    var storageMax = Vector3I.Min(Vector3I.Ceiling(storageBounds.Max) + 1, voxel.StorageMax);
                     var localBox = new BoundingBox(storageMin, storageMax);
                     localBox.Translate(-voxel.SizeInMetresHalf - voxel.StorageMin);
                     if (voxel.IntersectStorage(ref localBox, false) == ContainmentType.Disjoint)
@@ -284,7 +284,7 @@ namespace Equinox76561198048419394.Core.Misc
                     voxel.Storage.ReadRange(data, MyStorageDataTypeFlags.ContentAndMaterial, 0, storageMin, storageMax);
                     var modified = false;
                     var modifiedVoxels = BoundingBoxD.CreateInvalid();
-                    foreach (var pt in new BoundingBoxI(Vector3I.Zero, storageMax - storageMin).EnumeratePoints())
+                    foreach (var pt in new BoundingBoxI(Vector3I.One, storageMax - storageMin - 1).EnumeratePoints())
                     {
                         if (materialLimit < usedMaterial)
                             break;
@@ -301,7 +301,8 @@ namespace Equinox76561198048419394.Core.Misc
                         var tmpPt = pt;
                         var index = data.ComputeLinear(ref tmpPt);
                         var content = data.Content(index);
-                        if (content <= 0) continue;
+                        if (content <= 0 && !NeighborsHaveContent(data, pt))
+                            continue;
                         var material = data.Material(index);
                         if (material == replacementMaterial) continue;
 
@@ -321,6 +322,18 @@ namespace Equinox76561198048419394.Core.Misc
                 }
 
             return usedMaterial;
+        }
+
+        private static bool NeighborsHaveContent(MyStorageData data, Vector3I pt)
+        {
+            foreach (var pt2 in new BoundingBoxI(pt-1, pt+1).EnumeratePoints())
+            {
+                var tmpPt2 = pt2;
+                if (data.Content(ref tmpPt2) <= 0) continue;
+                return true;
+            }
+
+            return false;
         }
 
         private static void GatherVoxels(in BoundingBoxD box, List<MyVoxelBase> voxels)
