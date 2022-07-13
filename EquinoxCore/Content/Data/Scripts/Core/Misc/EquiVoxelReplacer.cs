@@ -326,7 +326,8 @@ namespace Equinox76561198048419394.Core.Misc
 
         private static bool NeighborsHaveContent(MyStorageData data, Vector3I pt)
         {
-            foreach (var pt2 in new BoundingBoxI(pt-1, pt+1).EnumeratePoints())
+            // +2 because EnumeratePoints is exclusive
+            foreach (var pt2 in new BoundingBoxI(pt - 1, pt + 2).EnumeratePoints())
             {
                 var tmpPt2 = pt2;
                 if (data.Content(ref tmpPt2) <= 0) continue;
