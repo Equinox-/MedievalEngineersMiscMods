@@ -537,17 +537,32 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 }
             }
 
-            ob.Modifiers = tmpModifiers.Select(bb => new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.ModifierSet
+            ob.Modifiers = new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.ModifierSet[tmpModifiers.Count];
+            var modifierI = 0;
+            foreach (var bb in tmpModifiers) 
             {
-                Blocks = bb.Value.ToArray(),
-                Modifiers = bb.Key.Select(x => (SerializableDefinitionId) x.Id).ToArray()
-            }).ToArray();
-            ob.Storage = tmpDataSets.Select(bb => new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.DataSet
+                var modifiers = new SerializableDefinitionId[bb.Key.Count];
+                var i = 0;
+                foreach (var modifier in bb.Key)
+                    modifiers[i++] = modifier.Id;
+                ob.Modifiers[modifierI++] = new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.ModifierSet
+                {
+                    Blocks = bb.Value,
+                    Modifiers = modifiers,
+                };
+            }
+
+            ob.Storage = new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.DataSet[tmpDataSets.Count];
+            var storageI = 0;
+            foreach (var bb in tmpDataSets)
             {
-                Modifier = bb.Key.Id,
-                Seed = bb.Key.Seed,
-                Blocks = bb.Value.ToArray()
-            }).ToArray();
+                ob.Storage[storageI++] = new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.DataSet
+                {
+                    Modifier = bb.Key.Id,
+                    Seed = bb.Key.Seed,
+                    Blocks = bb.Value
+                };
+            }
             return ob;
         }
 
@@ -562,7 +577,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
                 if (ob.Modifiers != null)
                     foreach (var mod in ob.Modifiers)
-                        if (mod.Blocks != null && mod.Modifiers != null && mod.Modifiers.Length > 0 && mod.Blocks.Length > 0)
+                        if (mod.Blocks != null && mod.Modifiers != null && mod.Modifiers.Length > 0 && mod.Blocks.Count > 0)
                         {
                             var bag = InterningBag<EquiModifierBaseDefinition>.Of(mod.Modifiers
                                 .Select(x =>
@@ -640,7 +655,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             public SerializableDefinitionId[] Modifiers;
 
             [XmlElement("Object")]
-            public TKey[] Blocks;
+            public List<TKey> Blocks;
         }
 
         [XmlElement("Storage")]
@@ -656,7 +671,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             public string Seed;
 
             [XmlElement("Object")]
-            public TKey[] Blocks;
+            public List<TKey> Blocks;
         }
 
         [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
@@ -665,14 +680,20 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             if (Modifiers != null)
                 foreach (var modifier in Modifiers)
                     if (modifier.Blocks != null)
-                        for (var i = 0; i < modifier.Blocks.Length; i++)
-                            modifier.Blocks[i].Remap(remapper);
+                    {
+                        var array = modifier.Blocks.GetInternalArray();
+                        for (var i = 0; i < modifier.Blocks.Count; i++)
+                            array[i].Remap(remapper);
+                    }
 
             if (Storage != null)
                 foreach (var storage in Storage)
                     if (storage.Blocks != null)
-                        for (var i = 0; i < storage.Blocks.Length; i++)
-                            storage.Blocks[i].Remap(remapper);
+                    {
+                        var array = storage.Blocks.GetInternalArray();
+                        for (var i = 0; i < storage.Blocks.Count; i++)
+                            array[i].Remap(remapper);
+                    }
         }
     }
 

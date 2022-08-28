@@ -42,10 +42,20 @@ namespace Equinox76561198048419394.Core.Modifiers.Data
         }
 
         public readonly ColorDefinitionHSV Color;
+        private readonly string _serialized;
 
         public ModifierDataColor(ColorDefinitionHSV hsv)
         {
             Color = hsv;
+
+            // Store serialized version to avoid a lot of string allocations
+            var buffer = new char[11];
+            IntToChar3(Color.H % 360, buffer, 0);
+            buffer[3] = Color.S < 0 ? '-' : '+';
+            IntToChar3(MathHelper.Clamp(Math.Abs(Color.S), 0, 100), buffer, 4);
+            buffer[7] = Color.V < 0 ? '-' : '+';
+            IntToChar3(MathHelper.Clamp(Math.Abs(Color.V), 0, 100), buffer, 8);
+            _serialized = new string(buffer);
         }
 
         public static ModifierDataColor Deserialize(string data)
@@ -75,16 +85,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Data
             });
         }
 
-        public string Serialize()
-        {
-            var buffer = new char[11];
-            IntToChar3(Color.H % 360, buffer, 0);
-            buffer[3] = Color.S < 0 ? '-' : '+';
-            IntToChar3(MathHelper.Clamp(Math.Abs(Color.S), 0, 100), buffer, 4);
-            buffer[7] = Color.V < 0 ? '-' : '+';
-            IntToChar3(MathHelper.Clamp(Math.Abs(Color.V), 0, 100), buffer, 8);
-            return new string(buffer);
-        }
+        public string Serialize() => _serialized;
 
         public override string ToString() => Color.ToString();
     }
