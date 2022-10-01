@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+        <Id Type="HandItem" Subtype="Equi_DecorativeDecals" />
+        <DisplayName>Decorative Decals</DisplayName>
+        <Description>For placing decals on a model</Description>
+        <Icon>Textures\GUI\Icons\Materials\Cloth.dds</Icon>
+        <Size>
+            <X>1.2</X>
+            <Y>0.6</Y>
+            <Z>0.3</Z>
+        </Size>
+        <Mass>0.5</Mass>
+        <Model>Models\Components\Cloth.mwm</Model>
+        <PhysicalMaterial>Cloth</PhysicalMaterial>
+        <Animation>Rope</Animation>
+        <MaxStackAmount>1</MaxStackAmount>
+        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
+        <MaxDurability>100</MaxDurability>
+        <Position>
+            <Slot>MainHand</Slot>
+        </Position>
+        <StanceToBehavior>
+            <StanceName>NormalMode</StanceName>
+            <BehaviorId Type="MyObjectBuilder_EquiDecorativeDecalToolDefinition" Subtype="Equi_DecorativeDecals" />
+        </StanceToBehavior>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiDecorativeDecalToolDefinition">
+        <Id Type="EquiDecorativeDecalToolDefinition" Subtype="Equi_DecorativeDecals" />
+
+        <Decal Id="Tea">
+            <Name>Tea Decal</Name>
+            <TopLeftUv x="0" y="0" />
+            <BottomRightUv x="1" y="1" />
+            <AspectRatio>1</AspectRatio>
+            <Material>
+                <Parameter Name="Technique">DECAL</Parameter>
+                <Parameter Name="ColorMetalTexture">Textures\Decals\Symbols\DECAL_Tea_cm.DDS</Parameter>
+                <Parameter Name="NormalGlossTexture">Textures\Decals\Symbols\DECAL_Tea_ng.DDS</Parameter>
+                <Parameter Name="AddMapsTexture">Textures\Decals\Symbols\DECAL_Tea_add.DDS</Parameter>
+                <Parameter Name="AlphamaskTexture">Textures\Decals\Symbols\DECAL_Tea_alphamask.DDS</Parameter>
+            </Material>
+            <DurabilityBase>1</DurabilityBase>
+            <DurabilityPerSquareMeter>0</DurabilityPerSquareMeter>
+        </Decal>
+        
+        <ItemDecals All="false" AllWithoutSchematics="false">
+            <Material>
+                <Parameter Name="Technique">DECAL</Parameter>
+                <Parameter Name="NormalGlossTexture">ReleaseMissingNormalGloss</Parameter>
+            </Material>
+            <Item>Vellum</Item>
+            <Tag>Ingot</Tag>
+            <DurabilityBase>1</DurabilityBase>
+            <DurabilityPerSquareMeter>0</DurabilityPerSquareMeter>
+        </ItemDecals>
+    </Definition>
+</Definitions>
