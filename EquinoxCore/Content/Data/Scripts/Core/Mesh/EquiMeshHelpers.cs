@@ -4,6 +4,7 @@ using System.Threading;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using VRage.Collections;
+using VRage.Import;
 using VRage.Library.Collections;
 using VRage.Utils;
 using VRageMath;
@@ -228,7 +229,11 @@ namespace Equinox76561198048419394.Core.Mesh
 
             if (!QuadSorting.TryDequeue(out var temp))
                 temp = new QuadSortKey[4];
-            var dir0 = Vector3.Normalize(a - center);
+            var dir0 = a - center;
+            if (dir0.LengthSquared() < 1e-6f)
+                dir0 = Vector3.Up;
+            else
+                dir0.Normalize();
             temp[0] = new QuadSortKey(a, 0);
             temp[1] = new QuadSortKey(b, dir0, norm, center);
             temp[2] = new QuadSortKey(c, dir0, norm, center);
@@ -324,6 +329,66 @@ namespace Equinox76561198048419394.Core.Mesh
                 mesh.Indices.Add(i2);
                 mesh.Indices.Add(i1);
             }
+        }
+
+        public struct DecalData
+        {
+            public string Material;
+            public HalfVector2 TopLeftUv;
+            public HalfVector2 BottomRightUv;
+
+            public Vector3 Position;
+            public uint Normal;
+            public HalfVector3 Up;
+            public HalfVector3 Left;
+        }
+
+        public static void BuildDecal(in DecalData data, MyModelData mesh)
+        {
+            var neededVertices = mesh.Positions.Count + 4;
+            mesh.Positions.EnsureCapacity(neededVertices);
+            mesh.TexCoords.EnsureCapacity(neededVertices);
+            mesh.Normals.EnsureCapacity(neededVertices);
+            mesh.Tangents.EnsureCapacity(neededVertices);
+
+            var normal = VF_Packer.UnpackNormal(data.Normal);
+            Vector3 up = data.Up;
+            Vector3 left = data.Left;
+
+            var upLeftUv = data.TopLeftUv.ToVector2();
+            var downRightUv = data.BottomRightUv.ToVector2();
+
+            var tangent = Math.Sign(downRightUv.X - upLeftUv.X) * left;
+            tangent.Normalize();
+
+            var vertexOffset = mesh.Positions.Count;
+            mesh.Positions.Add(data.Position + up + left);
+            mesh.TexCoords.Add(upLeftUv);
+            mesh.Normals.Add(normal);
+            mesh.Tangents.Add(tangent);
+
+            mesh.Positions.Add(data.Position - up + left);
+            mesh.TexCoords.Add(new Vector2(upLeftUv.X, downRightUv.Y));
+            mesh.Normals.Add(normal);
+            mesh.Tangents.Add(tangent);
+
+            mesh.Positions.Add(data.Position - up - left);
+            mesh.TexCoords.Add(downRightUv);
+            mesh.Normals.Add(normal);
+            mesh.Tangents.Add(tangent);
+
+            mesh.Positions.Add(data.Position + up - left);
+            mesh.TexCoords.Add(new Vector2(downRightUv.X, upLeftUv.Y));
+            mesh.Normals.Add(normal);
+            mesh.Tangents.Add(tangent);
+
+            mesh.Indices.EnsureCapacity(mesh.Indices.Count + 6);
+            mesh.Indices.Add(vertexOffset);
+            mesh.Indices.Add(vertexOffset + 2);
+            mesh.Indices.Add(vertexOffset + 1);
+            mesh.Indices.Add(vertexOffset);
+            mesh.Indices.Add(vertexOffset + 3);
+            mesh.Indices.Add(vertexOffset + 2);
         }
     }
 }

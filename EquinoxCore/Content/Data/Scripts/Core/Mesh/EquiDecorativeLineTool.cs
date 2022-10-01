@@ -53,7 +53,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             if (points.Count < 2 || points[0].Equals(points[1])) return;
             var remove = ActiveAction == MyHandItemActionEnum.Secondary;
-            if (remove)
+            if (!remove)
             {
                 var length = Vector3.Distance(points[0].GridLocalPosition, points[1].GridLocalPosition);
                 var durabilityCost = (int)Math.Ceiling(_definition.DurabilityBase + _definition.DurabilityPerMeter * length);
@@ -164,7 +164,7 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyDependency(typeof(EquiModifierBaseDefinition))]
     public class EquiDecorativeLineToolDefinition : EquiDecorativeToolBaseDefinition
     {
-        public MyMaterialDescriptor Material { get; private set; }
+        public MaterialDescriptor Material { get; private set; }
 
         public float Width { get; private set; }
 

@@ -78,13 +78,17 @@ namespace Equinox76561198048419394.Core.Mesh
             public readonly MyBlock Block;
             public readonly EquiDecorativeMeshComponent.BlockAndAnchor Anchor;
             public readonly AnchorSource Source;
+            public readonly Vector3 GridLocalNormal;
 
-            public DecorAnchor(MyGridDataComponent grid, MyBlock block, EquiDecorativeMeshComponent.BlockAndAnchor anchor, AnchorSource source)
+            public DecorAnchor(MyGridDataComponent grid, MyBlock block, 
+                EquiDecorativeMeshComponent.BlockAndAnchor anchor, AnchorSource source,
+                Vector3 gridLocalNormal)
             {
                 Grid = grid;
                 Block = block;
                 Anchor = anchor;
                 Source = source;
+                GridLocalNormal = gridLocalNormal;
             }
 
             public Vector3 BlockLocalPosition => Anchor.GetBlockLocalAnchor(Grid, Block);
@@ -93,9 +97,9 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool TryGetWorldPosition(out Vector3D pos)
             {
                 var gridPos = Grid?.Container?.Get<MyPositionComponentBase>();
-                if (gridPos != null)
+                if (gridPos != null && Anchor.TryGetGridLocalAnchor(Grid, out var localPos))
                 {
-                    pos = Vector3D.Transform(GridLocalPosition, gridPos.WorldMatrix);
+                    pos = Vector3D.Transform(localPos, gridPos.WorldMatrix);
                     return true;
                 }
 
@@ -144,13 +148,11 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public readonly MyGridDataComponent Grid;
             public readonly MyBlock Block;
-            public readonly MatrixD InvWorldMatrix;
 
-            public DecorCandidate(MyGridDataComponent grid, MyBlock block, MatrixD invWorldMatrix)
+            public DecorCandidate(MyGridDataComponent grid, MyBlock block)
             {
                 Grid = grid;
                 Block = block;
-                InvWorldMatrix = invWorldMatrix;
             }
 
             public string ModelName
@@ -199,8 +201,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                     candidates.Add(new MyLineSegmentOverlapResult<DecorCandidate>
                                     {
                                         Distance = distance,
-                                        Element = new DecorCandidate(gridDataComponent, block,
-                                            MatrixD.Invert(gridDataComponent.GetBlockWorldMatrix(block, true)))
+                                        Element = new DecorCandidate(gridDataComponent, block)
                                     });
                         }
                     }
@@ -214,10 +215,13 @@ namespace Equinox76561198048419394.Core.Mesh
                         break;
                     var tmpCandidate = overlap.Element;
                     var model = tmpCandidate.ModelName;
-                    var localRay = new Ray((Vector3)Vector3D.Transform(caster.StartPosition, in tmpCandidate.InvWorldMatrix),
-                        (Vector3)Vector3D.TransformNormal(caster.Direction, tmpCandidate.InvWorldMatrix));
+                    var blockLocalMatrix = tmpCandidate.Grid.GetBlockLocalMatrix(tmpCandidate.Block);
+                    var blockWorldMatrix = blockLocalMatrix * tmpCandidate.Grid.Entity.WorldMatrix;
+                    MatrixD.Invert(ref blockWorldMatrix, out var blockInvWorldMatrix);
+                    var localRay = new Ray((Vector3)Vector3D.Transform(caster.StartPosition, in blockInvWorldMatrix),
+                        (Vector3)Vector3D.TransformNormal(caster.Direction, ref blockInvWorldMatrix));
                     var bvh = mm.GetMaterialBvh(model);
-                    if (bvh == null || !bvh.RayCast(in localRay, out _, out _, out var dist, bestDistance) || dist > bestDistance)
+                    if (bvh == null || !bvh.RayCast(in localRay, out _, out _, out var dist, out var triangleId, bestDistance) || dist > bestDistance)
                         continue;
                     bestDistance = dist;
                     var pos = localRay.Position + localRay.Direction * dist;
@@ -226,11 +230,15 @@ namespace Equinox76561198048419394.Core.Mesh
                         const float snapSize = 0.25f / 16;
                         pos = Vector3.Round(pos / snapSize) * snapSize;
                     }
+
+                    var gridLocalNormal = Vector3.TransformNormal(bvh.GetTriangle(triangleId).RawNormal, ref blockLocalMatrix);
+                    gridLocalNormal.Normalize();
                     anchor = new DecorAnchor(tmpCandidate.Grid, tmpCandidate.Block,
                         EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
                             tmpCandidate.Block,
                             pos),
-                        AnchorSource.Mesh);
+                        AnchorSource.Mesh,
+                        gridLocalNormal);
                     found = true;
                 }
             }
@@ -242,7 +250,8 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             snapped = default;
             if (_definition.SnapToDummy.Count == 0) return false;
-            Vector3? snapTo = null;
+            var hasSnapped = false;
+            Matrix snapTo = default;
             var snapToDistSq = _definition.SnapDummyDistance * _definition.SnapDummyDistance;
             var blockLocalPos = anchor.BlockLocalPosition;
             foreach (var dummy in anchor.Block.Model.Dummies)
@@ -250,14 +259,24 @@ namespace Equinox76561198048419394.Core.Mesh
                 {
                     var dist2 = Vector3.DistanceSquared(dummy.Matrix.Translation, blockLocalPos);
                     if (dist2 >= snapToDistSq) continue;
-                    snapTo = dummy.Matrix.Translation;
+                    hasSnapped = true;
+                    snapTo = dummy.Matrix;
                     snapToDistSq = dist2;
                 }
 
-            if (!snapTo.HasValue) return false;
+            if (!hasSnapped) return false;
+
+            // Snap to dummy axes
+            Matrix.Transpose(ref snapTo, out var snapToTranspose);
+            var snappedBlockNormal = Vector3.TransformNormal(anchor.GridLocalNormal, ref snapToTranspose);
+            snappedBlockNormal = Vector3.DominantAxisProjection(snappedBlockNormal);
+            var snappedGridNormal = Vector3.TransformNormal(snappedBlockNormal, ref snapTo);
+            snappedGridNormal.Normalize();
+            
             snapped = new DecorAnchor(anchor.Grid, anchor.Block,
-                EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(anchor.Grid, anchor.Block, snapTo.Value),
-                AnchorSource.Dummy);
+                EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(anchor.Grid, anchor.Block, snapTo.Translation),
+                AnchorSource.Dummy,
+                snappedGridNormal);
             return true;
         }
 
@@ -270,7 +289,7 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             snapped = new DecorAnchor(anchor.Grid, anchor.Grid.GetBlock(snappedAnchor.Block), snappedAnchor,
-                AnchorSource.Existing);
+                AnchorSource.Existing, anchor.GridLocalNormal);
             return true;
         }
 
@@ -341,7 +360,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
         protected abstract void HitWithEnoughPoints(ListReader<DecorAnchor> points);
 
-        private void RenderHelper()
+        protected virtual void RenderHelper()
         {
             SetTarget();
 

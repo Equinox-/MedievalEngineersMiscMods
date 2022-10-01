@@ -2,20 +2,51 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Equinox76561198048419394.Core.Util.EqMath;
+using Sandbox.Game.World;
 using VRage.Library.Collections;
 using VRage.Library.Threading;
+using VRage.Logging;
+using VRageMath;
+using VRageRender;
 using VRageRender.Import;
+using VRageRender.Messages;
+using MySession = VRage.Session.MySession;
 
 namespace Equinox76561198048419394.Core.ModelGenerator
 {
+    public sealed class MaterialDescriptor
+    {
+        public readonly MyMaterialDescriptor Descriptor;
+        public string MaterialName => Descriptor.MaterialName;
+        private Action _prepare;
+
+        public MaterialDescriptor(MyMaterialDescriptor descriptor, Action prepare)
+        {
+            Descriptor = descriptor;
+            _prepare = prepare;
+        }
+
+        public void EnsurePrepared()
+        {
+            if (_prepare == null)
+                return;
+            lock (this)
+            {
+                _prepare?.Invoke();
+                _prepare = null;
+            }
+        }
+    }
+
     public sealed class MaterialTable
     {
         private static readonly FastResourceLock MaterialsLock = new FastResourceLock();
-        private static readonly Dictionary<string, MyMaterialDescriptor> Materials = new Dictionary<string, MyMaterialDescriptor>();
+        private static readonly Dictionary<string, MaterialDescriptor> Materials = new Dictionary<string, MaterialDescriptor>();
 
-        public static MyMaterialDescriptor From(MaterialSpec spec)
+        public static MaterialDescriptor From(MaterialSpec spec)
         {
             var hasher = new Hashing.HashBuilder();
+            var iconMode = spec.Icons != null && spec.Icons.Count > 0;
             using (PoolManager.Get<List<MaterialSpec.Parameter>>(out var sorted))
             {
                 sorted.AddRange(spec.Parameters);
@@ -25,9 +56,16 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     hasher.Add(param.Name);
                     hasher.Add(param.Value);
                 }
+
+                if (iconMode)
+                {
+                    hasher.Add("@icons@");
+                    foreach (var icon in spec.Icons)
+                        hasher.Add(icon);
+                }
             }
 
-            var materialId = hasher.Build().ToString64();
+            var materialId = hasher.Build().ToCompactString();
             using (MaterialsLock.AcquireExclusiveUsing())
             {
                 if (Materials.TryGetValue(materialId, out var value))
@@ -37,7 +75,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             }
         }
 
-        public static bool TryGetById(string id, out MyMaterialDescriptor descriptor)
+        public static bool TryGetById(string id, out MaterialDescriptor descriptor)
         {
             using (MaterialsLock.AcquireSharedUsing())
             {
@@ -53,7 +91,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             return true;
         }
 
-        private static MyMaterialDescriptor ToMwmMaterial(string id, MaterialSpec spec)
+        private static MaterialDescriptor ToMwmMaterial(string id, MaterialSpec spec)
         {
             const string techniqueKey = "Technique";
             const string glassCwKey = "GlassMaterialCW";
@@ -79,7 +117,67 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     desc.UserData[kv.Key] = kv.Value;
             }
 
-            return desc;
+            var iconPrepare = GetIconPrepareActions(id, desc.Textures, spec.Icons, spec.IconResolution ?? 256);
+            return new MaterialDescriptor(desc, () => {
+                iconPrepare?.Invoke();
+                MySession.Static.Components.Get<DerivedModelManager>()?.PrepareMaterial(desc);
+            });
+        }
+
+        private static Action GetIconPrepareActions(string id, Dictionary<string, string> textures, List<string> icons, int res)
+        {
+            if (icons == null || icons.Count <= 0)
+                return null;
+            const string colorMetalTexture = "ColorMetalTexture";
+            const string alphaMaskTexture = "AlphamaskTexture";
+
+            string PrepareTexture(string key)
+            {
+                if (textures.ContainsKey(key)) return null;
+                var name = $"{id}_icons_{key}";
+                textures.Add(key, name);
+                return name;
+            }
+
+            var cm = PrepareTexture(colorMetalTexture);
+            var alpha = PrepareTexture(alphaMaskTexture);
+            if (cm == null && alpha == null)
+                return null;
+            return () =>
+            {
+                var tempObject = MyRenderProxy.CreateRenderEntity($"temp_for_icons_{id}",
+                    @"Models\Debug\Sphere.mwm",
+                    MatrixD.Identity, MyMeshDrawTechnique.MESH,
+                    0,
+                    CullingOptions.Default,
+                    Color.White,
+                    Vector3.Zero);
+
+                void GenerateTexture(string name, MyTextureType type)
+                {
+                    if (name == null)
+                        return;
+                    MyRenderProxy.CreateGeneratedTexture(name, res, res, type == MyTextureType.Alphamask 
+                        ? MyGeneratedTextureType.Alphamask 
+                        : MyGeneratedTextureType.RGBA);
+                    foreach (var icon in icons)
+                    {
+                        var rectangle = new RectangleF(0, 0, res, res);
+                        Rectangle? sourceRectangle = null;
+                        MyRenderProxy.DrawSprite(icon, ref rectangle, true, ref sourceRectangle, Color.White, 0, Vector2.UnitX, 
+                            ref Vector2.Zero,
+                            SpriteEffects.None, 0f, true, name, type == MyTextureType.Alphamask 
+                                ? SpriteBatchMode.SingleChannelMax
+                                : SpriteBatchMode.Default);
+                    }
+
+                    MyRenderProxy.RenderOffscreenTextureToMaterial(tempObject, "material", name, null, type);
+                }
+
+                GenerateTexture(cm, MyTextureType.ColorMetal);
+                GenerateTexture(alpha, MyTextureType.Alphamask);
+                MyRenderProxy.RemoveRenderObject(tempObject);
+            };
         }
     }
 }

@@ -13,13 +13,15 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             A = a;
             B = b;
             C = c;
-            if (!desiredNorm.HasValue || Normal.Dot(desiredNorm.Value) > 0)
+            if (!desiredNorm.HasValue || RawNormal.Dot(desiredNorm.Value) > 0)
                 return;
             B = c;
             C = b;
         }
 
-        public Vector3 Normal => Vector3.Normalize(Vector3.Cross(B - A, C - A));
+        public Vector3 RawNormal => Vector3.Cross(B - A, C - A);
+
+        public Vector3 Normal => Vector3.Normalize(RawNormal);
 
         [Pure]
         public bool Intersects(in BoundingBox box)

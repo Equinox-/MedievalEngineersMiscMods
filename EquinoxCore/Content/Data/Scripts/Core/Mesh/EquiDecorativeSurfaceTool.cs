@@ -131,7 +131,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 points.Add(local0);
                 points.Add(local1);
                 points.Add(local2);
-                if (pt3.Block != BlockId.Null)
+                if (!pt3.IsNull)
                 {
                     if (pt3.TryGetGridLocalAnchor(gridData, out var local3))
                         points.Add(local3);
@@ -217,7 +217,7 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyDependency(typeof(EquiModifierBaseDefinition))]
     public class EquiDecorativeSurfaceToolDefinition : EquiDecorativeToolBaseDefinition
     {
-        public MyMaterialDescriptor Material { get; private set; }
+        public MaterialDescriptor Material { get; private set; }
         public Vector2 TextureSize { get; private set; }
         public bool FlipRearNormals { get; private set; }
 

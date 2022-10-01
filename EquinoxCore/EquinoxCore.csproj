@@ -634,6 +634,8 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryActionApplier.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\ItemCollection.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecalPreviewModels.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeDecalTool.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Key.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeToolBase.cs" />

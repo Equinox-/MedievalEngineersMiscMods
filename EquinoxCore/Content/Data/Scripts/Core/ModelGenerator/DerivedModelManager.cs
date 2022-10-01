@@ -35,7 +35,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         
         private const int DerivedVersion = 2;
         private const int BvhVersion = 1;
-        private const int MaterialModelVersion = 1;
+        private const int MaterialModelVersion = 2;
         
         private static readonly ConcurrentBag<byte[]> Buffers = new ConcurrentBag<byte[]>();
         private readonly FastResourceLock _lock = new FastResourceLock();

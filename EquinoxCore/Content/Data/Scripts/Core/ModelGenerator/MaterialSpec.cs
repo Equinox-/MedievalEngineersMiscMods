@@ -9,6 +9,12 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         [XmlElement("Parameter")]
         public List<Parameter> Parameters;
 
+        [XmlElement("IconResolution")]
+        public int? IconResolution;
+        
+        [XmlElement("Icon")]
+        public List<string> Icons;
+
         public struct Parameter
         {
             [XmlAttribute("Name")]
@@ -18,7 +24,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             public string Value;
         }
 
-        public MyMaterialDescriptor Build()
+        public MaterialDescriptor Build()
         {
             return MaterialTable.From(this);
         }

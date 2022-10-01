@@ -105,6 +105,11 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         public bool RayCast(in Ray ray, out string section, out string material, out float dist, float distanceLimit = float.MaxValue)
         {
+            return RayCast(in ray, out section, out material, out dist, out _, distanceLimit);
+        }
+
+        public bool RayCast(in Ray ray, out string section, out string material, out float dist, out int triangleId, float distanceLimit = float.MaxValue)
+        {
             var bestTriId = -1;
             var bestTriDist = distanceLimit;
             using (var itr = _bvh.IntersectRayOrdered(in ray))
@@ -124,6 +129,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                 }
             }
 
+            triangleId = bestTriId;
             if (bestTriId >= 0)
             {
                 section = _triangles[bestTriId].Section;

@@ -13,6 +13,7 @@ using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
+using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRageMath;
 using VRageRender;
@@ -142,6 +143,15 @@ namespace Equinox76561198048419394.Core.Mesh
             _currentCullObject = newCullObject;
         }
 
+        public ulong CreateDecal(EquiMeshHelpers.DecalData data)
+        {
+            if (IsDedicated) return NullId;
+            AllocateObjectForCell(data.Position, out var cell, out var id);
+            cell.Decals.Add(id, data);
+            cell.MaterialToObject.Add(data.Material, id);
+            return id;
+        }
+
         public ulong CreateLine(EquiMeshHelpers.LineData data)
         {
             if (IsDedicated) return NullId;
@@ -168,6 +178,12 @@ namespace Equinox76561198048419394.Core.Mesh
             if (IsDedicated) return false;
             if (!_objectToCell.TryGetValue(obj, out var cellKey) || !_renderCells.TryGetValue(cellKey, out var cell))
                 return false;
+            if (cell.Decals.TryGetValue(obj, out var decalData))
+            {
+                cell.MaterialToObject.Remove(decalData.Material, obj);
+                cell.Decals.Remove(obj);
+            }
+
             if (cell.Lines.TryGetValue(obj, out var lineData))
             {
                 cell.MaterialToObject.Remove(lineData.Material, obj);
@@ -200,6 +216,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             private readonly EquiDynamicMeshComponent _owner;
             private readonly Vector3I _key;
+            internal readonly Dictionary<ulong, EquiMeshHelpers.DecalData> Decals = new Dictionary<ulong, EquiMeshHelpers.DecalData>();
             internal readonly Dictionary<ulong, EquiMeshHelpers.LineData> Lines = new Dictionary<ulong, EquiMeshHelpers.LineData>();
             internal readonly Dictionary<ulong, EquiMeshHelpers.SurfaceData> Surfaces = new Dictionary<ulong, EquiMeshHelpers.SurfaceData>();
             internal readonly MyHashSetDictionary<string, ulong> MaterialToObject = new MyHashSetDictionary<string, ulong>();
@@ -215,14 +232,11 @@ namespace Equinox76561198048419394.Core.Mesh
 
             private void BuildMesh(MyModelData mesh)
             {
-                var dmm = MySession.Static.Components.Get<DerivedModelManager>();
-                if (dmm == null) return;
                 mesh.AABB = BoundingBox.CreateInvalid();
                 foreach (var kv in MaterialToObject)
                 {
-                    if (!MaterialTable.TryGetById(kv.Key, out var mtl))
-                        continue;
-                    dmm.PrepareMaterial(mtl);
+                    if (MaterialTable.TryGetById(kv.Key, out var mtl))
+                        mtl.EnsurePrepared();
                     var vertexOffset = mesh.Positions.Count;
                     var indexOffset = mesh.Indices.Count;
                     foreach (var obj in kv.Value)
@@ -243,14 +257,15 @@ namespace Equinox76561198048419394.Core.Mesh
                         {
                             EquiMeshHelpers.BuildSurface(in triangle, mesh);
                         }
+
+                        if (Decals.TryGetValue(obj, out var decal))
+                        {
+                            EquiMeshHelpers.BuildDecal(in decal, mesh);
+                        }
                     }
 
                     if (mesh.Positions.Count == vertexOffset || mesh.Indices.Count == indexOffset)
                         continue;
-
-                    for (var i = vertexOffset; i < mesh.Positions.Count; i++)
-                        mesh.AABB.Include(mesh.Positions[i]);
-
                     mesh.Sections.Add(new MyRuntimeSectionInfo
                     {
                         IndexStart = indexOffset,
@@ -258,6 +273,8 @@ namespace Equinox76561198048419394.Core.Mesh
                         MaterialName = mtl.MaterialName,
                     });
                 }
+                for (var i = 0; i < mesh.Positions.Count; i++)
+                    mesh.AABB.Include(mesh.Positions[i]);
             }
 
             internal void RemoveRenderObject()
@@ -277,7 +294,11 @@ namespace Equinox76561198048419394.Core.Mesh
                 var parent = _owner._gridRender;
                 var model = MyRenderProxy.PrepareAddRuntimeModel();
                 model.Name = _modelName = $"dyn_mesh_{_owner.Entity.Id}_{_key.X}_{_key.Y}_{_key.Z}_{_meshGeneration++}";
+                model.ReplacedModel = null;
                 model.Persistent = false;
+#if VRAGE_VERSION_0
+                model.Dynamic = true;                
+#endif
                 BuildMesh(model.ModelData);
                 if (model.ModelData.Positions.Count == 0) return false;
                 MyRenderProxy.AddRuntimeModel(model.Name, model);

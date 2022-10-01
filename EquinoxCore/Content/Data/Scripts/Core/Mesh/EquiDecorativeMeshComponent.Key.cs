@@ -27,6 +27,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 PackedAnchor = packedAnchor;
             }
 
+            public bool IsNull => Block == BlockId.Null;
+
             public Vector3 NormalizedAnchor => AnchorPacking.Unpack(PackedAnchor);
 
             [Pure]
@@ -68,7 +70,9 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public readonly BlockAndAnchor A, B, C, D;
 
-            public bool IsLine => C.Block == BlockId.Null;
+            public bool IsDecal => B.IsNull;
+            
+            public bool IsLine => !B.IsNull && C.IsNull;
 
             private struct BlockAndAnchorSorter : BubbleSort.IBubbleSorter<BlockAndAnchor>
             {

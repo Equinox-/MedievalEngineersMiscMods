@@ -6,7 +6,7 @@ namespace Equinox76561198048419394.Core.Util.EqMath
     public static class Hashing
     {
         // ReSharper disable StringLiteralTypo
-        private static readonly char[] ToStringBuffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.".ToCharArray();
+        private static readonly char[] ToStringBuffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-".ToCharArray();
         // ReSharper restore StringLiteralTypo
 
         public struct Hash128 : IEquatable<Hash128>
@@ -71,14 +71,20 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 return new string(cbuf);
             }
 
-            public string ToString64()
+            public string ToCompactString()
             {
-                var tmp = new byte[sizeof(ulong) * 2];
-                for (var i = 0; i < sizeof(ulong); i++)
-                    tmp[i] = (byte) ((V0 >> (i * 8)) & 0xFF);
-                for (var i = 0; i < sizeof(ulong); i++)
-                    tmp[i + sizeof(ulong)] = (byte) ((V1 >> (i * 8)) & 0xFF);
-                return Convert.ToBase64String(tmp);
+                const int bitsPerChar = 6;
+                const int bitsPerCharMask = (1 << bitsPerChar) - 1;
+                const int charsPerLong = (64 + bitsPerChar - 1) / bitsPerChar;
+                var sb = new char[charsPerLong*2];
+                void Append(int offset, ulong value)
+                {
+                    for (int i = 0, j = 0; i < charsPerLong; i++, j+=bitsPerChar)
+                        sb[offset + i] = ToStringBuffer[(value >> j) & bitsPerCharMask];
+                }
+                Append(0, V0);
+                Append(charsPerLong, V1);
+                return new string(sb);
             }
 
             public override string ToString()
