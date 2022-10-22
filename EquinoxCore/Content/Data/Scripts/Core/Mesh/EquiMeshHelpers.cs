@@ -206,7 +206,13 @@ namespace Equinox76561198048419394.Core.Mesh
             public QuadSortKey(Vector3 pos, Vector3 dir0, Vector3 normal, Vector3 center)
             {
                 Pos = pos;
-                var dir = Vector3.Normalize(pos - center);
+                var dir = pos - center;
+                if (dir.Normalize() < 1e-4)
+                {
+                    Key = normal.Dot(pos - center);
+                    return;
+                }
+
                 var dot = dir0.Dot(dir);
                 var cross = dir0.Cross(dir).Dot(normal);
                 Key = Math.Sign(cross) * (1 - dot);
