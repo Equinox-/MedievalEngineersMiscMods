@@ -63,7 +63,7 @@ namespace Equinox76561198048419394.Core.Mesh
             msg.Persistent = false;
             msg.ReplacedModel = null;
 #if VRAGE_VERSION_0
-            msg.Dynamic = false;                
+            msg.Dynamic = false;
 #endif
             EquiMeshHelpers.BuildDecal(in data, msg.ModelData);
             msg.ModelData.Sections.Add(new MyRuntimeSectionInfo

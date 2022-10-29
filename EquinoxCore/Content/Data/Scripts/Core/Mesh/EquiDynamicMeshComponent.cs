@@ -297,7 +297,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 model.ReplacedModel = null;
                 model.Persistent = false;
 #if VRAGE_VERSION_0
-                model.Dynamic = true;                
+// TODO           Disable until 0.7.4 (https://communityedition.medievalengineers.com/mantis/view.php?id=416)
+//                model.Dynamic = true;
 #endif
                 BuildMesh(model.ModelData);
                 if (model.ModelData.Positions.Count == 0) return false;
