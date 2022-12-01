@@ -128,13 +128,13 @@ namespace Equinox76561198048419394.Core.Mesh
 
             if (remove)
             {
-                MyMultiplayer.RaiseStaticEvent(x => PerformOp, points[0].Grid.Entity.Id, points[0].Anchor, default(DecalArgs), true);
+                MyMultiplayer.RaiseStaticEvent(x => PerformOp, points[0].Grid.Entity.Id, points[0].RpcAnchor, default(DecalRpcArgs), true);
                 return;
             }
 
             var up = ComputeDecalUp(points[0].Grid, normal);
             MyMultiplayer.RaiseStaticEvent(x => PerformOp,
-                points[0].Grid.Entity.Id, points[0].Anchor, new DecalArgs
+                points[0].Grid.Entity.Id, points[0].RpcAnchor, new DecalRpcArgs
                 {
                     DecalId = decalDef.Id,
                     PackedNormal = VF_Packer.PackNormal(normal),
@@ -144,7 +144,7 @@ namespace Equinox76561198048419394.Core.Mesh
         }
 
         [RpcSerializable]
-        private struct DecalArgs
+        private struct DecalRpcArgs
         {
             public MyStringHash DecalId;
             public uint PackedNormal;
@@ -154,8 +154,8 @@ namespace Equinox76561198048419394.Core.Mesh
 
         [Event, Reliable, Server]
         private static void PerformOp(EntityId grid,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0,
-            DecalArgs decal,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
+            DecalRpcArgs decal,
             bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeDecalTool behavior)
@@ -166,6 +166,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 return;
             }
 
+            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = rpcPt0;
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData)
                 || !pt0.TryGetGridLocalAnchor(gridData, out var local0))
             {

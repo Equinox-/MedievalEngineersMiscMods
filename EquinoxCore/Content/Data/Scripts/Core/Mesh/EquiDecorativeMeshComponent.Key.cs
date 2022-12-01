@@ -13,7 +13,6 @@ namespace Equinox76561198048419394.Core.Mesh
         // Changing this breaks serialization.  Do not modify.
         public static readonly PackedBoundedVec AnchorPacking = new PackedBoundedVec(-0.5f, 1.5f, 10);
 
-        [RpcSerializable]
         public readonly struct BlockAndAnchor : IEquatable<BlockAndAnchor>
         {
             public readonly BlockId Block;
@@ -105,6 +104,41 @@ namespace Equinox76561198048419394.Core.Mesh
                 hashCode = (hashCode * 397) ^ D.GetHashCode();
                 return hashCode;
             }
+        }
+
+        [RpcSerializable]
+        public struct RpcBlockAndAnchor
+        {
+            // ReSharper disable MemberCanBePrivate.Global
+            public BlockId Block;
+            public uint PackedAnchor;
+            // ReSharper restore MemberCanBePrivate.Global
+
+            public static implicit operator RpcBlockAndAnchor(in BlockAndAnchor other) => new RpcBlockAndAnchor
+            {
+                Block = other.Block,
+                PackedAnchor = other.PackedAnchor
+            };
+
+            public static implicit operator BlockAndAnchor(in RpcBlockAndAnchor other) => new BlockAndAnchor(other.Block, other.PackedAnchor);
+        }
+
+        [RpcSerializable]
+        private struct RpcFeatureKey
+        {
+            // ReSharper disable MemberCanBePrivate.Local
+            public RpcBlockAndAnchor A, B, C, D;
+            // ReSharper restore MemberCanBePrivate.Local
+
+            public static implicit operator RpcFeatureKey(in FeatureKey other) => new RpcFeatureKey
+            {
+                A = other.A,
+                B = other.B,
+                C = other.C,
+                D = other.D
+            };
+
+            public static implicit operator FeatureKey(in RpcFeatureKey other) => new FeatureKey(other.A, other.B, other.C, other.D);
         }
     }
 }

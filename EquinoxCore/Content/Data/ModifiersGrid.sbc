@@ -4,11 +4,13 @@
         <Id Type="EntityBase" Subtype="LargeGridBase" />
 
         <Component Type="EquiGridModifierComponent" />
+        <Component Type="EquiDecorativeMeshComponent" />
     </Definition>
     
     <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
         <Id Type="EntityBase" Subtype="SmallGridBase" />
 
         <Component Type="EquiGridModifierComponent" />
+        <Component Type="EquiDecorativeMeshComponent" />
     </Definition>
 </Definitions>

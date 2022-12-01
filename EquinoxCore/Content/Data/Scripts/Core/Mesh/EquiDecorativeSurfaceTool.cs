@@ -90,18 +90,23 @@ namespace Equinox76561198048419394.Core.Mesh
                     return;
                 }
 
-                MyMultiplayer.RaiseStaticEvent(x => PerformOp,
-                    unique[0].Grid.Entity.Id, unique[0].Anchor, unique[1].Anchor, unique[2].Anchor,
-                    anchor3, ActiveAction == MyHandItemActionEnum.Secondary);
+                MyMultiplayer.RaiseStaticEvent(
+                    x => PerformOp,
+                    unique[0].Grid.Entity.Id,
+                    unique[0].RpcAnchor,
+                    unique[1].RpcAnchor,
+                    unique[2].RpcAnchor,
+                    (EquiDecorativeMeshComponent.RpcBlockAndAnchor) anchor3,
+                    ActiveAction == MyHandItemActionEnum.Secondary);
             }
         }
 
         [Event, Reliable, Server]
         private static void PerformOp(EntityId grid,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt1,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt2,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt3,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt1,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt2,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt3,
             bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeSurfaceTool behavior)
@@ -110,6 +115,11 @@ namespace Equinox76561198048419394.Core.Mesh
                 MyEventContext.ValidationFailed();
                 return;
             }
+
+            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = rpcPt0;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt1 = rpcPt1;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt2 = rpcPt2;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt3 = rpcPt3;
 
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData))
             {

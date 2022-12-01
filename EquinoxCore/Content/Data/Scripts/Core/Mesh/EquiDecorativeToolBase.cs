@@ -80,6 +80,8 @@ namespace Equinox76561198048419394.Core.Mesh
             public readonly AnchorSource Source;
             public readonly Vector3 GridLocalNormal;
 
+            public EquiDecorativeMeshComponent.RpcBlockAndAnchor RpcAnchor => Anchor;
+
             public DecorAnchor(MyGridDataComponent grid, MyBlock block, 
                 EquiDecorativeMeshComponent.BlockAndAnchor anchor, AnchorSource source,
                 Vector3 gridLocalNormal)

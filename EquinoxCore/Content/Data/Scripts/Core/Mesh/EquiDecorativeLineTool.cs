@@ -71,14 +71,19 @@ namespace Equinox76561198048419394.Core.Mesh
                 return;
             }
 
-            MyMultiplayer.RaiseStaticEvent(x => PerformOp,
-                points[0].Grid.Entity.Id, points[0].Anchor, points[1].Anchor, _catenaryFactor, remove);
+            MyMultiplayer.RaiseStaticEvent(
+                x => PerformOp,
+                points[0].Grid.Entity.Id,
+                points[0].RpcAnchor,
+                points[1].RpcAnchor,
+                _catenaryFactor,
+                remove);
         }
 
         [Event, Reliable, Server]
         private static void PerformOp(EntityId grid,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0,
-            EquiDecorativeMeshComponent.BlockAndAnchor pt1,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
+            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt1,
             float catenaryFactor,
             bool remove)
         {
@@ -88,6 +93,9 @@ namespace Equinox76561198048419394.Core.Mesh
                 MyEventContext.ValidationFailed();
                 return;
             }
+
+            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = rpcPt0;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt1 = rpcPt1;
 
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData)
                 || !pt0.TryGetGridLocalAnchor(gridData, out var local0)

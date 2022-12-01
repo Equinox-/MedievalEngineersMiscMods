@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Components;
 using VRage.Components.Entity.CubeGrid;
@@ -15,7 +16,9 @@ using VRage.Library.Collections;
 using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
+using VRage.Scene;
 using VRage.Serialization;
+using VRage.Session;
 using VRage.Utils;
 using VRageMath;
 using VRageMath.PackedVector;
@@ -458,7 +461,7 @@ namespace Equinox76561198048419394.Core.Mesh
         }
 
         [Event, Reliable, Broadcast]
-        private void AddFeature_Sync(FeatureKey key, SerializableDefinitionId id, FeatureArgs args)
+        private void AddFeature_Sync(RpcFeatureKey key, SerializableDefinitionId id, FeatureArgs args)
         {
             var def = MyDefinitionManager.Get<EquiDecorativeToolBaseDefinition>(id);
             if (def != null)
@@ -466,29 +469,31 @@ namespace Equinox76561198048419394.Core.Mesh
         }
 
         [Event, Reliable, Broadcast]
-        private void RemoveFeature_Sync(FeatureKey key)
+        private void RemoveFeature_Sync(RpcFeatureKey key) => DestroyFeatureInternal(key);
+
+        private void RaiseAddFeature_Sync(FeatureKey key, MyDefinitionId id, FeatureArgs args)
         {
-            DestroyFeatureInternal(in key);
+            var mp = MyAPIGateway.Multiplayer;
+            mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync,
+                (RpcFeatureKey)key, (SerializableDefinitionId)id, args);
         }
 
         public void AddDecal(BlockAndAnchor pos, EquiDecorativeDecalToolDefinition.DecalDef def, Vector3 normal, Vector3 up, float height)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(pos, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var mp = MyAPIGateway.Multiplayer;
             var args = new FeatureArgs { DecalId = def.Id, DecalNormal = VF_Packer.PackNormal(normal), DecalUp = VF_Packer.PackNormal(up), DecalHeight = height};
             if (TryAddFeatureInternal(in key, def.Owner, args))
-                mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Owner.Id, args);
+                RaiseAddFeature_Sync(key, def.Owner.Id, args);
         }
 
         public void AddLine(BlockAndAnchor a, BlockAndAnchor b, EquiDecorativeLineToolDefinition def, float catenaryFactor)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var mp = MyAPIGateway.Multiplayer;
             var args = new FeatureArgs { CatenaryFactor = catenaryFactor };
             if (TryAddFeatureInternal(in key, def, args))
-                mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Id, args);
+                RaiseAddFeature_Sync(key, def.Id, args);
         }
 
         public void AddSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d,
@@ -496,10 +501,9 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, c, d);
-            var mp = MyAPIGateway.Multiplayer;
             var args = default(FeatureArgs);
             if (TryAddFeatureInternal(in key, def, args))
-                mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync, key, (SerializableDefinitionId)def.Id, args);
+                RaiseAddFeature_Sync(key, def.Id, args);
         }
 
         public void RemoveDecal(BlockAndAnchor a)
@@ -508,7 +512,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var key = new FeatureKey(a, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
             var mp = MyAPIGateway.Multiplayer;
             if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey) key);
         }
 
         public void RemoveLine(BlockAndAnchor a, BlockAndAnchor b)
@@ -517,7 +521,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
             var mp = MyAPIGateway.Multiplayer;
             if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey) key);
         }
 
         public void RemoveSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
@@ -526,7 +530,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var key = new FeatureKey(a, b, c, d);
             var mp = MyAPIGateway.Multiplayer;
             if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, key);
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey) key);
         }
 
         public override bool IsSerialized => _features.Count > 0;
