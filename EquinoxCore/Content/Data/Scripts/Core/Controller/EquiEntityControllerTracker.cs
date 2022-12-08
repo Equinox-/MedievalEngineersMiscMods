@@ -1,17 +1,12 @@
-using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Character;
 using Sandbox.ModAPI;
-using VRage;
-using VRage.Collections;
 using VRage.Components;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions.Animation;
 using VRage.Game.Input;
-using VRage.Input.Input;
-using VRage.Library.Collections;
-using VRage.Logging;
 using VRage.Network;
 using VRage.Session;
 using VRage.Utils;
@@ -73,7 +68,7 @@ namespace Equinox76561198048419394.Core.Controller
                 Scheduler.AddScheduledCallback(CheckAttachedControls);
         }
 
-        private bool RequestControlInternal(EquiEntityControllerComponent controller, EquiPlayerAttachmentComponent.Slot controlled)
+        private bool RequestControlInternal(EquiEntityControllerComponent controller, EquiPlayerAttachmentComponent.Slot controlled, bool andConfigure)
         {
             var desiredControlling = new ControlledId(controlled);
             if (_controlledToController.ContainsKey(desiredControlling))
@@ -87,7 +82,7 @@ namespace Equinox76561198048419394.Core.Controller
                     return false;
             }
 
-            return controller.RequestControlInternal(controlled);
+            return controller.RequestControlInternal(controlled, andConfigure);
         }
 
         private bool ReleaseControlInternal(EquiEntityControllerComponent controller)
@@ -99,7 +94,7 @@ namespace Equinox76561198048419394.Core.Controller
             return controller.ReleaseControlInternal();
         }
 
-        public void RequestControl(EquiEntityControllerComponent controller, EquiPlayerAttachmentComponent.Slot controlled)
+        public void RequestControl(EquiEntityControllerComponent controller, EquiPlayerAttachmentComponent.Slot controlled, bool andConfigure = false)
         {
             if (controller?.Entity == null || !controller.Entity.InScene)
                 return;
@@ -108,10 +103,10 @@ namespace Equinox76561198048419394.Core.Controller
             if (!MyMultiplayerModApi.Static.IsServer && controller.Entity != MyAPIGateway.Session.ControlledObject)
                 return;
             if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseStaticEvent(x => DelRequestControlServer, controller.Entity.EntityId, controlled.Controllable.Entity.EntityId,
-                    controlled.Definition.Name);
+                MyAPIGateway.Multiplayer.RaiseStaticEvent(x => RequestControlServer, controller.Entity.EntityId, 
+                    controlled.Controllable.Entity.EntityId, controlled.Definition.Name, andConfigure);
             else
-                RequestControlServer(controller.Entity.EntityId, controlled.Controllable.Entity.EntityId, controlled.Definition.Name);
+                RequestControlServer(controller.Entity.EntityId, controlled.Controllable.Entity.EntityId, controlled.Definition.Name, andConfigure);
         }
 
         public void ReleaseControl(EquiEntityControllerComponent controller)
@@ -121,7 +116,7 @@ namespace Equinox76561198048419394.Core.Controller
             if (!MyMultiplayerModApi.Static.IsServer && controller.Entity != MyAPIGateway.Session.ControlledObject)
                 return;
             if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseStaticEvent(x => DelReleaseControlServer, controller.Entity.EntityId);
+                MyAPIGateway.Multiplayer.RaiseStaticEvent(x => ReleaseControlServer, controller.Entity.EntityId);
             else
                 ReleaseControlServer(controller.Entity.EntityId);
         }
@@ -135,7 +130,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         [Event]
         [Server]
-        private static void RequestControlServer(long controller, long entity, string slot)
+        private static void RequestControlServer(long controller, long entity, string slot, bool andConfigure)
         {
             var controllerComponent = MyEntities.GetEntityByIdOrDefault(controller)?.Components.Get<EquiEntityControllerComponent>();
             if (controllerComponent == null)
@@ -155,7 +150,7 @@ namespace Equinox76561198048419394.Core.Controller
                     return;
             }
 
-            MySession.Static?.Components.Get<EquiEntityControllerTracker>()?.RequestControlInternal(controllerComponent, controllableSlot);
+            MySession.Static?.Components.Get<EquiEntityControllerTracker>()?.RequestControlInternal(controllerComponent, controllableSlot, andConfigure);
         }
 
         [Event]
@@ -177,9 +172,6 @@ namespace Equinox76561198048419394.Core.Controller
             MySession.Static?.Components.Get<EquiEntityControllerTracker>()?.ReleaseControlInternal(controllerComponent);
         }
 
-        private static readonly Action<long, long, string> DelRequestControlServer = RequestControlServer;
-        private static readonly Action<long> DelReleaseControlServer = ReleaseControlServer;
-
         #endregion
 
 
@@ -187,58 +179,49 @@ namespace Equinox76561198048419394.Core.Controller
 
         private readonly MyInputContext _attachedControls = new MyInputContext("Attachment controls");
 
-        private readonly MyInputContext _attachedShiftControls = new MyInputContext("Attachment shift controls");
+        private readonly MyInputContext _attachedInSeatControls = new MyInputContext("Attachment in-seat controls");
 
         public EquiEntityControllerTracker()
         {
             _attachedControls.UnregisterAllActions();
             _attachedControls.RegisterAction(MyStringHash.GetOrCompute("LeaveAttached"),  HandleLeave);
-            _attachedShiftControls.UnregisterAllActions();
-            _attachedShiftControls.RegisterAction(MyStringHash.GetOrCompute("ShiftAttached"), HandleShiftPosition);
-            _attachedShiftControls.RegisterAction(MyStringHash.GetOrCompute("ShiftPose"), HandleShiftPose);
+            _attachedInSeatControls.UnregisterAllActions();
+            _attachedInSeatControls.RegisterAction(MyStringHash.GetOrCompute("ConfigureAttached"), HandleConfigureAttached);
+            _attachedInSeatControls.RegisterAction(MyStringHash.GetOrCompute("LeanAttached"), HandleLeanAttached);
         }
 
         private void HandleLeave(ref MyInputContext.ActionEvent evt)
         {
-            var controller = MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>();
+            var playerEntity = MyAPIGateway.Session.ControlledObject;
+            var controller = playerEntity?.Components.Get<EquiEntityControllerComponent>();
             if (controller?.Controlled == null)
             {
+                evt.Captured = false;
+                return;
+            }
+
+            if (playerEntity.Get<MyCharacterDetectorComponent>()?.UseObject != null)
+            {
+                // Don't release control when a use object is targeted.
                 evt.Captured = false;
                 return;
             }
             controller.ReleaseControl();
         }
 
-        private static readonly TimeSpan ShiftPositionTapTimeout = TimeSpan.FromMilliseconds(175);
-        private DateTime _shiftPositionLastTap;
-        private void HandleShiftPosition(ref MyInputContext.ActionEvent evt)
+        private void HandleConfigureAttached(ref MyInputContext.ActionEvent evt)
         {
             var controller = MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>();
-            if (controller?.Controlled == null)
-            {
-                evt.Captured = false;
-                return;
-            }
-            ModifierShift = !ModifierShift;
-            var now = DateTime.Now;
-            if (_shiftPositionLastTap + ShiftPositionTapTimeout > now)
-            {
-                // Reset relative position
-                controller.RequestUpdateShift(Vector3.Zero, Vector3.Zero);
-            }
-            _shiftPositionLastTap = now;
+            controller?.OpenConfiguration();
         }
 
-        private void HandleShiftPose(ref MyInputContext.ActionEvent evt)
+        private void HandleLeanAttached(ref MyInputContext.ActionEvent evt)
         {
             var controller = MyAPIGateway.Session.ControlledObject?.Components.Get<EquiEntityControllerComponent>();
             var controlled = controller?.Controlled;
-            if (controlled == null || controlled.Definition.AnimationCount == 0)
-            {
-                evt.Captured = false;
+            if (controlled == null)
                 return;
-            }
-            controller.RequestUpdatePose((controller.AnimationId + 1) % controlled.Definition.AnimationCount);
+            controller.RequestUpdateLean(!controlled.LeanState);
         }
 
         protected override void OnSessionReady()
@@ -259,8 +242,8 @@ namespace Equinox76561198048419394.Core.Controller
 
         protected override void OnUnload()
         {
-            if (_attachedShiftControls.InStack)
-                _attachedShiftControls.Pop();
+            if (_attachedInSeatControls.InStack)
+                _attachedInSeatControls.Pop();
             if (_attachedControls.InStack)
                 _attachedControls.Pop();
             base.OnUnload();
@@ -274,13 +257,13 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 if (!_attachedControls.InStack)
                     _attachedControls.Push();
-                if (!_attachedShiftControls.InStack)
-                    _attachedShiftControls.Push();
+                if (!_attachedInSeatControls.InStack)
+                    _attachedInSeatControls.Push();
             }
             else
             {
-                if (_attachedShiftControls.InStack)
-                    _attachedShiftControls.Pop();
+                if (_attachedInSeatControls.InStack)
+                    _attachedInSeatControls.Pop();
                 if (_attachedControls.InStack)
                     _attachedControls.Pop();
                 ModifierShift = false;

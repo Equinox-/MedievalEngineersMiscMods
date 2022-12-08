@@ -8,16 +8,16 @@
     <Primary Key="F" />
   </Definition>
   <Definition xsi:type="MyObjectBuilder_ControlDefinition">
-    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ShiftAttached" />
-    <DisplayName>Shift Attachment Location</DisplayName>
-    <Description>Change the position relative to what you're attached to (move in a chair).  Double tap to reset.</Description>
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="LeanAttached" />
+    <DisplayName>Lean in Attached Object</DisplayName>
+    <Description>Leans sideways while attached to an object.  Requires configuration.</Description>
     <Category>Character</Category>
     <Primary Key="H" Control="true" />
   </Definition>
   <Definition xsi:type="MyObjectBuilder_ControlDefinition">
-    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ShiftPose" />
-    <DisplayName>Shift Pose</DisplayName>
-    <Description>Change the pose you're in when attached to something (such as a chair).</Description>
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ConfigureAttached" />
+    <DisplayName>Configure Attached Object</DisplayName>
+    <Description>Configure the object you're attached to</Description>
     <Category>Character</Category>
     <Primary Key="H" Control="true" Shift="true" />
   </Definition>

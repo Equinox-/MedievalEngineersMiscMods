@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Medieval.Entities.UseObject;
 using Medieval.GameSystems;
 using Medieval.GameSystems.Tools;
 using Sandbox.Game.EntityComponents.Character;
@@ -7,11 +8,14 @@ using Sandbox.ModAPI;
 using VRage.Components.Physics;
 using VRage.Game.Components;
 using VRage.Game.Entity;
+using VRage.Game.Entity.UseObject;
 using VRage.Game.ModAPI;
+using VRage.Input;
 using VRage.Network;
 using VRage.Utils;
 using VRageMath;
 using VRageRender.Animations;
+using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.Util
 {
@@ -128,6 +132,17 @@ namespace Equinox76561198048419394.Core.Util
                 return false;
             behavior = handItems.GetBehavior<T>();
             return behavior != null;
+        }
+
+        private static MyUseObjectClaimBlock _localizedInteractionHelper;
+        public static string GetLocalizedInteractionButton(this IMyInput input)
+        {
+            var helper = _localizedInteractionHelper ?? 
+                         (_localizedInteractionHelper = new MyUseObjectClaimBlock(new MyEntity(), new MyModelDummy(), 0));
+            var args = helper.GetActionInfo(UseActionEnum.OpenTerminal).FormatParams;
+            if (args != null && args.Length == 2 && args[0] != null)
+                return args[0].ToString();
+            return "F";
         }
     }
 }

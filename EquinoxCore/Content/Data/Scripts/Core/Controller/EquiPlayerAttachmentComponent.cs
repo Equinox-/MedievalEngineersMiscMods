@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.UseObject;
 using Sandbox.Game.Components;
 using Sandbox.Game.Entities.Entity.Stats;
@@ -14,6 +16,7 @@ using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
 using VRage.Game.ObjectBuilders.ComponentSystem;
+using VRage.Library.Utils;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Utils;
@@ -86,13 +89,12 @@ namespace Equinox76561198048419394.Core.Controller
                 var k = state.AttachedCharacter;
                 if (k == null)
                     continue;
-                EquiEntityControllerComponent c;
-                if (!k.Components.TryGet(out c))
+                if (!k.Components.TryGet(out EquiEntityControllerComponent c))
                     continue;
                 if (MyMultiplayerModApi.Static.IsServer)
                     c.ReleaseControl();
                 else
-                    c.ChangeSlotInternal(null, 0f);
+                    c.ChangeSlotInternal(null, 0f, false);
             }
             base.OnRemovedFromScene();
         }
@@ -110,26 +112,44 @@ namespace Equinox76561198048419394.Core.Controller
 
         public void Use(string dummyName, UseActionEnum actionEnum, MyEntity user)
         {
-            if (actionEnum != UseActionEnum.Manipulate)
-                return;
             if (user != MyAPIGateway.Session.ControlledObject)
                 return;
             var state = StateForDummy(dummyName);
             if (state == null)
                 return;
-            user.Get<EquiEntityControllerComponent>()?.RequestControl(state);
+            switch (actionEnum)
+            {
+                case UseActionEnum.Manipulate:
+                    user.Get<EquiEntityControllerComponent>()?.RequestControl(state);
+                    break;
+                case UseActionEnum.OpenTerminal:
+                    user.Get<EquiEntityControllerComponent>()?.RequestControlAndConfigure(state);
+                    break;
+            }
         }
 
         private static readonly MyActionDescription InvalidActionDesc = new MyActionDescription {Text = MyStringId.GetOrCompute("Bad action")};
 
         public MyActionDescription GetActionInfo(string dummyName, UseActionEnum actionEnum)
         {
-            if (actionEnum != UseActionEnum.Manipulate)
-                return InvalidActionDesc;
             var state = StateForDummy(dummyName);
-            if (state != null)
-                return state.AttachedCharacter != null ? state.Definition.OccupiedActionDesc : state.Definition.EmptyActionDesc;
-            return InvalidActionDesc;
+            if (state == null)
+                return InvalidActionDesc;
+            MyActionDescription desc;
+            switch (actionEnum)
+            {
+                case UseActionEnum.Manipulate:
+                    desc = state.AttachedCharacter != null ? state.Definition.OccupiedActionDesc : state.Definition.EmptyActionDesc;
+                    break;
+                case UseActionEnum.OpenTerminal:
+                    desc = state.AttachedCharacter != null ? default : state.Definition.ConfigureActionDesc;
+                    break;
+                default:
+                    return InvalidActionDesc;
+            }
+
+            desc.FormatParams = new object[] { MyAPIGateway.Input.GetLocalizedInteractionButton() };
+            return desc;
         }
 
         private Slot StateForDummy(string dummy)
@@ -140,7 +160,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         public UseActionEnum SupportedActions => PrimaryAction | SecondaryAction;
         public UseActionEnum PrimaryAction => UseActionEnum.Manipulate;
-        public UseActionEnum SecondaryAction => UseActionEnum.None;
+        public UseActionEnum SecondaryAction => UseActionEnum.OpenTerminal;
         public bool ContinuousUsage => false;
         
         public bool AppliesTo(string dummyName)
@@ -161,10 +181,30 @@ namespace Equinox76561198048419394.Core.Controller
             public Vector3 AngularShift { get; private set; } = Vector3.Zero;
             public Matrix Shift { get; private set; } = Matrix.Identity;
             public int? ForceAnimationId { get; private set; }
-            
-            public bool UpdateShift(Vector3 linear, Vector3 angular) {
-                LinearShift = Vector3.Clamp(linear, Definition.MinLinearShift, Definition.MaxLinearShift);
-                AngularShift = Vector3.Clamp(angular, Definition.MinAngularShift, Definition.MaxAngularShift);
+
+            public float LeanAngle { get; private set; } = 0;
+
+            public bool LeanState { get; private set; }
+            private float _leanTransitionVisualAngle;
+            private float _leanTransitionLastTime;
+
+            public bool UpdateShift(Vector3? linear, Vector3? angular, float? leanAngle = null) {
+                LinearShift = Vector3.Clamp(linear ?? LinearShift, Definition.MinLinearShift, Definition.MaxLinearShift);
+                var angularShift = Vector3.Clamp(angular ?? AngularShift, Definition.MinAngularShift, Definition.MaxAngularShift);
+                if (Definition.MaxAngularShift.Y - Definition.MinAngularShift.Y >= MathHelper.TwoPi)
+                {
+                    // Wrap yaw.
+                    var yaw = angularShift.Y - Definition.MinAngularShift.Y;
+                    yaw %= MathHelper.TwoPi;
+                    yaw += MathHelper.TwoPi;
+                    yaw %= MathHelper.TwoPi;
+                    angularShift.Y = yaw + Definition.MinAngularShift.Y;
+                }
+
+                LeanAngle = MathHelper.Clamp(leanAngle ?? LeanAngle, Definition.MinLean, Definition.MaxLean);
+                if (leanAngle.HasValue)
+                    _leanTransitionVisualAngle = LeanTargetAngle;
+                AngularShift = angularShift;
                 var newMatrix = Matrix.CreateFromYawPitchRoll(AngularShift.Y, AngularShift.X, AngularShift.Z);
                 newMatrix.Translation = LinearShift;
                 if (Shift == newMatrix) return false;
@@ -181,6 +221,18 @@ namespace Equinox76561198048419394.Core.Controller
                 if (pose < 0 || pose >= Definition.AnimationCount) return false;
                 ForceAnimationId = pose;
                 return true;
+            }
+
+            public void ResetPose()
+            {
+                ForceAnimationId = null;
+            }
+
+            public void UpdateLeanState(bool leanState, bool immediate = false)
+            {
+                LeanState = leanState;
+                if (immediate)
+                    _leanTransitionVisualAngle = LeanTargetAngle;
             }
 
             public MyEntity AttachedCharacter
@@ -207,8 +259,34 @@ namespace Equinox76561198048419394.Core.Controller
             }
 
             public MatrixD RawAttachMatrix => Definition.Anchor.GetMatrix() * Controllable.Entity.WorldMatrix;
+
+            private float LeanTargetAngle => LeanState ? LeanAngle : 0;
             
-            public MatrixD AttachMatrix => Shift * RawAttachMatrix;
+            private float LeanVisualAngle
+            {
+                get
+                {
+                    var target = LeanTargetAngle;
+                    var currTime = (float)Controllable.Scheduler.CurrentUpdateTime.TotalSeconds;
+                    var dt = currTime - _leanTransitionLastTime;
+                    var error = target - _leanTransitionVisualAngle;
+                    var delta = Math.Sign(error) * Math.Min(dt * MathHelper.PiOver4, Math.Abs(error));
+                    _leanTransitionLastTime = currTime;
+                    return _leanTransitionVisualAngle += delta;
+                }
+            }
+            
+            public MatrixD AttachMatrix
+            {
+                get
+                {
+                    var result = Shift * RawAttachMatrix;
+                    var leanVisualAngle = LeanVisualAngle;
+                    if (leanVisualAngle != 0)
+                        result = Matrix.CreateRotationZ(-leanVisualAngle) * result;
+                    return result;
+                }
+            }
 
             public event AttachedCharacterChangedDelegate AttachedCharacterChanged;
 

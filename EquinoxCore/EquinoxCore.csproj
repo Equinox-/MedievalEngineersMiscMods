@@ -621,6 +621,7 @@
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponentDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\IndexedAnimationController.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Controller\PlayerAttachmentSlotContext.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\SerializableControlledId.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiDebugDefinition.cs" />
@@ -677,6 +678,7 @@
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiVoxelReplacer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedOwnershipComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedSkeletonComponent.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Misc\InjectModdedSkinStyles.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEdit.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEditsBuilder.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEditSet.cs" />
@@ -715,6 +717,10 @@
     <Compile Include="Content\Data\Scripts\Core\Stats\EquiComponentEffectDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Stats\EquiVoxelEffectComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Stats\EquiVoxelEffectComponentDefinition.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\BoundedDataSource.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedSliderController.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiDataSourceCondition.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\SimpleDataSource.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ActionWithArg.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ArrayPool.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\BubbleSort.cs" />
@@ -760,8 +766,10 @@
   <ItemGroup>
     <Content Include="Content\Data\Characters.sbc" />
     <Content Include="Content\Data\Control.sbc" />
+    <Content Include="Content\Data\Controller.sbc" />
     <Content Include="Content\Data\Debug.sbc.example" />
     <Content Include="Content\Data\Flares.sbc" />
+    <Content Include="Content\Data\GuiIcons.sbc" />
     <Content Include="Content\Data\Light.sbc.example" />
     <Content Include="Content\Data\ModifierChangeColor.sbc.example" />
     <Content Include="Content\Data\ModifierChangeMaterial.sbc.example" />

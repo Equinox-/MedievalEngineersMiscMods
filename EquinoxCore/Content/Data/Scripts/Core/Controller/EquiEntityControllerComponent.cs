@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
+using Medieval.GUI.ContextMenu;
 using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
@@ -16,6 +17,7 @@ using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
+using VRage.Library.Utils;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Session;
@@ -34,12 +36,13 @@ namespace Equinox76561198048419394.Core.Controller
         private readonly MyObjectBuilder_EquiEntityControllerComponent _saveData = new MyObjectBuilder_EquiEntityControllerComponent();
         private EquiEntityControllerTracker _tracker;
         private EquiPlayerAttachmentComponent.Slot _controlledSlot;
+        private MyContextMenu _openMenu;
 
         [Automatic]
         private readonly MyCharacterMovementComponent _characterMovement;
 
         public int AnimationId => _saveData.AnimationId;
-        
+
         public delegate void DelControlledChanged(EquiEntityControllerComponent controllerComponent, EquiPlayerAttachmentComponent.Slot old,
             EquiPlayerAttachmentComponent.Slot @new);
 
@@ -49,55 +52,62 @@ namespace Equinox76561198048419394.Core.Controller
 
         public EquiPlayerAttachmentComponent.Slot Controlled
         {
-            get { return _controlledSlot; }
+            get => _controlledSlot;
             set
             {
-                if (_controlledSlot == value)
+                if (value == _controlledSlot)
                     return;
-                if (value == null)
-                    _tracker?.ReleaseControl(this);
+                if (value != null)
+                    RequestControl(value);
                 else
-                    _tracker?.RequestControl(this, value);
+                    ReleaseControl();
             }
         }
 
-        public void RequestControl(EquiPlayerAttachmentComponent.Slot slot)
-        {
-            Controlled = slot;
-        }
+        public void RequestControl(EquiPlayerAttachmentComponent.Slot slot) => ChangeControl(slot, false);
 
-        public void ReleaseControl()
+        public void RequestControlAndConfigure(EquiPlayerAttachmentComponent.Slot slot) => ChangeControl(slot, true);
+
+        public void ReleaseControl() => ChangeControl(null, false);
+
+        private void ChangeControl(EquiPlayerAttachmentComponent.Slot value, bool andConfigure)
         {
-            Controlled = null;
+            if (_controlledSlot == value)
+                return;
+            if (value == null)
+                _tracker?.ReleaseControl(this);
+            else
+                _tracker?.RequestControl(this, value, andConfigure);
         }
 
         #endregion
 
         private static readonly Random Rand = new Random();
 
-        internal bool RequestControlInternal(EquiPlayerAttachmentComponent.Slot slot)
+        internal bool RequestControlInternal(EquiPlayerAttachmentComponent.Slot slot, bool andConfigure)
         {
             var seed = (float)Rand.NextDouble();
-            ChangeSlotInternal(slot, seed);
-            MyAPIGateway.Multiplayer?.RaiseEvent(this, x => x.ChangeControlledClient, slot.Controllable.Entity.EntityId, slot.Definition.Name, seed);
+            ChangeSlotInternal(slot, seed, andConfigure);
+            MyAPIGateway.Multiplayer?.RaiseEvent(this, x => x.ChangeControlledClient,
+                slot.Controllable.Entity.EntityId, slot.Definition.Name, seed, andConfigure);
             return true;
         }
 
         internal bool ReleaseControlInternal()
         {
-            ChangeSlotInternal(null, 0f);
-            MyAPIGateway.Multiplayer?.RaiseEvent(this, x => x.ChangeControlledClient, 0L, "", 0f);
+            ChangeSlotInternal(null, 0f, false);
+            MyAPIGateway.Multiplayer?.RaiseEvent(this, x => x.ChangeControlledClient, 0L, "", 0f, false);
             return true;
         }
 
         [Event]
         [Reliable]
         [Broadcast]
-        private void ChangeControlledClient(long entity, string slot, float randSeed)
+        private void ChangeControlledClient(long entity, string slot, float randSeed, bool andConfigure)
         {
             Scene.TryGetEntity(entity, out var entityObj);
             ChangeSlotInternal(entityObj?.Components.Get<EquiPlayerAttachmentComponent>()?.GetSlotOrDefault(slot),
-                randSeed);
+                randSeed, andConfigure);
         }
 
         [Update(false)]
@@ -111,11 +121,15 @@ namespace Equinox76561198048419394.Core.Controller
             animController?.Controller?.TriggerAction(adata.Value.Start);
         }
 
-        internal void ChangeSlotInternal(EquiPlayerAttachmentComponent.Slot slot, float randSeed)
+        internal void ChangeSlotInternal(EquiPlayerAttachmentComponent.Slot slot, float randSeed, bool andConfigure)
         {
             this.GetLogger().Debug($"Changing slot for {Entity} to {slot?.Controllable?.Entity}#{slot?.Definition.Name}");
+            CloseConfiguration();
+
             var old = _controlledSlot;
             _controlledSlot = slot;
+            // Always reset lean state when entering.
+            slot?.UpdateLeanState(false, true);
 
             var oldAnimData = old?.Definition.ByIndex(_saveData.AnimationId);
 
@@ -239,9 +253,12 @@ namespace Equinox76561198048419394.Core.Controller
                 slot.AttachedCharacter = Entity;
             ControlledChanged?.Invoke(this, old, slot);
             _tracker.RaiseControlledChange(this, old, slot);
+
+            if (andConfigure && Entity == MySession.Static.PlayerEntity && Controlled != null)
+                OpenConfiguration();
         }
 
-        private void PerformAnimationTransition(MyAnimationControllerComponent controller, 
+        private void PerformAnimationTransition(MyAnimationControllerComponent controller,
             EquiPlayerAttachmentComponentDefinition.AnimationDesc? from,
             EquiPlayerAttachmentComponentDefinition.AnimationDesc? to)
         {
@@ -373,42 +390,102 @@ namespace Equinox76561198048419394.Core.Controller
             RequestUpdateShift(newLinearShift, newAngularShift);
         }
 
-        public void RequestUpdateShift(Vector3 linearShift, Vector3 angularShift)
+        public void RequestUpdateShift(Vector3? linearShift = null, Vector3? angularShift = null, float? leanAngle = null)
         {
             var slot = Controlled;
             if (slot == null) return;
+            if ((linearShift == null || linearShift.Value.Equals(slot.LinearShift, 1e-4f))
+                && (angularShift == null || angularShift.Value.Equals(slot.AngularShift, 1e-4f))
+                && (leanAngle == null || Math.Abs(leanAngle.Value - slot.LeanAngle) < 1e-4f))
+                return;
             if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdateShift, linearShift, angularShift);
+                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdateShift, linearShift, angularShift, leanAngle);
             else
-                slot.UpdateShift(linearShift, angularShift);
+                slot.UpdateShift(linearShift, angularShift, leanAngle);
+        }
+
+        public void RequestUpdateLean(bool lean)
+        {
+            var slot = Controlled;
+            if (slot == null || slot.LeanState == lean) return;
+            if (MyAPIGateway.Multiplayer != null)
+                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdateLean, lean);
+            else
+                slot.UpdateLeanState(lean);
         }
 
         [Event]
         [Reliable]
         [Server]
         [Broadcast]
-        private void NetUpdateShift(Vector3 linearShift, Vector3 angularShift)
+        private void NetUpdateShift(Vector3? linearShift, Vector3? angularShift, float? leanAngle)
         {
             var controlled = Controlled;
             if (!CheckNetworkCall()) return;
-            if (!controlled.UpdateShift(linearShift, angularShift))
+            if (!controlled.UpdateShift(linearShift, angularShift, leanAngle))
                 MyEventContext.ValidationFailed();
         }
 
-        public void RequestUpdatePose(int nextPose)
+        [Event]
+        [Reliable]
+        [Server]
+        [Broadcast]
+        private void NetUpdateLean(bool lean)
+        {
+            var controlled = Controlled;
+            if (!CheckNetworkCall()) return;
+            controlled.UpdateLeanState(lean);
+        }
+
+        public void RequestResetPose()
+        {
+            var slot = Controlled;
+            if (slot == null || !slot.Definition.SelectAnimation(Entity.DefinitionId ?? default(MyDefinitionId),
+                    MyRandom.Instance.NextFloat(), out var poseId).HasValue)
+                return;
+            RequestUpdatePose(poseId, true);
+        }
+
+        public void RequestUpdatePose(int nextPose, bool reset = false)
         {
             var slot = Controlled;
             if (slot == null) return;
             if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdatePose, nextPose);
+                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdatePose, nextPose, reset);
             else
-                PerformUpdatePose(nextPose);
+                PerformUpdatePose(nextPose, reset);
         }
 
-        private bool PerformUpdatePose(int nextPose)
+        public void OpenConfiguration()
+        {
+            if (Controlled == null)
+                return;
+            _openMenu?.Close();
+            _openMenu = MyContextMenuScreen.OpenMenu(Entity, Controlled.Definition.ConfigurationMenu, this, Controlled);
+        }
+
+        public void CloseConfiguration()
+        {
+            _openMenu?.Close();
+            _openMenu = null;
+        }
+
+        public void ToggleConfiguration()
+        {
+            if (_openMenu != null && _openMenu.Visible)
+                CloseConfiguration();
+            else
+                OpenConfiguration();
+        }
+
+        private bool PerformUpdatePose(int nextPose, bool reset)
         {
             var controlled = Controlled;
             if (controlled == null || !controlled.UpdatePose(nextPose)) return false;
+            if (reset)
+                controlled.ResetPose();
+            if (_saveData.AnimationId == nextPose)
+                return true;
             var oldAnimData = controlled.Definition.ByIndex(_saveData.AnimationId);
             var newAnimData = controlled.Definition.ByIndex(nextPose);
             this.GetLogger().Debug($"Updating pose to {nextPose}.  (From {oldAnimData?.Stop} to {newAnimData?.Start})");
@@ -423,11 +500,11 @@ namespace Equinox76561198048419394.Core.Controller
         [Reliable]
         [Server]
         [Broadcast]
-        private void NetUpdatePose(int pose)
+        private void NetUpdatePose(int pose, bool reset)
         {
             var controlled = Controlled;
             if (!CheckNetworkCall()) return;
-            if (!PerformUpdatePose(pose))
+            if (!PerformUpdatePose(pose, reset))
                 MyEventContext.ValidationFailed();
         }
 
@@ -439,6 +516,7 @@ namespace Equinox76561198048419394.Core.Controller
                 MyEventContext.ValidationFailed();
                 return false;
             }
+
             if (!MyEventContext.Current.IsLocallyInvoked)
             {
                 var player = MyAPIGateway.Players.GetPlayerControllingEntity(Entity);
@@ -487,7 +565,7 @@ namespace Equinox76561198048419394.Core.Controller
                 if (MyMultiplayerModApi.Static.IsServer)
                     RequestControl(ctl);
                 else
-                    ChangeSlotInternal(ctl, (float)Rand.NextDouble());
+                    ChangeSlotInternal(ctl, (float)Rand.NextDouble(), false);
             }
 
             MyEntities.OnEntityAdd -= CheckForEntity;

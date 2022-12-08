@@ -95,11 +95,15 @@ namespace Equinox76561198048419394.Core.Controller
         public class ImmutableAttachmentInfo
         {
             public string Name { get; }
+
+            public string ConfigurationMenu { get; }
+
             public MyPositionAndOrientation Anchor { get; }
-            private readonly AnimationDesc[] _animations;
+            public ListReader<AnimationDesc> Animations { get; }
 
             public MyActionDescription EmptyActionDesc { get; }
             public MyActionDescription OccupiedActionDesc { get; }
+            public MyActionDescription ConfigureActionDesc { get; }
 
             private readonly HashSet<string> _dummyNames = new HashSet<string>();
 
@@ -112,6 +116,7 @@ namespace Equinox76561198048419394.Core.Controller
             public readonly Vector3 MaxLinearShift;
             public readonly Vector3 MinAngularShift;
             public readonly Vector3 MaxAngularShift;
+            public readonly float MinLean, MaxLean;
             public bool CanShift => MinLinearShift != MaxLinearShift || MinAngularShift != MaxAngularShift;
 
             public ImmutableAttachmentInfo(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition @base,
@@ -119,9 +124,11 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 Name = ob.Name;
                 Anchor = ob.Anchor;
-                _animations = ob.Animations != null && ob.Animations.Length > 0 ? ob.Animations.Select(x => new AnimationDesc(x)).ToArray() : null;
+                Animations = ob.Animations != null && ob.Animations.Length > 0 ? ob.Animations.Select(x => new AnimationDesc(x)).ToList() : null;
                 EmptyActionDesc = (MyActionDescription) ob.EmptyAction;
                 OccupiedActionDesc = (MyActionDescription) ob.OccupiedAction;
+                ConfigureActionDesc = (MyActionDescription) ob.ConfigureAction;
+                ConfigurationMenu = ob.ConfigurationMenu ?? "PlayerAttachmentSlotMenu";
                 _dummyNames.Clear();
                 if (ob.DummyNames == null) return;
                 foreach (var d in ob.DummyNames)
@@ -141,8 +148,13 @@ namespace Equinox76561198048419394.Core.Controller
 
                 EffectOperations = tmpOps;
                 ModelAttachment = MyStringHash.GetOrCompute(ob.ModelAttachment);
+
+                MaxLean = MathHelper.ToRadians(ob.MaxLean ?? 0);
+                MinLean = ob.MinLean.HasValue ? MathHelper.ToRadians(ob.MinLean.Value) : -MaxLean;
+
                 MaxLinearShift = ob.MaxLinearShift ?? Vector3.Zero;
                 MinLinearShift = ob.MinLinearShift ?? -MaxLinearShift;
+
                 MaxAngularShift = MathHelper.ToRadians(ob.MaxAngularShift ?? Vector3.Zero);
                 MinAngularShift = ob.MinAngularShift.HasValue ? MathHelper.ToRadians(ob.MinAngularShift.Value) : -MaxAngularShift;
             }
@@ -152,7 +164,7 @@ namespace Equinox76561198048419394.Core.Controller
                 Name = LegacyAttachmentName;
                 // ReSharper disable once PossibleInvalidOperationException
                 Anchor = ob.Anchor.Value;
-                _animations = ob.Animations != null && ob.Animations.Length > 0 ? ob.Animations.Select(x => new AnimationDesc(x)).ToArray() : null;
+                Animations = ob.Animations != null && ob.Animations.Length > 0 ? ob.Animations.Select(x => new AnimationDesc(x)).ToList() : null;
 
                 EmptyActionDesc = (MyActionDescription) ob.EmptyAction;
                 OccupiedActionDesc = (MyActionDescription) ob.OccupiedAction;
@@ -165,29 +177,29 @@ namespace Equinox76561198048419394.Core.Controller
                 EffectOperations = new List<ImmutableEffectOperations>();
             }
 
-            public int AnimationCount => _animations?.Length ?? 0;
+            public int AnimationCount => Animations.Count;
 
 
             public AnimationDesc? ByIndex(int index)
             {
-                if (_animations == null || index < 0 || index >= _animations.Length)
+                if (index < 0 || index >= Animations.Count)
                     return null;
-                return _animations[index];
+                return Animations[index];
             }
 
             public AnimationDesc? SelectAnimation(MyDefinitionId controller, float rand, out int index)
             {
                 index = -1;
-                if (_animations == null || _animations.Length == 0)
+                if (Animations.Count == 0)
                     return null;
                 var totalWeight = 0f;
-                foreach (var k in _animations)
+                foreach (var k in Animations)
                     if (k.Accept(controller))
                         totalWeight += k.Weight;
                 var rval = totalWeight * rand;
-                for (var i = 0; i < _animations.Length; i++)
+                for (var i = 0; i < Animations.Count; i++)
                 {
-                    var k = _animations[i];
+                    var k = Animations[i];
                     if (!k.Accept(controller))
                         continue;
                     totalWeight -= k.Weight;
@@ -197,7 +209,7 @@ namespace Equinox76561198048419394.Core.Controller
                 }
 
                 MySession.Static.Log.WithContext(this).Warning(
-                    $"Failed to find animation for {controller}.  R={rand}, Opts={string.Join(", ", _animations.Select(x => x.ToString()))}");
+                    $"Failed to find animation for {controller}.  R={rand}, Opts={string.Join(", ", Animations.Select(x => x.ToString()))}");
                 return null;
             }
         }
@@ -280,11 +292,13 @@ namespace Equinox76561198048419394.Core.Controller
             public readonly float Weight;
             public readonly bool Whitelist;
             public readonly HashSet<MyDefinitionId> CharacterFilter;
+            public readonly string DisplayName;
 
             public AnimationDesc(MyObjectBuilder_EquiPlayerAttachmentComponentDefinition.AnimationDesc desc)
             {
                 Start = MyStringId.GetOrCompute(desc.Start);
                 Stop = MyStringId.GetOrCompute(desc.Stop);
+                DisplayName = desc.DisplayName ?? desc.Start;
                 HashSet<MyStringId> directBuilder = null;
                 if (desc.Direct != null)
                 {
@@ -330,6 +344,9 @@ namespace Equinox76561198048419394.Core.Controller
 
             [XmlAttribute]
             public string Stop;
+
+            [XmlAttribute]
+            public string DisplayName;
 
             [XmlElement]
             public HashSet<string> Direct;
@@ -391,13 +408,16 @@ namespace Equinox76561198048419394.Core.Controller
             [XmlAttribute]
             public string Name;
 
+            [XmlElement]
+            public string ConfigurationMenu;
+            
             [XmlElement("DummyName")]
             public string[] DummyNames;
 
             public MyPositionAndOrientation Anchor;
             public AnimationDesc[] Animations;
 
-            public ActionDesc EmptyAction, OccupiedAction;
+            public ActionDesc EmptyAction, OccupiedAction, ConfigureAction;
 
             [XmlElement("Effects")]
             public EffectOperationsInfo[] EffectOperations;
@@ -407,6 +427,8 @@ namespace Equinox76561198048419394.Core.Controller
             public SerializableVector3? MaxLinearShift;
             public SerializableVector3? MinAngularShift;
             public SerializableVector3? MaxAngularShift;
+            public float? MinLean;
+            public float? MaxLean;
         }
 
         [XmlElement("Attachment")]

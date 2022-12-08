@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
+        <Id Type="MyObjectBuilder_ContextMenu" Subtype="PlayerAttachmentSlotMenu" />
+        <StyleName>ContextMenuDefault</StyleName>
+        <Position x="0.35" y="0.32" />
+        <MainController>
+            <TypeId>MyObjectBuilder_ButtonListController</TypeId>
+            <SubtypeId>PlayerAttachmentSlotMain</SubtypeId>
+        </MainController>
+        <ContextType>MyObjectBuilder_PlayerAttachmentSlotContext</ContextType>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
+        <Id Type="MyObjectBuilder_ButtonListController" Subtype="PlayerAttachmentSlotMain" />
+        <Title>Attachment</Title>
+        <Columns>4</Columns>
+        <Rows>1</Rows>
+        <ButtonStyleId>ButtonListDefault</ButtonStyleId>
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Position</Tooltip>
+                <Icon>EquinoxTranslate</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceCondition" DataSource="PositionEnabled" Reason="Not supported on this block" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiAdvancedSliderController" Subtype="PlayerAttachmentSlotPositionPicker" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Rotation</Tooltip>
+                <Icon>EquinoxRotate</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceCondition" DataSource="RotationEnabled" Reason="Not supported on this block" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiAdvancedSliderController" Subtype="PlayerAttachmentSlotRotationPicker" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Animation</Tooltip>
+                <Icon>EquinoxPose</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceCondition" DataSource="AnimationEnabled" Reason="Not supported on this block" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_ListboxController" Subtype="PlayerAttachmentSlotAnimationPicker" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_PickupSmallGrid_Tooltip</Tooltip>
+                <Icon>ContextMenuPickup</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_ContextMethod" Name="Pickup" />
+            </Button>
+        </Buttons>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiAdvancedSliderControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiAdvancedSliderController" Subtype="PlayerAttachmentSlotPositionPicker" />
+        <Title>Position</Title>
+        <DataId>Position</DataId>
+        <AutoCommit>true</AutoCommit>
+        <SliderSize x="330" y="75" />
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Left / Right</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} m</TextFormat>
+            <Tooltip>Controls the left / right position of the player</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Up / Down</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} m</TextFormat>
+            <Tooltip>Controls the up / down position of the player</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Forward / Backwards</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} m</TextFormat>
+            <Tooltip>Controls the forward / backwards position of the player</Tooltip>
+        </Slider>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiAdvancedSliderControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiAdvancedSliderController" Subtype="PlayerAttachmentSlotRotationPicker" />
+        <Title>Rotation</Title>
+        <DataId>Rotation</DataId>
+        <DataId>Lean</DataId>
+        <AutoCommit>true</AutoCommit>
+        <SliderSize x="330" y="75" />
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Pitch</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}°</TextFormat>
+            <Tooltip>Controls the pitch of the player</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Yaw</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}°</TextFormat>
+            <Tooltip>Controls the yaw of the player</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Roll</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}°</TextFormat>
+            <Tooltip>Controls the roll of the player</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider">
+            <Text>Lean</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}°</TextFormat>
+            <Tooltip>Controls how much the player leans when the lean key binding is used</Tooltip>
+        </Slider>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ListboxControllerDefinition">
+        <Id Type="MyObjectBuilder_ListboxController" Subtype="PlayerAttachmentSlotAnimationPicker" />
+        <Title>Animation</Title>
+        <DataId>Animation</DataId>
+        <Listbox StyleName="ContextMenuListboxWide" MinSize="9" MaxSize="9">
+            <AutoCommit>true</AutoCommit>
+        </Listbox>
+    </Definition>
+</Definitions>

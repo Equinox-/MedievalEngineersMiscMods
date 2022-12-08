@@ -1,8 +1,5 @@
-using System.Collections.Generic;
-using VRage.Collections;
 using VRage.Game.Definitions.Animation;
 using VRage.Library.Collections;
-using VRage.Logging;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Controller

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition">
+        <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="ModContributions" Merge="Append" />
+
+        <GuiIcon StyleName="EquinoxPose">
+            <Normal>Textures\Equinox\GUI\PoseBrown.png</Normal>
+            <Active>Textures\Equinox\GUI\PoseWhite.png</Active>
+            <Highlight>Textures\Equinox\GUI\PoseBrown.png</Highlight>
+            <ActiveHighlight>Textures\Equinox\GUI\PoseWhite.png</ActiveHighlight>
+            <Disabled>Textures\Equinox\GUI\PoseBrown.png</Disabled>
+        </GuiIcon>
+
+        <GuiIcon StyleName="EquinoxRotate">
+            <Normal>Textures\Equinox\GUI\RotateBrown.png</Normal>
+            <Active>Textures\Equinox\GUI\RotateWhite.png</Active>
+            <Highlight>Textures\Equinox\GUI\RotateBrown.png</Highlight>
+            <ActiveHighlight>Textures\Equinox\GUI\RotateWhite.png</ActiveHighlight>
+            <Disabled>Textures\Equinox\GUI\RotateBrown.png</Disabled>
+        </GuiIcon>
+
+        <GuiIcon StyleName="EquinoxTranslate">
+            <Normal>Textures\Equinox\GUI\TranslateBrown.png</Normal>
+            <Active>Textures\Equinox\GUI\TranslateWhite.png</Active>
+            <Highlight>Textures\Equinox\GUI\TranslateBrown.png</Highlight>
+            <ActiveHighlight>Textures\Equinox\GUI\TranslateWhite.png</ActiveHighlight>
+            <Disabled>Textures\Equinox\GUI\TranslateBrown.png</Disabled>
+        </GuiIcon>
+    </Definition>
+</Definitions>

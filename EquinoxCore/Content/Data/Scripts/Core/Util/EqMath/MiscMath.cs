@@ -18,6 +18,8 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             return (surfaceDistance + elevationDistance) / periodMeters;
         }
 
+        public static Vector3 ToDegrees(Vector3 vec) => vec * (180 / MathHelper.Pi);
+
         // r, theta (inc), phi (az)
         public static Vector3D ToSpherical(Vector3D world)
         {
