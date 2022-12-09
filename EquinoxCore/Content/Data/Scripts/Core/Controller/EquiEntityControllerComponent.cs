@@ -202,7 +202,7 @@ namespace Equinox76561198048419394.Core.Controller
                 if (finalShift.HasValue)
                     outPos.Translation = finalShift.Value - transformedCenter;
 
-                if (MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + (1 + shiftDistance) * gravity, out var hit))
+                if (MyAPIGateway.Physics != null && MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + (1 + shiftDistance) * gravity, out var hit))
                     outPos.Translation = hit.Position;
                 Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
 
@@ -398,10 +398,8 @@ namespace Equinox76561198048419394.Core.Controller
                 && (angularShift == null || angularShift.Value.Equals(slot.AngularShift, 1e-4f))
                 && (leanAngle == null || Math.Abs(leanAngle.Value - slot.LeanAngle) < 1e-4f))
                 return;
-            if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdateShift, linearShift, angularShift, leanAngle);
-            else
-                slot.UpdateShift(linearShift, angularShift, leanAngle);
+            if (slot.UpdateShift(linearShift, angularShift, leanAngle))
+                MyAPIGateway.Multiplayer?.RaiseEvent(this, e => e.NetUpdateShift, linearShift, angularShift, leanAngle);
         }
 
         public void RequestUpdateLean(bool lean)
@@ -421,9 +419,28 @@ namespace Equinox76561198048419394.Core.Controller
         private void NetUpdateShift(Vector3? linearShift, Vector3? angularShift, float? leanAngle)
         {
             var controlled = Controlled;
-            if (!CheckNetworkCall()) return;
-            if (!controlled.UpdateShift(linearShift, angularShift, leanAngle))
+            if (controlled == null)
+            {
                 MyEventContext.ValidationFailed();
+                return;
+            }
+
+            if (CheckNetworkCall() && controlled.UpdateShift(linearShift, angularShift, leanAngle))
+                return;
+            // Revert on sender
+            MyAPIGateway.Multiplayer?.RaiseEvent(
+                this, e => e.NetRevertShift,
+                controlled.LinearShift, controlled.AngularShift, controlled.LeanAngle,
+                MyEventContext.Current.Sender);
+            MyEventContext.ValidationFailed();
+        }
+
+        [Event]
+        [Reliable]
+        [Client]
+        private void NetRevertShift(Vector3 linearShift, Vector3 angularShift, float leanAngle)
+        {
+            Controlled?.UpdateShift(linearShift, angularShift, leanAngle);
         }
 
         [Event]
@@ -450,11 +467,37 @@ namespace Equinox76561198048419394.Core.Controller
         {
             var slot = Controlled;
             if (slot == null) return;
-            if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.NetUpdatePose, nextPose, reset);
-            else
-                PerformUpdatePose(nextPose, reset);
+            if (PerformUpdatePose(nextPose, reset))
+                MyAPIGateway.Multiplayer?.RaiseEvent(this, e => e.NetUpdatePose, nextPose, reset);
         }
+
+        [Event]
+        [Reliable]
+        [Server]
+        [Broadcast]
+        private void NetUpdatePose(int pose, bool reset)
+        {
+            var controlled = Controlled;
+            if (controlled == null)
+            {
+                MyEventContext.ValidationFailed();
+                return;
+            }
+            if (CheckNetworkCall() && PerformUpdatePose(pose, reset))
+                return;
+            // Revert on sender
+            MyAPIGateway.Multiplayer?.RaiseEvent(
+                this, e => e.NetRevertPose,
+                controlled.ForceAnimationId ?? _saveData.AnimationId,
+                !controlled.ForceAnimationId.HasValue,
+                MyEventContext.Current.Sender);
+            MyEventContext.ValidationFailed();
+        }
+
+        [Event]
+        [Reliable]
+        [Client]
+        private void NetRevertPose(int pose, bool reset) => PerformUpdatePose(pose, reset);
 
         public void OpenConfiguration()
         {
@@ -494,18 +537,6 @@ namespace Equinox76561198048419394.Core.Controller
             if (animController != null)
                 PerformAnimationTransition(animController, oldAnimData, newAnimData);
             return true;
-        }
-
-        [Event]
-        [Reliable]
-        [Server]
-        [Broadcast]
-        private void NetUpdatePose(int pose, bool reset)
-        {
-            var controlled = Controlled;
-            if (!CheckNetworkCall()) return;
-            if (!PerformUpdatePose(pose, reset))
-                MyEventContext.ValidationFailed();
         }
 
         private bool CheckNetworkCall()
@@ -560,7 +591,8 @@ namespace Equinox76561198048419394.Core.Controller
                 return;
 
             var ctl = e.Components.Get<EquiPlayerAttachmentComponent>()?.GetSlotOrDefault(_saveData.ControlledSlot);
-            if (ctl != null)
+            if (ctl != null && Vector3D.DistanceSquared(Entity.PositionComp.WorldMatrix.Translation, ctl.AttachMatrix.Translation) <
+                AutoDetachDistance * AutoDetachDistance)
             {
                 if (MyMultiplayerModApi.Static.IsServer)
                     RequestControl(ctl);

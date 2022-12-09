@@ -25,7 +25,6 @@ using VRage.ObjectBuilders;
 using VRage.Scene;
 using VRageMath;
 using VRageRender;
-using VRageRender.Import;
 using VRageRender.Messages;
 
 namespace Equinox76561198048419394.Core.Mesh

@@ -75,7 +75,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         public override void OnAddedToScene()
         {
             base.OnAddedToScene();
+            ApplyAllModifiers();
+        }
 
+        private void ApplyAllModifiers()
+        {
             using (Lock.AcquireSharedUsing())
             using (PoolManager.Get(out List<TRtKey> children))
             using (PoolManager.Get(out HashSet<TRtKey> explored))
@@ -611,6 +615,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                                 ModifierData[new ModifierDataKey(data.ToRuntime(), dataSet.Modifier)] = definition.CreateData(dataSet.Seed);
                         }
             }
+
+            ApplyAllModifiers();
         }
 
         public override bool IsSerialized => Modifiers.Count > 0;

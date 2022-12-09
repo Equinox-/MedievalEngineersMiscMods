@@ -1,11 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Debug;
-using Equinox76561198048419394.Core.Mirz.Extensions;
-using Equinox76561198048419394.Core.ModelGenerator;
-using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.BlockGeneration;
@@ -21,32 +17,28 @@ using VRage.Entity.Block;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
-using VRage.Game.Models;
-using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
 using VRage.Library.Threading;
-using VRage.Logging;
 using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
 using VRage.Serialization;
-using VRage.Session;
 using VRage.Utils;
 using VRageMath;
-using VRageRender;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
     [ReplicatedComponent]
     [MyComponent(typeof(MyObjectBuilder_EquiGridModifierComponent))]
     [MyDependency(typeof(MyGridDataComponent), Critical = true)]
-    [MyDependency(typeof(MyGridConnectivityComponent), Critical = false)]
-    [MyDependency(typeof(MyRenderComponentGrid), Critical = false)]
+    [MyDependency(typeof(MyRenderComponentGrid), Critical = true)]
     [MyDependency(typeof(MyGridHierarchyComponent), Critical = false)]
+    // Forward dependency on the physics shape to avoid creating the physics shape before all the models get changed by modifiers.
+    [MyForwardDependency(typeof(MyGridPhysicsShapeComponent), Critical = false)]
     public class EquiGridModifierComponent : EquiModifierStorageComponent<EquiGridModifierComponent.BlockModifierKey,
         MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
     {
-        public struct BlockModifierKey : IEquatable<BlockModifierKey>, IModifierRtKey<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
+        public readonly struct BlockModifierKey : IEquatable<BlockModifierKey>, IModifierRtKey<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
         {
             public readonly BlockId Block;
             public readonly MyStringHash AttachmentPoint;
@@ -101,6 +93,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         [Automatic]
         private readonly MyGridHierarchyComponent _gridHierarchy = null;
 
+        // Weak dependency without ordering requirements, so not marked with MyDependency
         [Automatic]
         private readonly MyGridConnectivityComponent _gridConnectivity = null;
 
