@@ -515,7 +515,7 @@ namespace Equinox76561198048419394.Core.Controller
 
         public void ToggleConfiguration()
         {
-            if (_openMenu != null && _openMenu.Visible)
+            if (_openMenu != null && _openMenu.Visible && MyContextMenuScreen.GetContextMenu(Controlled.Definition.ConfigurationMenu) != null)
                 CloseConfiguration();
             else
                 OpenConfiguration();

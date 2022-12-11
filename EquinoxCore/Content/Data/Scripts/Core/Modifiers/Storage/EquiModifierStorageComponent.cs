@@ -616,6 +616,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         }
             }
 
+            // Apply whatever modifiers we can when deserializing to do the expensive model loading in the background
             ApplyAllModifiers();
         }
 
