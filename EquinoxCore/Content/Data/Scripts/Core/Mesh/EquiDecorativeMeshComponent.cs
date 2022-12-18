@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Modifiers.Data;
+using Equinox76561198048419394.Core.Util;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Components;
@@ -282,11 +284,12 @@ namespace Equinox76561198048419394.Core.Mesh
         }
 
         public static EquiMeshHelpers.DecalData CreateDecalData(
-            EquiDecorativeDecalToolDefinition.DecalDef def, 
+            EquiDecorativeDecalToolDefinition.DecalDef def,
             Vector3 pos,
             Vector3 decalNormal,
             Vector3 decalUp,
-            float height)
+            float height,
+            PackedHsvShift color = default)
         {
             var left = Vector3.Cross(decalNormal, decalUp);
             left *= height * def.AspectRatio / left.Length() / 2;
@@ -298,11 +301,13 @@ namespace Equinox76561198048419394.Core.Mesh
                 BottomRightUv = def.BottomRightUv,
                 Normal = VF_Packer.PackNormal(decalNormal),
                 Up = new HalfVector3(decalUp * height / 2),
-                Left = new HalfVector3(left)
+                Left = new HalfVector3(left),
+                ColorMask = color
             };
         }
 
-        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition def, Vector3 a, Vector3 b, float catenaryFactor)
+        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition def, Vector3 a, Vector3 b, float catenaryFactor,
+            PackedHsvShift color = default)
         {
             var length = Vector3.Distance(a, b);
             var defaultSegmentsPerMeterSqrt = 0f;
@@ -324,11 +329,12 @@ namespace Equinox76561198048419394.Core.Mesh
                 HalfSideSegments = def.HalfSideSegments,
                 CatenaryLength = catenaryLength,
                 UseNaturalGravity = true,
+                ColorMask = color
             };
         }
 
         public static EquiMeshHelpers.SurfaceData CreateSurfaceData(EquiDecorativeSurfaceToolDefinition def, Vector3 a, Vector3 b, Vector3 c, Vector3? d,
-            Vector3 alignNormal)
+            Vector3 alignNormal, PackedHsvShift color = default)
         {
             Vector3 norm;
             if (d.HasValue)
@@ -378,6 +384,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 Pt3 = d.HasValue ? (EquiMeshHelpers.VertexData?)CreateVertex(d.Value) : null,
                 Normal = norm,
                 FlipRearNormals = def.FlipRearNormals,
+                ColorMask = color
             };
         }
 
@@ -395,15 +402,17 @@ namespace Equinox76561198048419394.Core.Mesh
             if (triplet.IsDecal)
             {
                 if (!(data.Def is EquiDecorativeDecalToolDefinition decalsDef) || !decalsDef.Decals.TryGetValue(args.DecalId, out var decalDef)) return true;
-                newRenderable = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, blockA, 
+                newRenderable = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, blockA,
                     VF_Packer.UnpackNormal(args.DecalNormal),
                     VF_Packer.UnpackNormal(args.DecalUp),
-                    args.DecalHeight));
-            } else if (triplet.IsLine)
+                    args.DecalHeight,
+                    args.Color));
+            }
+            else if (triplet.IsLine)
             {
                 if (!(data.Def is EquiDecorativeLineToolDefinition lineDef)) return true;
                 if (!triplet.B.TryGetGridLocalAnchor(_gridData, out var blockB)) return true;
-                newRenderable = _dynamicMesh.CreateLine(CreateLineData(lineDef, blockA, blockB, args.CatenaryFactor));
+                newRenderable = _dynamicMesh.CreateLine(CreateLineData(lineDef, blockA, blockB, args.CatenaryFactor, args.Color));
             }
             else
             {
@@ -413,14 +422,15 @@ namespace Equinox76561198048419394.Core.Mesh
                 Vector3? blockD;
                 if (triplet.D.IsNull)
                     blockD = null;
-                else {
+                else
+                {
                     if (!triplet.D.TryGetGridLocalAnchor(_gridData, out var blockDVal)) return true;
                     blockD = blockDVal;
                 }
 
                 var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Entity.GetPosition());
                 var localGravity = Vector3.TransformNormal(gravityWorld, Entity.PositionComp.WorldMatrixNormalizedInv);
-                newRenderable = _dynamicMesh.CreateSurface(CreateSurfaceData(surfDef, blockA, blockB, blockC, blockD, -localGravity));
+                newRenderable = _dynamicMesh.CreateSurface(CreateSurfaceData(surfDef, blockA, blockB, blockC, blockD, -localGravity, args.Color));
             }
 
             _features[triplet] = new RenderData(data.Def, data.Args, newRenderable);
@@ -442,6 +452,8 @@ namespace Equinox76561198048419394.Core.Mesh
             public MyStringHash DecalId;
             public uint DecalNormal;
             public uint DecalUp;
+
+            public PackedHsvShift Color;
 
             [NoSerialize]
             public float DecalHeight
@@ -478,30 +490,37 @@ namespace Equinox76561198048419394.Core.Mesh
                 (RpcFeatureKey)key, (SerializableDefinitionId)id, args);
         }
 
-        public void AddDecal(BlockAndAnchor pos, EquiDecorativeDecalToolDefinition.DecalDef def, Vector3 normal, Vector3 up, float height)
+        public void AddDecal(BlockAndAnchor pos, EquiDecorativeDecalToolDefinition.DecalDef def, Vector3 normal, Vector3 up, float height, PackedHsvShift color)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(pos, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var args = new FeatureArgs { DecalId = def.Id, DecalNormal = VF_Packer.PackNormal(normal), DecalUp = VF_Packer.PackNormal(up), DecalHeight = height};
+            var args = new FeatureArgs
+            {
+                DecalId = def.Id,
+                DecalNormal = VF_Packer.PackNormal(normal),
+                DecalUp = VF_Packer.PackNormal(up),
+                DecalHeight = height,
+                Color = color
+            };
             if (TryAddFeatureInternal(in key, def.Owner, args))
                 RaiseAddFeature_Sync(key, def.Owner.Id, args);
         }
 
-        public void AddLine(BlockAndAnchor a, BlockAndAnchor b, EquiDecorativeLineToolDefinition def, float catenaryFactor)
+        public void AddLine(BlockAndAnchor a, BlockAndAnchor b, EquiDecorativeLineToolDefinition def, float catenaryFactor, PackedHsvShift color)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var args = new FeatureArgs { CatenaryFactor = catenaryFactor };
+            var args = new FeatureArgs { CatenaryFactor = catenaryFactor, Color = color };
             if (TryAddFeatureInternal(in key, def, args))
                 RaiseAddFeature_Sync(key, def.Id, args);
         }
 
         public void AddSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d,
-            EquiDecorativeSurfaceToolDefinition def)
+            EquiDecorativeSurfaceToolDefinition def, PackedHsvShift color)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, c, d);
-            var args = default(FeatureArgs);
+            var args = new FeatureArgs { Color = color };
             if (TryAddFeatureInternal(in key, def, args))
                 RaiseAddFeature_Sync(key, def.Id, args);
         }
@@ -512,7 +531,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var key = new FeatureKey(a, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
             var mp = MyAPIGateway.Multiplayer;
             if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey) key);
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
         }
 
         public void RemoveLine(BlockAndAnchor a, BlockAndAnchor b)
@@ -521,7 +540,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
             var mp = MyAPIGateway.Multiplayer;
             if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey) key);
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
         }
 
         public void RemoveSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
@@ -530,7 +549,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var key = new FeatureKey(a, b, c, d);
             var mp = MyAPIGateway.Multiplayer;
             if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey) key);
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
         }
 
         public override bool IsSerialized => _features.Count > 0;
@@ -573,6 +592,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             Normal = args.DecalNormal,
                             Up = args.DecalUp,
                             Height = args.DecalHeight,
+                            ColorRaw = args.Color,
                         });
                     else if (triplet.IsLine)
                         GetOrCreate(lines, def).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder
@@ -582,6 +602,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             B = triplet.B.Block.Value,
                             BOffset = triplet.B.PackedAnchor,
                             CatenaryFactor = args.CatenaryFactor,
+                            ColorRaw = args.Color,
                         });
                     else
                         GetOrCreate(triangles, def).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder
@@ -594,6 +615,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             COffset = triplet.C.PackedAnchor,
                             D = triplet.D.Block.Value,
                             DOffset = triplet.D.PackedAnchor,
+                            ColorRaw = args.Color,
                         });
                 }
 
@@ -643,12 +665,13 @@ namespace Equinox76561198048419394.Core.Mesh
                     foreach (var item in decals.Decals)
                         if (item.A != 0)
                             AddFeatureInternal(new FeatureKey(new BlockAndAnchor(item.A, item.AOffset),
-                                    BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null), def , new FeatureArgs
+                                BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null), def, new FeatureArgs
                             {
                                 DecalId = decalId,
                                 DecalNormal = item.Normal,
                                 DecalUp = item.Up,
-                                DecalHeight = item.Height
+                                DecalHeight = item.Height,
+                                Color = item.ColorRaw
                             });
                 }
 
@@ -664,7 +687,13 @@ namespace Equinox76561198048419394.Core.Mesh
                                 new BlockAndAnchor(item.A, item.AOffset),
                                 new BlockAndAnchor(item.B, item.BOffset),
                                 BlockAndAnchor.Null,
-                                BlockAndAnchor.Null), def, new FeatureArgs { CatenaryFactor = item.CatenaryFactor });
+                                BlockAndAnchor.Null),
+                                def,
+                                new FeatureArgs
+                                {
+                                    CatenaryFactor = item.CatenaryFactor,
+                                    Color = item.ColorRaw
+                                });
                 }
 
             if (ob.Surfaces != null)
@@ -676,10 +705,14 @@ namespace Equinox76561198048419394.Core.Mesh
                     foreach (var item in triangles.Surfaces)
                         if (item.A != 0 && item.B != 0 && item.C != 0)
                             AddFeatureInternal(new FeatureKey(
-                                new BlockAndAnchor(item.A, item.AOffset),
-                                new BlockAndAnchor(item.B, item.BOffset),
-                                new BlockAndAnchor(item.C, item.COffset),
-                                item.ShouldSerializeD() ? new BlockAndAnchor(item.D, item.DOffset) : BlockAndAnchor.Null), def, default);
+                                    new BlockAndAnchor(item.A, item.AOffset),
+                                    new BlockAndAnchor(item.B, item.BOffset),
+                                    new BlockAndAnchor(item.C, item.COffset),
+                                    item.ShouldSerializeD() ? new BlockAndAnchor(item.D, item.DOffset) : BlockAndAnchor.Null), def,
+                                new FeatureArgs
+                                {
+                                    Color = item.ColorRaw
+                                });
                 }
         }
     }
@@ -704,6 +737,19 @@ namespace Equinox76561198048419394.Core.Mesh
 
             [XmlAttribute("CF")]
             public float CatenaryFactor;
+
+            [XmlIgnore]
+            public PackedHsvShift ColorRaw;
+
+            [XmlAttribute("Color")]
+            [NoSerialize]
+            public string Color
+            {
+                get => ModifierDataColor.Serialize(ColorRaw);
+                set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+            }
+
+            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
         }
 
         public class DecorativeLines : IMyRemappable
@@ -758,6 +804,19 @@ namespace Equinox76561198048419394.Core.Mesh
 
             public bool ShouldSerializeD() => D != 0;
             public bool ShouldSerializeDOffset() => ShouldSerializeD();
+
+            [XmlIgnore]
+            public PackedHsvShift ColorRaw;
+
+            [XmlAttribute("Color")]
+            [NoSerialize]
+            public string Color
+            {
+                get => ModifierDataColor.Serialize(ColorRaw);
+                set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+            }
+
+            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
         }
 
         public class DecorativeSurfaces : IMyRemappable
@@ -803,6 +862,19 @@ namespace Equinox76561198048419394.Core.Mesh
 
             [XmlAttribute("H")]
             public float Height;
+
+            [XmlIgnore]
+            public PackedHsvShift ColorRaw;
+
+            [XmlAttribute("Color")]
+            [NoSerialize]
+            public string Color
+            {
+                get => ModifierDataColor.Serialize(ColorRaw);
+                set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+            }
+
+            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
         }
 
         public class DecorativeDecals : IMyRemappable

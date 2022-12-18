@@ -49,7 +49,10 @@
             <Parameter Name="Technique">MESH</Parameter>
             <Parameter Name="ColorMetalTexture">Textures\Models\Cubes\ClothFlag_cm.dds</Parameter>
             <Parameter Name="NormalGlossTexture">Textures\Models\Cubes\ClothFlag_ng.dds</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\PaintTools\Wood\Universal_add.dds</Parameter>
+            <Parameter Name="Flags">HUE_KEYCOLOR</Parameter>
         </Material>
+        <AllowRecoloring>true</AllowRecoloring>
         <DurabilityBase>1</DurabilityBase>
         <DurabilityPerSquareMeter>1</DurabilityPerSquareMeter>
     </Definition>

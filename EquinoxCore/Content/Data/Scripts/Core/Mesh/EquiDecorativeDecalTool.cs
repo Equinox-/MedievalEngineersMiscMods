@@ -122,7 +122,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveDecal(points[0].Anchor);
                 else
-                    gridDecor.AddDecal(points[0].Anchor, decalDef, normal, ComputeDecalUp(points[0].Grid, normal), _currentHeight);
+                    gridDecor.AddDecal(points[0].Anchor, decalDef, normal, ComputeDecalUp(points[0].Grid, normal), _currentHeight, _color);
                 return;
             }
 
@@ -139,7 +139,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     DecalId = decalDef.Id,
                     PackedNormal = VF_Packer.PackNormal(normal),
                     PackedUp = VF_Packer.PackNormal(up),
-                    Height = _currentHeight
+                    Height = _currentHeight,
+                    Color = _color,
                 }, false);
         }
 
@@ -150,10 +151,12 @@ namespace Equinox76561198048419394.Core.Mesh
             public uint PackedNormal;
             public uint PackedUp;
             public float Height;
+            public PackedHsvShift Color;
         }
 
         [Event, Reliable, Server]
-        private static void PerformOp(EntityId grid,
+        private static void PerformOp(
+            EntityId grid,
             EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
             DecalRpcArgs decal,
             bool remove)
@@ -195,7 +198,11 @@ namespace Equinox76561198048419394.Core.Mesh
             if (remove)
                 gridDecor.RemoveDecal(pt0);
             else
-                gridDecor.AddDecal(pt0, decalDef, VF_Packer.UnpackNormal(decal.PackedNormal), VF_Packer.UnpackNormal(decal.PackedUp), decal.Height);
+                gridDecor.AddDecal(pt0, decalDef,
+                    VF_Packer.UnpackNormal(decal.PackedNormal),
+                    VF_Packer.UnpackNormal(decal.PackedUp),
+                    decal.Height,
+                    decal.Color);
         }
 
         private string _currentRenderObjectModel = null;
@@ -283,6 +290,7 @@ namespace Equinox76561198048419394.Core.Mesh
             }
             else
                 MyRenderProxy.UpdateRenderObject(_currentRenderObject, renderMatrix);
+            MyRenderProxy.UpdateRenderEntity(_currentRenderObject, null, _color);
 
 
             string SelectionIndicator(ValueToControl val) => _currentValueToChange == val ? " <" : "";

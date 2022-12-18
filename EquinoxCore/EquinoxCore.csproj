@@ -753,6 +753,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\MessageUtil.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MultiComponentReference.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\NetworkTrust.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\PackedHsvShift.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PowerObserver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ReturnHandle.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\SerializableOrientedBoundingBoxD.cs" />

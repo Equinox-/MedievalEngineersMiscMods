@@ -494,7 +494,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
                     this.GetLogger().Info($"Applying modifiers to {key}: {ctx.Modifiers} produced {result}");
                 ApplyOutput(in key, in ctx, in result);
-                result.MaterialEditsBuilder?.Dispose();
+                result.Dispose();
                 ModifiersApplied?.Invoke(this, key);
             }
             finally
@@ -502,6 +502,24 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             {
                 _applyingModifiers = false;
             }
+        }
+
+        /// <summary>
+        /// Attempts to read the output of the modifiers associated with the key.
+        /// </summary>
+        /// <param name="key">storage key</param>
+        /// <param name="output">modifier output</param>
+        /// <returns>true if output was generated</returns>
+        public bool TryGetModifierOutput(in TRtKey key, out ModifierOutput output)
+        {
+            if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
+            {
+                output = default;
+                return false;
+            }
+
+            GenerateModifierOutput(in key, in ctx, out output);
+            return true;
         }
 
         protected void GenerateModifierOutput(in TRtKey key, in ModifierContext ctx, out ModifierOutput output)

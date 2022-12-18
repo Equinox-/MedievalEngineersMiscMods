@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
-using Sandbox.Game.World;
+using Equinox76561198048419394.Core.Util;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
@@ -13,13 +13,11 @@ using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
-using VRage.Logging;
 using VRage.ObjectBuilders;
 using VRageMath;
 using VRageRender;
 using VRageRender.Import;
 using VRageRender.Messages;
-using MySession = VRage.Session.MySession;
 
 namespace Equinox76561198048419394.Core.Mesh
 {
@@ -35,17 +33,35 @@ namespace Equinox76561198048419394.Core.Mesh
         public const ulong NullId = 0;
         private const float CellSize = 32;
         private bool _scheduled;
-        private readonly HashSet<Vector3I> _dirtyCells = new HashSet<Vector3I>(Vector3I.Comparer);
-        private readonly Dictionary<Vector3I, RenderCell> _renderCells = new Dictionary<Vector3I, RenderCell>(Vector3I.Comparer);
+        private readonly HashSet<CellKey> _dirtyCells = new HashSet<CellKey>();
+        private readonly Dictionary<CellKey, RenderCell> _renderCells = new Dictionary<CellKey, RenderCell>();
 
         private ulong _nextId = 1;
-        private readonly Dictionary<ulong, Vector3I> _objectToCell = new Dictionary<ulong, Vector3I>();
+        private readonly Dictionary<ulong, CellKey> _objectToCell = new Dictionary<ulong, CellKey>();
 
         private uint _currentCullObject = MyRenderProxy.RENDER_ID_UNASSIGNED;
 
         private uint RequestedCullObject => _gridRender.RenderObjectIDs.Length > 0 ? _gridRender.RenderObjectIDs[0] : MyRenderProxy.RENDER_ID_UNASSIGNED;
 
         private static bool IsDedicated => ((IMyUtilities)MyAPIUtilities.Static).IsDedicated;
+
+        private readonly struct CellKey : IEquatable<CellKey>
+        {
+            public readonly Vector3I Position;
+            public readonly PackedHsvShift Color;
+
+            public CellKey(Vector3I position, PackedHsvShift color)
+            {
+                Position = position;
+                Color = color;
+            }
+
+            public bool Equals(CellKey other) => Position.Equals(other.Position) && Color.Equals(other.Color);
+
+            public override bool Equals(object obj) => obj is CellKey other && Equals(other);
+
+            public override int GetHashCode() => (Position.GetHashCode() * 397) ^ Color.GetHashCode();
+        }
 
         public override void OnAddedToScene()
         {
@@ -81,7 +97,7 @@ namespace Equinox76561198048419394.Core.Mesh
             AddScheduledCallback(ApplyChanges);
         }
 
-        private void MarkCellDirty(Vector3I cell)
+        private void MarkCellDirty(CellKey cell)
         {
             if (IsDedicated) return;
             MarkDirty();
@@ -107,7 +123,7 @@ namespace Equinox76561198048419394.Core.Mesh
             // Create everything from scratch
             if (_currentCullObject == MyRenderProxy.RENDER_ID_UNASSIGNED)
             {
-                using (PoolManager.Get<List<Vector3I>>(out var forRemoval))
+                using (PoolManager.Get<List<CellKey>>(out var forRemoval))
                 {
                     foreach (var cell in _renderCells)
                     {
@@ -146,7 +162,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public ulong CreateDecal(EquiMeshHelpers.DecalData data)
         {
             if (IsDedicated) return NullId;
-            AllocateObjectForCell(data.Position, out var cell, out var id);
+            AllocateObjectForCell(data.Position, data.ColorMask, out var cell, out var id);
             cell.Decals.Add(id, data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
@@ -155,7 +171,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public ulong CreateLine(EquiMeshHelpers.LineData data)
         {
             if (IsDedicated) return NullId;
-            AllocateObjectForCell((data.Pt0 + data.Pt1) / 2, out var cell, out var id);
+            AllocateObjectForCell((data.Pt0 + data.Pt1) / 2, data.ColorMask, out var cell, out var id);
             cell.Lines.Add(id, data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
@@ -167,7 +183,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var center = data.Pt0.Position + data.Pt1.Position + data.Pt2.Position;
             if (data.Pt3.HasValue)
                 center += data.Pt3.Value.Position;
-            AllocateObjectForCell(center / (data.Pt3.HasValue ? 4 : 3), out var cell, out var id);
+            AllocateObjectForCell(center / (data.Pt3.HasValue ? 4 : 3), data.ColorMask, out var cell, out var id);
             cell.Surfaces.Add(id, data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
@@ -200,9 +216,10 @@ namespace Equinox76561198048419394.Core.Mesh
             return true;
         }
 
-        private void AllocateObjectForCell(Vector3 objectCenter, out RenderCell cell, out ulong id)
+        private void AllocateObjectForCell(Vector3 objectCenter, PackedHsvShift colorMask, out RenderCell cell, out ulong id)
         {
-            var cellKey = PosToCell(objectCenter);
+            var cellPos = PosToCell(objectCenter);
+            var cellKey = new CellKey(cellPos, colorMask);
             id = _nextId++;
             _objectToCell.Add(id, cellKey);
             MarkCellDirty(cellKey);
@@ -215,19 +232,21 @@ namespace Equinox76561198048419394.Core.Mesh
         private sealed class RenderCell
         {
             private readonly EquiDynamicMeshComponent _owner;
-            private readonly Vector3I _key;
+            private readonly CellKey _key;
             internal readonly Dictionary<ulong, EquiMeshHelpers.DecalData> Decals = new Dictionary<ulong, EquiMeshHelpers.DecalData>();
             internal readonly Dictionary<ulong, EquiMeshHelpers.LineData> Lines = new Dictionary<ulong, EquiMeshHelpers.LineData>();
             internal readonly Dictionary<ulong, EquiMeshHelpers.SurfaceData> Surfaces = new Dictionary<ulong, EquiMeshHelpers.SurfaceData>();
             internal readonly MyHashSetDictionary<string, ulong> MaterialToObject = new MyHashSetDictionary<string, ulong>();
+            private readonly string _modelPrefix;
             private string _modelName;
             private uint _meshGeneration;
             private uint _renderObject = MyRenderProxy.RENDER_ID_UNASSIGNED;
 
-            public RenderCell(EquiDynamicMeshComponent owner, Vector3I key)
+            public RenderCell(EquiDynamicMeshComponent owner, CellKey key)
             {
                 _owner = owner;
                 _key = key;
+                _modelPrefix = $"dyn_mesh_{_owner.Entity.Id}_{_key.Position}_{_key.Color}";
             }
 
             private void BuildMesh(MyModelData mesh)
@@ -253,9 +272,9 @@ namespace Equinox76561198048419394.Core.Mesh
                             EquiMeshHelpers.BuildLine(in line, mesh);
                         }
 
-                        if (Surfaces.TryGetValue(obj, out var triangle))
+                        if (Surfaces.TryGetValue(obj, out var surface))
                         {
-                            EquiMeshHelpers.BuildSurface(in triangle, mesh);
+                            EquiMeshHelpers.BuildSurface(in surface, mesh);
                         }
 
                         if (Decals.TryGetValue(obj, out var decal))
@@ -293,7 +312,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
                 var parent = _owner._gridRender;
                 var model = MyRenderProxy.PrepareAddRuntimeModel();
-                model.Name = _modelName = $"dyn_mesh_{_owner.Entity.Id}_{_key.X}_{_key.Y}_{_key.Z}_{_meshGeneration++}";
+                model.Name = _modelName = $"{_modelPrefix}_{_meshGeneration++}";
                 model.ReplacedModel = null;
                 model.Persistent = false;
 #if VRAGE_VERSION_0
@@ -301,7 +320,12 @@ namespace Equinox76561198048419394.Core.Mesh
 //                model.Dynamic = true;
 #endif
                 BuildMesh(model.ModelData);
-                if (model.ModelData.Positions.Count == 0) return false;
+                if (model.ModelData.Positions.Count == 0)
+                {
+                    model.Close();
+                    // MyRenderProxy.MessagePool.Return(model);
+                    return false;
+                }
                 MyRenderProxy.AddRuntimeModel(model.Name, model);
                 _renderObject = MyRenderProxy.CreateRenderEntity(_modelName, _modelName,
                     MatrixD.Identity, MyMeshDrawTechnique.MESH,
@@ -311,6 +335,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     Vector3.One,
                     depthBias: 255
                 );
+                MyRenderProxy.UpdateRenderEntity(_renderObject, null, (Vector3) _key.Color);
                 return false;
             }
 

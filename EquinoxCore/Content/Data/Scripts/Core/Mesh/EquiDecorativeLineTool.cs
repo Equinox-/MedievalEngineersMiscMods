@@ -66,7 +66,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveLine(points[0].Anchor, points[1].Anchor);
                 else
-                    gridDecor.AddLine(points[0].Anchor, points[1].Anchor, _definition, _catenaryFactor);
+                    gridDecor.AddLine(points[0].Anchor, points[1].Anchor, _definition, _catenaryFactor, _color);
                 return;
             }
 
@@ -76,6 +76,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 points[0].RpcAnchor,
                 points[1].RpcAnchor,
                 _catenaryFactor,
+                _color,
                 remove);
         }
 
@@ -84,6 +85,7 @@ namespace Equinox76561198048419394.Core.Mesh
             EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
             EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt1,
             float catenaryFactor,
+            PackedHsvShift color,
             bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeLineTool behavior)
@@ -125,7 +127,7 @@ namespace Equinox76561198048419394.Core.Mesh
             if (remove)
                 gridDecor.RemoveLine(pt0, pt1);
             else
-                gridDecor.AddLine(pt0, pt1, behavior._definition, catenaryFactor);
+                gridDecor.AddLine(pt0, pt1, behavior._definition, catenaryFactor, color);
         }
 
         protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
@@ -153,9 +155,10 @@ namespace Equinox76561198048419394.Core.Mesh
                 var msg = MyRenderProxy.DebugDrawLine3DOpenBatch(true);
                 msg.WorldMatrix = gridPos.WorldMatrix;
                 msg.Lines.EnsureCapacity((points.Count - 1) * 2);
+                var color = _color.ToRgb();
                 for (var i = 0; i < points.Count; i++)
                 {
-                    var pt = new MyFormatPositionColor { Position = points[i], Color = Color.White };
+                    var pt = new MyFormatPositionColor { Position = points[i], Color = color };
                     msg.Lines.Add(pt);
                     if (i > 0 && i < points.Count - 1)
                         msg.Lines.Add(pt);

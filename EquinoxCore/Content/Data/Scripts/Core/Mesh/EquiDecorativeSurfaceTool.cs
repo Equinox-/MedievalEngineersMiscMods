@@ -61,6 +61,7 @@ namespace Equinox76561198048419394.Core.Mesh
             return handle;
         }
 
+        protected override int RenderPoints => 3;
         protected override int RequiredPoints => 4;
 
         protected override void HitWithEnoughPoints(ListReader<DecorAnchor> points)
@@ -86,40 +87,49 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (remove)
                         gridDecor.RemoveSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3);
                     else
-                        gridDecor.AddSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3, _definition);
+                        gridDecor.AddSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3, _definition, _color);
                     return;
                 }
 
                 MyMultiplayer.RaiseStaticEvent(
                     x => PerformOp,
-                    unique[0].Grid.Entity.Id,
-                    unique[0].RpcAnchor,
-                    unique[1].RpcAnchor,
-                    unique[2].RpcAnchor,
-                    (EquiDecorativeMeshComponent.RpcBlockAndAnchor) anchor3,
+                    new OpArgs
+                    {
+                        Grid = unique[0].Grid.Entity.Id,
+                        Pt0 = unique[0].RpcAnchor,
+                        Pt1 = unique[1].RpcAnchor,
+                        Pt2 = unique[2].RpcAnchor,
+                        Pt3 = anchor3,
+                        Color = _color
+                    },
                     ActiveAction == MyHandItemActionEnum.Secondary);
             }
         }
 
+        private struct OpArgs
+        {
+            public EntityId Grid;
+            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt0;
+            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt1;
+            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt2;
+            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt3;
+            public PackedHsvShift Color;
+        }
+
         [Event, Reliable, Server]
-        private static void PerformOp(EntityId grid,
-            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
-            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt1,
-            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt2,
-            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt3,
-            bool remove)
+        private static void PerformOp(OpArgs args, bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeSurfaceTool behavior)
-                || !behavior.Scene.TryGetEntity(grid, out var gridEntity))
+                || !behavior.Scene.TryGetEntity(args.Grid, out var gridEntity))
             {
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = rpcPt0;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt1 = rpcPt1;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt2 = rpcPt2;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt3 = rpcPt3;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = args.Pt0;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt1 = args.Pt1;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt2 = args.Pt2;
+            EquiDecorativeMeshComponent.BlockAndAnchor pt3 = args.Pt3;
 
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData))
             {
@@ -180,7 +190,7 @@ namespace Equinox76561198048419394.Core.Mesh
             if (remove)
                 gridDecor.RemoveSurface(pt0, pt1, pt2, pt3);
             else
-                gridDecor.AddSurface(pt0, pt1, pt2, pt3, behavior._definition);
+                gridDecor.AddSurface(pt0, pt1, pt2, pt3, behavior._definition, args.Color);
         }
 
         private EquiMeshHelpers.SurfaceData CreateSurfaceData<T>(MyPositionComponentBase gridPos, ListReader<T> values, Func<T, Vector3> gridLocalPos)
@@ -192,7 +202,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Vector3D.Transform(average, gridPos.WorldMatrix));
             var localGravity = Vector3.TransformNormal(gravityWorld, gridPos.WorldMatrixNormalizedInv);
             return EquiDecorativeMeshComponent.CreateSurfaceData(_definition, gridLocalPos(values[0]), gridLocalPos(values[1]), gridLocalPos(values[2]),
-                values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null, -localGravity);
+                values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null, -localGravity, _color);
         }
 
         protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
@@ -205,6 +215,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 surfData = CreateSurfaceData<Vector3>(gridPos, unique, pt => pt);
             }
 
+            var color = _color.ToRgb();
             var msg = MyRenderProxy.PrepareDebugDrawTriangles();
             using (PoolManager.Get(out MyModelData modelData))
             {
@@ -212,7 +223,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 EquiMeshHelpers.BuildSurface(in surfData, modelData);
                 msg.Vertices.EnsureCapacity(modelData.Positions.Count);
                 foreach (var pos in modelData.Positions)
-                    msg.AddVertex(pos, Color.White);
+                    msg.AddVertex(pos, color);
                 msg.Indices.AddCollection(modelData.Indices);
                 modelData.Clear();
             }

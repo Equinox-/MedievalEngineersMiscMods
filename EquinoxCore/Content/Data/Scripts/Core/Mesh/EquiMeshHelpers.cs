@@ -27,6 +27,8 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool UseNaturalGravity;
             public Vector3 Gravity;
             public float CatenaryLength;
+
+            public PackedHsvShift ColorMask;
         }
 
         public static bool TrySolveCatenary(in LineData line, List<Vector3> points)
@@ -171,6 +173,8 @@ namespace Equinox76561198048419394.Core.Mesh
             // Normal should be aligned such that the vertices are in counter clockwise order when the normal is pointing to the camera.
             public Vector3 Normal;
             public bool FlipRearNormals;
+
+            public PackedHsvShift ColorMask;
 
             public float Area
             {
@@ -347,6 +351,8 @@ namespace Equinox76561198048419394.Core.Mesh
             public uint Normal;
             public HalfVector3 Up;
             public HalfVector3 Left;
+
+            public PackedHsvShift ColorMask;
         }
 
         public static void BuildDecal(in DecalData data, MyModelData mesh)

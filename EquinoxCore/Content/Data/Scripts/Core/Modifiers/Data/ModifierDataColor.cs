@@ -1,5 +1,6 @@
 using System;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using ObjectBuilders.Definitions.GUI;
 using VRageMath;
 
@@ -43,18 +44,23 @@ namespace Equinox76561198048419394.Core.Modifiers.Data
         public readonly ColorDefinitionHSV Color;
         private readonly string _serialized;
 
-        public ModifierDataColor(ColorDefinitionHSV hsv)
+        public ModifierDataColor(ColorDefinitionHSV hsv, string serialized = null)
         {
             Color = hsv;
 
             // Store serialized version to avoid a lot of string allocations
+            _serialized = serialized ?? Serialize(hsv);
+        }
+
+        public static string Serialize(ColorDefinitionHSV color)
+        {
             var buffer = new char[11];
-            IntToChar3(Color.H % 360, buffer, 0);
-            buffer[3] = Color.S < 0 ? '-' : '+';
-            IntToChar3(MathHelper.Clamp(Math.Abs(Color.S), 0, 100), buffer, 4);
-            buffer[7] = Color.V < 0 ? '-' : '+';
-            IntToChar3(MathHelper.Clamp(Math.Abs(Color.V), 0, 100), buffer, 8);
-            _serialized = new string(buffer);
+            IntToChar3(MiscMath.UnsignedModulo(color.H, 360), buffer, 0);
+            buffer[3] = color.S < 0 ? '-' : '+';
+            IntToChar3(MathHelper.Clamp(Math.Abs(color.S), 0, 100), buffer, 4);
+            buffer[7] = color.V < 0 ? '-' : '+';
+            IntToChar3(MathHelper.Clamp(Math.Abs(color.V), 0, 100), buffer, 8);
+            return new string(buffer);
         }
 
         public static ModifierDataColor Deserialize(string data)
@@ -79,7 +85,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Data
                     var h = Char3ToInt(dc, 0);
                     var s = (dc[3] == '-' ? -1 : 1) * Char3ToInt(dc, 4);
                     var v = (dc[7] == '-' ? -1 : 1) * Char3ToInt(dc, 8);
-                    return new ModifierDataColor(new ColorDefinitionHSV {H = h, S = s, V = v});
+                    return new ModifierDataColor(new ColorDefinitionHSV {H = h, S = s, V = v}, dc);
                 }
             });
         }

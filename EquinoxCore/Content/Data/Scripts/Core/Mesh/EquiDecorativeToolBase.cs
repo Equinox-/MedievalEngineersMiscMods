@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
+using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Modifiers.Storage;
 using Equinox76561198048419394.Core.Util;
 using Medieval.GameSystems;
@@ -31,6 +32,7 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
     public abstract class EquiDecorativeToolBase : MyToolBehaviorBase
     {
+        protected PackedHsvShift _color;
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
         private EquiDecorativeToolBaseDefinition _definition;
 
@@ -63,6 +65,7 @@ namespace Equinox76561198048419394.Core.Mesh
             return true;
         }
 
+        protected virtual int RenderPoints => RequiredPoints;
         protected abstract int RequiredPoints { get; }
 
         protected enum AnchorSource
@@ -346,7 +349,29 @@ namespace Equinox76561198048419394.Core.Mesh
         protected override void Hit()
         {
             if (!IsLocallyControlled) return;
-            if (!TryGetAnchor(out var anchor)) return;
+            if (!TryGetAnchor(out var anchor))
+            {
+                if (ActiveAction == MyHandItemActionEnum.Tertiary)
+                    _color = default;
+                return;
+            }
+            if (ActiveAction == MyHandItemActionEnum.Tertiary)
+            {
+                _color = default;
+                if (_definition.AllowRecoloring)
+                {
+                    var modifierHolder = anchor.Grid.Container.Get<EquiGridModifierComponent>();
+                    var modifierKey = new EquiGridModifierComponent.BlockModifierKey(anchor.Block.Id, MyStringHash.NullOrEmpty);
+                    if (modifierHolder != null && modifierHolder.TryGetModifierOutput(in modifierKey, out var modifierOutput))
+                    {
+                        if (modifierOutput.ColorMaskHsv.HasValue)
+                            _color = modifierOutput.ColorMaskHsv.Value;
+                        modifierOutput.Dispose();
+                    }
+                }
+
+                return;
+            }
             for (var i = 0; i < _anchors.Count; i++)
             {
                 if (_anchors[i].Grid == anchor.Grid) continue;
@@ -401,7 +426,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         points.Add((Vector3)Vector3D.Transform(worldPos, grid.Container.Get<MyPositionComponentBase>().WorldMatrixNormalizedInv));
                 }
 
-                if (grid != null && homogenous && points.Count >= RequiredPoints)
+                if (grid != null && homogenous && points.Count >= RenderPoints)
                     RenderShape(grid, points);
             }
         }
@@ -417,6 +442,8 @@ namespace Equinox76561198048419394.Core.Mesh
         public bool RequireDummySnapping { get; private set; }
         public float SnapExistingDistance { get; private set; }
 
+        public bool AllowRecoloring { get; private set; }
+
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
             base.Init(builder);
@@ -426,6 +453,7 @@ namespace Equinox76561198048419394.Core.Mesh
             SnapDummyDistance = ob.SnapDummyDistance ?? 0.125f;
             SnapExistingDistance = ob.SnapExistingDistance ?? 0.1f;
             RequireDummySnapping = ob.RequireDummySnapping ?? false;
+            AllowRecoloring = ob.AllowRecoloring ?? false;
         }
     }
 
@@ -433,7 +461,7 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiDecorativeToolBaseDefinition : MyObjectBuilder_ToolBehaviorDefinition
     {
-        [XmlElement("SnapToDummyh")]
+        [XmlElement("SnapToDummy")]
         public List<string> SnapToDummy;
 
         public bool? RequireDummySnapping;
@@ -441,5 +469,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public float? SnapDummyDistance;
 
         public float? SnapExistingDistance;
+
+        public bool? AllowRecoloring;
     }
 }

@@ -1,9 +1,10 @@
+using System;
 using Equinox76561198048419394.Core.ModelGenerator;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Modifiers.Def
 {
-    public struct ModifierOutput
+    public struct ModifierOutput : IDisposable
     {
         public string Model;
         public MaterialEditsBuilder MaterialEditsBuilder;
@@ -12,6 +13,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         public override string ToString()
         {
             return $"{nameof(Model)}: {Model}, Materials: {MaterialEditsBuilder}, Color: {ColorMaskHsv}";
+        }
+
+        public void Dispose()
+        {
+            MaterialEditsBuilder?.Dispose();
         }
     }
 }

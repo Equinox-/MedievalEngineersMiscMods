@@ -37,5 +37,29 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             return new Vector3D(sinTheta * Math.Cos(spherical.Z), sinTheta * Math.Sin(spherical.Z),
                 spherical.X * Math.Cos(spherical.Y));
         }
+
+        public static double UnsignedModulo(double value, double modulus)
+        {
+            var result = value % modulus;
+            if (result < 0)
+                result += modulus;
+            return result;
+        }
+
+        public static float UnsignedModulo(float value, float modulus)
+        {
+            var result = value % modulus;
+            if (result < 0)
+                result += modulus;
+            return result;
+        }
+
+        public static int UnsignedModulo(int value, int modulus)
+        {
+            var result = value % modulus;
+            if (result < 0)
+                result += modulus;
+            return result;
+        }
     }
 }
