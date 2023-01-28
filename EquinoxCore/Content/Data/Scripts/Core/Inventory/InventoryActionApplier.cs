@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Equinox76561198048419394.Core.Util;
-using Sandbox.Game;
 using Sandbox.Game.Entities.Inventory;
 using Sandbox.Game.Inventory;
 using VRage.Collections;
@@ -11,7 +10,6 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Library.Collections;
 using VRage.ObjectBuilders.Definitions.Inventory;
-using VRage.Session;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Inventory
@@ -25,12 +23,12 @@ namespace Equinox76561198048419394.Core.Inventory
         }
 
         public static bool Apply(MyInventoryBase items, ListReader<ImmutableInventoryAction> actions,
-            LuckyLoot.LootContext? luckContext = null)
+            LuckyLoot.LootContext? luckContext = null, bool continueOnFailure = false)
         {
-            return Apply<byte>(items, actions, luckContext);
+            return Apply<byte>(items, actions, luckContext, continueOnFailure: continueOnFailure);
         }
-        
-        public static bool CanApply<TInstance>(MyInventoryBase items, ListReader<ImmutableInventoryAction> actions, 
+
+        public static bool CanApply<TInstance>(MyInventoryBase items, ListReader<ImmutableInventoryAction> actions,
             LuckyLoot.LootContext? luckContext = null,
             ActionWithArg<TInstance, ImmutableInventoryAction>? errorReporter = null)
         {
@@ -42,7 +40,9 @@ namespace Equinox76561198048419394.Core.Inventory
         }
 
         public static bool Apply<TInstance>(MyInventoryBase items, ListReader<ImmutableInventoryAction> actions,
-            LuckyLoot.LootContext? luckContext = null, ActionWithArg<TInstance, ImmutableInventoryAction>? errorReporter = null)
+            LuckyLoot.LootContext? luckContext = null,
+            ActionWithArg<TInstance, ImmutableInventoryAction>? errorReporter = null,
+            bool continueOnFailure = false)
         {
             var luck = luckContext ?? LuckyLoot.DefaultLoot;
             var success = true;
@@ -148,7 +148,8 @@ namespace Equinox76561198048419394.Core.Inventory
                 if (!success)
                 {
                     errorReporter?.Invoke(action);
-                    return false;
+                    if (!continueOnFailure)
+                        return false;
                 }
             }
 

@@ -35,6 +35,38 @@ namespace Equinox76561198048419394.Core.Inventory
             return new ImmutableInventoryAction(TargetId, -Amount, Mode);
         }
 
+        public InventoryActionBuilder ToBuilder()
+        {
+            var ob = new InventoryActionBuilder
+            {
+                Type = TargetId.TypeId.ToString(),
+                Subtype = TargetId.SubtypeName,
+                Amount = Math.Abs(Amount),
+            };
+            switch (Mode)
+            {
+                case InventoryActionMode.GiveTakeItem:
+                    ob.Mode = Amount < 0
+                        ? InventoryActionBuilder.MutableInventoryActionMode.TakeItem
+                        : InventoryActionBuilder.MutableInventoryActionMode.GiveItem;
+                    break;
+                case InventoryActionMode.RepairDamageItem:
+                    ob.Mode = Amount < 0
+                        ? InventoryActionBuilder.MutableInventoryActionMode.DamageItem
+                        : InventoryActionBuilder.MutableInventoryActionMode.RepairItem;
+                    break;
+                case InventoryActionMode.GiveTakeLootTable:
+                    if (Amount < 0)
+                        throw new ArgumentOutOfRangeException();
+                    ob.Mode = InventoryActionBuilder.MutableInventoryActionMode.GiveLootTable;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            return ob;
+        }
+
         public override string ToString()
         {
             return $"InventoryAction[Mode={Mode}, Type={TargetId.TypeId}, Subtype={TargetId.SubtypeId}, Amount={Amount}]";
