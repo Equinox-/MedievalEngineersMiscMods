@@ -5,6 +5,7 @@ using VRage.Game;
 using VRage.Game.Entity;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders.Definitions.Inventory;
+using VRage.Serialization;
 
 namespace Equinox76561198048419394.Core.Inventory
 {
@@ -76,12 +77,15 @@ namespace Equinox76561198048419394.Core.Inventory
     public struct InventoryActionBuilder
     {
         [XmlAttribute("Type")]
+        [Nullable]
         public string Type;
 
         [XmlAttribute("Subtype")]
+        [Nullable]
         public string Subtype;
 
         [XmlAttribute("Tag")]
+        [Nullable]
         public string Tag;
 
         [XmlAttribute]

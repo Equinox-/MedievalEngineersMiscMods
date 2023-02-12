@@ -20,6 +20,7 @@ using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Inventory;
 using VRage.ObjectBuilders.Inventory;
+using VRage.Serialization;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Inventory
@@ -405,6 +406,7 @@ namespace Equinox76561198048419394.Core.Inventory
         // is copied/blueprinted and prevent the generator from continuing to work.
         public long CopyProtection;
 
+        [Nullable]
         public string OutputInventory;
 
         public long? LastGeneration;
