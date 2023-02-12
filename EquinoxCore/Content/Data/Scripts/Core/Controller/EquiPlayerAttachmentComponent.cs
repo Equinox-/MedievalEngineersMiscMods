@@ -267,7 +267,7 @@ namespace Equinox76561198048419394.Core.Controller
                 get
                 {
                     var target = LeanTargetAngle;
-                    var currTime = (float)Controllable.Scheduler.CurrentUpdateTime.TotalSeconds;
+                    var currTime = (float)(Controllable.Scheduler?.CurrentUpdateTime.TotalSeconds ?? 0);
                     var dt = currTime - _leanTransitionLastTime;
                     var error = target - _leanTransitionVisualAngle;
                     var delta = Math.Sign(error) * Math.Min(dt * MathHelper.PiOver4, Math.Abs(error));
