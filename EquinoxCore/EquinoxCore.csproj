@@ -674,6 +674,7 @@
     <Compile Include="Content\Data\Scripts\Core\Mirz\MrzEqualityResult.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mirz\MrzUtils.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiCoreCommandRegister.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Misc\EquiDecayComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiFlareDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiLightComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiPhysicsTweakerComponent.cs" />

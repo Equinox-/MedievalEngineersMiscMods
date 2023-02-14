@@ -18,7 +18,6 @@ namespace Equinox76561198048419394.Core.Misc
             chat.RegisterChatCommand("/item-gen",
                 EquiItemGeneratorComponent.HandleCommand,
                 "Edits item generator tasks");
-
             RemoveFixedUpdate(Update);
         }
     }
