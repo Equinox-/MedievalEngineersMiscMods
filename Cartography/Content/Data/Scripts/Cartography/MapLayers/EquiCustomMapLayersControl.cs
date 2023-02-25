@@ -1,10 +1,20 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Medieval;
+using Medieval.Entities.Components.Planet;
+using Medieval.GameSystems;
+using Medieval.GameSystems.Factions;
 using Medieval.GUI.Ingame.Map;
+using Medieval.ObjectBuilders.Components;
+using Sandbox;
+using Sandbox.Game.Players;
 using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
 using Sandbox.Gui.Layouts;
+using VRage;
 using VRage.Game;
+using VRage.Input;
 using VRage.Logging;
 using VRage.Utils;
 using VRageMath;
@@ -98,10 +108,12 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
             return null;
         }
-        
+
         public override void Draw(float transitionAlpha, float backgroundTransitionAlpha)
         {
             base.Draw(transitionAlpha, backgroundTransitionAlpha);
+            var map = _owner.MapControl;
+            ClearOwnershipTooltipIfNeeded(map);
 
             if (_boundTooltip != null
                 && _boundTooltipOwner.Visible
@@ -117,6 +129,37 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             }
         }
 
+        private void ClearOwnershipTooltipIfNeeded(MyPlanetMapControl map)
+        {
+            switch (map.CurrentZoomLevel)
+            {
+                case MyPlanetMapZoomLevel.Kingdom:
+                    map.SetOwnershipTooltip(null);
+                    return;
+                case MyPlanetMapZoomLevel.Region:
+                {
+                    if (ShouldHideTooltipForRegions(map))
+                        map.SetOwnershipTooltip(null);
+                    return;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private bool ShouldHideTooltipForRegions(MyPlanetMapControl map)
+        {
+            var areaOwnership = map.Planet.Get<MyPlanetAreaOwnershipComponent>();
+            if (areaOwnership == null)
+                return true;
+            var view = map.CurrentView;
+            var hoveredCell = map.HoveredCell;
+            if (!hoveredCell.HasValue) return true;
+            var area = view[hoveredCell.Value.X, hoveredCell.Value.Y];
+            var areaInfo = areaOwnership.GetAreaInfo(area);
+            return areaInfo == null || areaInfo.State == MyObjectBuilder_PlanetAreaOwnershipComponent.AreaState.Unclaimed;
+        }
+
         public void BindTooltip(ICustomMapLayer owner, MyTooltip tooltip)
         {
             if (tooltip == null && _boundTooltipOwner == owner)
@@ -125,6 +168,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 _boundTooltipOwner = null;
                 return;
             }
+
             if (_boundTooltip != tooltip)
                 _boundTooltipDelay = MyGuiManager.TotalTimeInMilliseconds + MyGuiConstants.SHOW_CONTROL_TOOLTIP_DELAY;
             _boundTooltip = tooltip;

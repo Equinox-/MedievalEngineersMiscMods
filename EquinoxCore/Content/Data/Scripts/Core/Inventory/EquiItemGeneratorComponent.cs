@@ -235,6 +235,8 @@ namespace Equinox76561198048419394.Core.Inventory
 
             if (_outputInventory != null)
                 _outputInventory.ContentsChanged += ContentsChanged;
+            _running = false;
+            _hasImmediateUpdate = false;
             if (MyMultiplayerModApi.Static.IsServer && _outputInventory != null)
                 Reschedule();
         }
@@ -293,7 +295,7 @@ namespace Equinox76561198048419394.Core.Inventory
 
                     if (count == 1)
                     {
-                        InventoryActionApplier.Apply(_outputInventory, _actions);
+                        InventoryActionApplier.Apply(_outputInventory, _actions, continueOnFailure: true);
                     }
                     else
                     {
@@ -305,7 +307,7 @@ namespace Equinox76561198048419394.Core.Inventory
                                 actions.Add(new ImmutableInventoryAction(action.TargetId, (int)(action.Amount * count), action.Mode));
                             }
 
-                            InventoryActionApplier.Apply(_outputInventory, actions);
+                            InventoryActionApplier.Apply(_outputInventory, actions, continueOnFailure: true);
                         }
                     }
 

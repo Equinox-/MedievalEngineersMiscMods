@@ -48,25 +48,34 @@ namespace Equinox76561198048419394.Core.Inventory
             var success = true;
             foreach (var action in actions)
             {
+                var isTag = action.TargetId.TypeId == typeof(MyObjectBuilder_ItemTagDefinition);
                 switch (action.Mode)
                 {
                     case ImmutableInventoryAction.InventoryActionMode.GiveTakeItem:
                     {
                         if (action.Amount > 0)
-                            success = action.TargetId.TypeId == typeof(MyObjectBuilder_ItemTagDefinition)
-                                ? items.AddItemsWithTag(action.TargetId.SubtypeId, action.Amount)
-                                : items.AddItems(action.TargetId, action.Amount);
-                        else
-                            success = action.TargetId.TypeId == typeof(MyObjectBuilder_ItemTagDefinition)
+                        {
+                            var amount = action.Amount;
+                            if (continueOnFailure && !isTag)
+                                amount = Math.Min(amount, items.ComputeAmountThatFits(action.TargetId));
+                            if (amount == 0)
+                                continue;
+                            success = isTag
+                                ? items.AddItemsWithTag(action.TargetId.SubtypeId, amount)
+                                : items.AddItems(action.TargetId, amount);
+                        }
+                        else if (action.Amount < 0)
+                            success = isTag
                                 ? items.RemoveItemsWithTag(action.TargetId.SubtypeId, -action.Amount)
                                 : items.RemoveItems(action.TargetId, -action.Amount);
+
                         break;
                     }
 
                     case ImmutableInventoryAction.InventoryActionMode.RepairDamageItem:
                     {
                         var remaining = action.Amount;
-                        if (action.TargetId.TypeId == typeof(MyObjectBuilder_ItemTagDefinition))
+                        if (isTag)
                         {
                             foreach (var item in items.Items)
                                 if (item is MyDurableItem durable && item.HasTag(action.TargetId.SubtypeId))

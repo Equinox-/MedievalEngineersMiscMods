@@ -681,7 +681,7 @@
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiVoxelReplacer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedOwnershipComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedSkeletonComponent.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Misc\InjectModdedSkinStyles.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Misc\MiscInjections.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEdit.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEditsBuilder.cs" />
     <Compile Include="Content\Data\Scripts\Core\ModelGenerator\MaterialEditSet.cs" />

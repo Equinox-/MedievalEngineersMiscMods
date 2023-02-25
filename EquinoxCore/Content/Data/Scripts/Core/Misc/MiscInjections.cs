@@ -1,16 +1,50 @@
 using System.Collections.Generic;
+using Sandbox.Game.EntityComponents.Character;
+using Sandbox.Game.Gui;
 using Sandbox.Gui.Skins;
+using Sandbox.ModAPI;
+using VRage.Components;
 using VRage.Game;
 using VRage.Session;
+using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Misc
 {
     [MySessionComponent(AlwaysOn = true)]
-    public class InjectModdedSkinStyles : MySessionComponent
+    public class MiscInjections : MySessionComponent
     {
         protected override void OnSessionReady()
         {
             base.OnSessionReady();
+            InjectSkinStyles();
+            AddScheduledCallback(FirstUpdate);
+        }
+
+
+        [Update(false)]
+        private void FirstUpdate(long dt)
+        {
+            InjectCameraReset();
+        }
+
+        private void InjectCameraReset()
+        {
+            var hud = MyGuiScreenHudBase.Static;
+            if (hud == null || MyAPIGateway.Session.SessionSettings.Enable3rdPersonView) return;
+            var context = hud.InputContext;
+            context.RegisterAction(MyStringHash.GetOrCompute("CameraSwitch"), () =>
+            {
+                MyHud.Crosshair.Recenter();
+                var controlled = MyAPIGateway.Session.ControlledObject?.Get<MyCharacterMovementComponent>();
+                if (controlled != null)
+                    controlled.HeadYaw = 0;
+            });
+            context.Pop();
+            context.Push();
+        }
+
+        private void InjectSkinStyles()
+        {
             var modContrib = MyDefinitionManager.Get<MyGuiSkinDefinition>("ModContributions");
             if (modContrib == null)
                 return;
