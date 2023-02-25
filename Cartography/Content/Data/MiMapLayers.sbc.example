@@ -1,0 +1,537 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Definition xsi:type="MyObjectBuilder_EquiShapesMapLayerDefinition">
+        <Id Type="MyObjectBuilder_EquiShapesMapLayerDefinition" Subtype="MiRegions" />
+        <DisplayName>Regions</DisplayName>
+        <Description>Map regions grouped by combat type</Description>
+        <Icon>Textures\GUI\ContextualMenus\ButtonsBrown\Hands.png</Icon>
+        <!-- Peaceful -->
+        <Polygon Face="0">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="-0.5117053" y="-0.1781812" />
+            <Pt x="-0.3080214" y="-0.1952935" />
+            <Pt x="-0.2243613" y="-0.186262" />
+            <Pt x="-0.1281048" y="-0.1403856" />
+            <Pt x="-0.1202614" y="0.02597802" />
+            <Pt x="-0.1568629" y="0.09752297" />
+            <Pt x="-0.1464053" y="0.1759542" />
+            <Pt x="-0.1071897" y="0.29883" />
+            <Pt x="-0.0522877" y="0.3302026" />
+            <Pt x="-0.01568639" y="0.4138627" />
+            <Pt x="-0.05751657" y="0.5158235" />
+            <Pt x="-0.3189543" y="0.5393529" />
+            <Pt x="-0.6169935" y="0.2883725" />
+            <Pt x="-0.8261439" y="-0.1534575" />
+            <Pt x="-0.7084969" y="-0.2554184" />
+            <Pt x="-0.5699347" y="-0.1560719" />
+            <FillColor R="0" G="255" B="0" A="200" />
+            <FillStyle>DashDiagonalTopLeftBottomRight</FillStyle>
+        </Polygon>
+        <!-- Neutral -->
+        <Polygon Face="0">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="-0.7084969" y="-0.2554184" />
+            <Pt x="-0.5699347" y="-0.1560719" />
+            <Pt x="-0.5117053" y="-0.1781812" />
+            <Pt x="-0.3080214" y="-0.1952935" />
+            <Pt x="-0.2243613" y="-0.186262" />
+            <Pt x="0.01853831" y="-0.1879257" />
+            <Pt x="0.07676768" y="-0.1881634" />
+            <Pt x="0.1285799" y="-0.1769929" />
+            <Pt x="0.2588233" y="-0.2449608" />
+            <Pt x="0.3555555" y="-0.3050974" />
+            <Pt x="0.4156861" y="-0.2998627" />
+            <Pt x="0.4510992" y="-0.2444914" />
+            <Pt x="0.5480689" y="-0.207177" />
+            <Pt x="0.6666665" y="-0.2711046" />
+            <Pt x="0.7058822" y="-0.5037843" />
+            <Pt x="0.4549018" y="-0.6815622" />
+            <Pt x="-0.5411766" y="-0.6789478" />
+            <Pt x="-0.7529414" y="-0.3730654" />
+            <FillColor R="255" G="255" B="0" A="200" />
+            <FillStyle>DashVertical</FillStyle>
+        </Polygon>
+        <!-- War, Mainland -->
+        <Polygon Face="0">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="-0.1202614" y="0.02597802" />
+            <Pt x="-0.04705888" y="-0.1534575" />
+            <Pt x="0.01853831" y="-0.1879257" />
+            <Pt x="0.07676768" y="-0.1881634" />
+            <Pt x="0.1285799" y="-0.1769929" />
+            <Pt x="0.2588233" y="-0.2449608" />
+            <Pt x="0.3555555" y="-0.3050974" />
+            <Pt x="0.4156861" y="-0.2998627" />
+            <Pt x="0.4510992" y="-0.2444914" />
+            <Pt x="0.5480689" y="-0.207177" />
+            <Pt x="0.6718953" y="-0.1299282" />
+            <Pt x="0.4261435" y="0.4530784" />
+            <Pt x="0.04182982" y="0.6203986" />
+            <Pt x="-0.01568639" y="0.4138627" />
+            <Pt x="-0.0522877" y="0.3302026" />
+            <Pt x="-0.1071897" y="0.29883" />
+            <Pt x="-0.1464053" y="0.1759542" />
+            <Pt x="-0.1568629" y="0.09752297" />
+            <FillColor R="255" G="0" B="0" A="200" />
+            <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+        </Polygon>
+        <!-- War, NW Island -->
+        <Polygon Face="0">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="-1" y="-0.8148955" />
+            <Pt x="-0.7398694" y="-0.7992092" />
+            <Pt x="-0.8418302" y="-0.446268" />
+            <Pt x="-1" y="-0.4436536" />
+            <FillColor R="255" G="0" B="0" A="200" />
+            <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+        </Polygon>
+        <Polygon Face="2">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="0.4967318" y="-0.618817" />
+            <Pt x="0.8287579" y="-0.8096667" />
+            <Pt x="1" y="-0.7050916" />
+            <Pt x="1" y="-0.4514968" />
+            <Pt x="0.8156861" y="-0.4514968" />
+            <FillColor R="255" G="0" B="0" A="200" />
+            <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+        </Polygon>
+        <!-- War, SW Island -->
+        <Polygon Face="0">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="-1" y="0.1916405" />
+            <Pt x="-0.8627453" y="0.3458889" />
+            <Pt x="-1" y="0.5890262" />
+            <FillColor R="255" G="0" B="0" A="200" />
+            <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+        </Polygon>
+        <Polygon Face="2">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="1" y="0.181183" />
+            <Pt x="1" y="0.6674576" />
+            <Pt x="0.6143789" y="0.5315099" />
+            <Pt x="0.5960782" y="0.3485034" />
+            <FillColor R="255" G="0" B="0" A="200" />
+            <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+        </Polygon>
+        <!-- War, E Island -->
+        <Polygon Face="3">
+            <MinElevation>0.1905</MinElevation>
+            <Pt x="-0.6823531" y="0.4281764" />
+            <Pt x="-0.5960786" y="-0.06456864" />
+            <Pt x="-0.3607845" y="-0.06456864" />
+            <Pt x="-0.2248368" y="0.2517713" />
+            <Pt x="-0.5175165" y="0.4696797" />
+            <FillColor R="255" G="0" B="0" A="200" />
+            <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+        </Polygon>
+    </Definition>
+
+    <!-- find . -name '*.entity' | xargs xq '.MySerializedEntity.Entity | select(.["@Subtype"] == "LargeGrid") | (.ComponentContainer.Component |= map(.BlockToEntityMap.BlockToEntity.Entity.ComponentContainer.Component | select(. != null) | map(select(.Action != null)))) | { "pos": .PositionAndOrientation.Position, "c": (.ComponentContainer.Component | first | first) }' | jq -s  > ~/Downloads/all-data.json -->
+    <Definition xsi:type="MyObjectBuilder_EquiSymbolsMapLayerDefinition">
+        <Id Type="MyObjectBuilder_EquiSymbolsMapLayerDefinition" Subtype="MiResources" />
+        <Order>zSymbolLayer</Order>
+
+        <DisplayName>Resources</DisplayName>
+        <Description>Automatic mines placed on the map</Description>
+        <Icon>Textures\GUI\Icons\ToolsAndWeapons\PickaxeSteel.dds</Icon>
+        <Symbol Face="0">
+            <Position x="-0.0429122163217793" y="0.304265959377953" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreGold.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Gold Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="2">
+            <Position x="0.903349071807429" y="-0.680546806740991" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreSilver.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 120x Silver Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.58921319158032" y="-0.291261283333078" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.240615807738543" y="0.340092786592395" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Calamine____.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Calamine" />
+            <Tooltip Content=" 120x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="3">
+            <Position x="-0.546270207053601" y="0.377269740410388" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\fluid_crude_oil.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 2100x Crude Oil" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.541904909502412" y="-0.485396334234296" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\LigniteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Lignite Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.538643287529505" y="-0.125461684635312" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 120x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.0804586955538294" y="-0.391477498562445" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\SubBituminousCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Sub-bituminous Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.488120327079012" y="-0.0554525551180201" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.642578117303614" y="-0.0679621560632579" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreTin.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\AnthraciteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 8x Anthracite Coal" />
+            <Tooltip Content=" 56x Tin Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.330873910686864" y="0.0915876782069982" />
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Materials\OreTin.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Calamine____.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Calamine" />
+            <Tooltip Content=" 60x Tin Ore" />
+            <Tooltip Content=" 240x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.417330523382861" y="-0.471278677584853" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Calamine____.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Calamine" />
+            <Tooltip Content=" 180x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="3">
+            <Position x="-0.435530723912963" y="0.0658005480188547" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreTin.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\AnthraciteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 12x Anthracite Coal" />
+            <Tooltip Content=" 60x Tin Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.476107331726796" y="-0.465019406900547" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Galena______.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Galena" />
+            <Tooltip Content=" 180x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="2">
+            <Position x="0.78204279425223" y="0.387477606372222" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Galena______.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Galena" />
+            <Tooltip Content=" 180x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.104921227506459" y="0.159120875630468" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\fluid_crude_oil.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 2100x Crude Oil" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.982280919634693" y="0.397050381342488" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Ore_Sulfur_Large.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 1x Sulfur" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.10206974219622" y="-0.599234984987178" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="2">
+            <Position x="0.792052651841426" y="0.502134087444627" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Saltpeter.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 15x Saltpeter" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.298240952264094" y="-0.0179505508218543" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\AnthraciteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Anthracite Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="2">
+            <Position x="0.990622772947781" y="0.283636828399819" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\AnthraciteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Anthracite Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="3">
+            <Position x="-0.591399798430362" y="0.285821133408782" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Ore_Sulfur_Large.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 1x Sulfur" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.477388470554051" y="-0.325030345324673" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.19040909662725" y="-0.549755832167574" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Materials\OreTin.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Tin Ore" />
+            <Tooltip Content=" 180x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="3">
+            <Position x="-0.3858444923378" y="0.237469536008102" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Calamine____.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Calamine" />
+            <Tooltip Content=" 180x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.234324528506357" y="0.294905749747282" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Galena______.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 120x Galena" />
+            <Tooltip Content=" 240x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.229007430217219" y="-0.232861423879108" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.00703426914491104" y="-0.45515611499935" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.9001674189952" y="-0.583678673997591" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\SubBituminousCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Sub-bituminous Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.306469402347905" y="-0.390413767340801" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\BituminousCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Bituminous Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.368492044081354" y="0.17367724979789" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\LigniteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 4x Lignite Coal" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.141659466302944" y="-0.0476386958237287" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 120x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.20961892026371" y="-0.0224596325800741" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="2">
+            <Position x="0.641605970109099" y="-0.649733858102497" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\fluid_crude_oil.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 2100x Crude Oil" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="2">
+            <Position x="0.864848011540264" y="-0.576382327632519" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\IronOre.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Calamine____.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Calamine" />
+            <Tooltip Content=" 180x Iron Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="0.346136043661506" y="0.26228988760684" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreSilver.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 120x Silver Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.212560306843549" y="-0.519648694469848" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreTin.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\AnthraciteCoalOre.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 12x Anthracite Coal" />
+            <Tooltip Content=" 60x Tin Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+        <Symbol Face="0">
+            <Position x="-0.931910125364162" y="-0.691203818188312" />
+            <IconGroup Scale="1">
+                <Icon>Textures\GUI\Icons\Materials\OreCopper.dds</Icon>
+            </IconGroup>
+            <IconGroup Scale="0.5">
+                <Icon>Textures\GUI\Icons\Ore_Galena______.dds</Icon>
+            </IconGroup>
+            <Tooltip Content="Producing..." />
+            <Tooltip Content=" 60x Galena" />
+            <Tooltip Content=" 180x Copper Ore" />
+            <Tooltip Content=" ...per hour" />
+        </Symbol>
+
+    </Definition>
+</Definitions>

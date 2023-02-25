@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Definition xsi:type="MyObjectBuilder_EquiContourOptions">
+        <Id Type="MyObjectBuilder_EquiContourOptions" Subtype="Overlay02HighRes" />
+        <OverlayMajorRenderDistance>200</OverlayMajorRenderDistance>
+        <ContourInterval>2.5</ContourInterval>
+        <MajorContourEvery>10</MajorContourEvery>
+        <HighlightContourColor R="255" G="0" B="255" A="255" />
+        <OverlayMajorDepthTestDistance>20</OverlayMajorDepthTestDistance>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiContourOptions">
+        <Id Type="MyObjectBuilder_EquiContourOptions" Subtype="Overlay01LowRes" />
+        <OverlayMajorRenderDistance>1000</OverlayMajorRenderDistance>
+        <OverlayMinorRenderDistance>500</OverlayMinorRenderDistance>
+        <ContourInterval>5</ContourInterval>
+        <HighlightContourColor R="255" G="0" B="255" A="255" />
+        <OverlayMajorDepthTestDistance>20</OverlayMajorDepthTestDistance>
+    </Definition>
+
+
+    <Definition xsi:type="MyObjectBuilder_EquiContoursMapLayerDefinition">
+        <Id Type="MyObjectBuilder_EquiContoursMapLayerDefinition" Subtype="ContoursMapLayer" />
+        <DisplayName>Contours</DisplayName>
+        <Description>Overlay topographic contour lines on the map</Description>
+        <Icon>Textures\Equinox\GUI\ContourLines.png</Icon>
+        <Kingdom>
+            <ContourInterval>25</ContourInterval>
+        </Kingdom>
+        <Region>
+            <ContourInterval>5</ContourInterval>
+        </Region>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiDebugMapLayerDefinition">
+        <Id Type="MyObjectBuilder_EquiDebugMapLayerDefinition" />
+        <Order>zzzzAlwaysLast</Order>
+        <Public>false</Public>
+
+        <DisplayName>Debug Layer</DisplayName>
+        <Description>Shows mouse position</Description>
+        <Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+    </Definition>
+</Definitions>

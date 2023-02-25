@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Definition xsi:type="MyObjectBuilder_ControlDefinition">
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ShowContours" />
+    <DisplayName>Show Contours</DisplayName>
+    <Description>Show / hide map contours</Description>
+    <Category>GUI</Category>
+    <Primary Control="true" Shift="true" Alt="true" Key="C" />
+  </Definition>
+</Definitions>
