@@ -43,6 +43,12 @@ namespace Equinox76561198048419394.Core.Misc
             UpdateEnabled(false);
         }
 
+        public override void OnRemovedFromScene()
+        {
+            base.OnRemovedFromScene();
+            _backgroundUpdating = false;
+        }
+
         private void OnPositionChanged(MyPositionComponentBase obj)
         {
             if (_backgroundUpdating || !Entity.InScene) return;
@@ -55,7 +61,6 @@ namespace Equinox76561198048419394.Core.Misc
         [Update(false)]
         private void UpdateBackground(long dt)
         {
-            _backgroundUpdating = false;
             UpdateEnabled(true);
         }
 

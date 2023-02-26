@@ -616,6 +616,9 @@
     <ItemGroup>
       <None Include="packages.config" />
     </ItemGroup>
+    <ItemGroup>
+      <Content Include="Content\Data\Bed.sbc" />
+    </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <Import Project="..\packages\Keen.MedievalEngineers.0.7.1.5814101\build\Keen.MedievalEngineers.targets" Condition="Exists('..\packages\Keen.MedievalEngineers.0.7.1.5814101\build\Keen.MedievalEngineers.targets')" />
     <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
