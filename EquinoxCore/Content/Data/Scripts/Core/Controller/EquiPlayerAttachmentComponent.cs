@@ -371,7 +371,7 @@ namespace Equinox76561198048419394.Core.Controller
             get
             {
                 foreach (var slot in _states.Values)
-                    if (slot.LinearShift != Vector3.Zero || slot.AngularShift != Vector3.Zero || slot.ForceAnimationId.HasValue)
+                    if (slot.LinearShift != Vector3.Zero || slot.AngularShift != Vector3.Zero || slot.LeanAngle != 0 || slot.ForceAnimationId.HasValue)
                         return true;
                 return false;
             }
@@ -388,6 +388,7 @@ namespace Equinox76561198048419394.Core.Controller
                         Name = slot.Key,
                         LinearShift = slot.Value.LinearShift,
                         AngularShift = slot.Value.AngularShift,
+                        LeanAngle = slot.Value.LeanAngle,
                         Pose = slot.Value.ForceAnimationId,
                     });
             return ob;
@@ -401,7 +402,7 @@ namespace Equinox76561198048419394.Core.Controller
             foreach (var attached in ob.Attached)
                 if (_states.TryGetValue(attached.Name, out var slot))
                 {
-                    slot.UpdateShift(attached.LinearShift, attached.AngularShift);
+                    slot.UpdateShift(attached.LinearShift, attached.AngularShift, attached.LeanAngle);
                     if (attached.Pose.HasValue)
                         slot.UpdatePose(attached.Pose.Value);
                 }
@@ -426,6 +427,10 @@ namespace Equinox76561198048419394.Core.Controller
             public SerializableVector3 AngularShift;
 
             public bool ShouldSerializeAngularShift() => AngularShift != default;
+
+            public float LeanAngle;
+
+            public bool ShouldSerializeLeanAngle() => LeanAngle != default;
 
             public int? Pose;
         }
