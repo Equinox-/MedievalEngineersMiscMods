@@ -5,9 +5,10 @@ using Equinox76561198048419394.Cartography.Derived;
 using Medieval.GUI.Ingame.Map;
 using ObjectBuilders.Definitions.GUI;
 using ObjectBuilders.GUI.Map;
+using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
-using Sandbox.Gui.Utility;
 using VRage;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Library.Collections;
@@ -19,9 +20,11 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 {
     public class EquiShapesMapLayer : EquiRasterizedMapLayer<ShapeRenderArgs>, ICustomMapLayer
     {
-        public MyMapGridView BoundTo => View;
+        private readonly MyTooltip _tooltip = new MyTooltip();
+        private EquiShapesMapLayerDefinition.Shape _boundTooltip;
 
-        private readonly bool _debugPolygonVertices = false;
+        MyPlanetMapControl ICustomMapLayer.Map => Map;
+        MyMapGridView ICustomMapLayer.View => View;
 
         private readonly EquiShapesMapLayerDefinition _definition;
 
@@ -29,7 +32,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
         protected override ShapeRenderArgs GetArgs(out bool shouldRender)
         {
-            var area = Map.GetEnvironmentMapViewport(View, out var face);
+            var area = Map.GetEnvironmentMapViewport(out var face);
             ElevationData elevation = null;
             if (_definition.HasStencil)
             {
@@ -43,36 +46,6 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
             shouldRender = true;
             return new ShapeRenderArgs(face, area, elevation);
-        }
-
-        public override void Draw(float transitionAlpha)
-        {
-            base.Draw(transitionAlpha);
-            if (!_debugPolygonVertices) return;
-            using (PoolManager.Get(out List<EquiShapesMapLayerDefinition.Shape> shapes))
-            {
-                var args = GetArgs(out _);
-                var environmentViewport = Map.GetEnvironmentMapViewport(View, out var face);
-                var screenViewport = new RectangleF(Map.GetPositionAbsoluteTopLeft() + Map.MapOffset, Map.MapSize);
-
-                var envToScreenScale = screenViewport.Size / environmentViewport.Size;
-                var envToScreenTranslate = screenViewport.Position - envToScreenScale * environmentViewport.Position;
-
-                _definition.QueryShapes(args.Face, args.Area, shapes);
-                foreach (var shape in shapes)
-                    if (shape is EquiShapesMapLayerDefinition.Polygon poly)
-                    {
-                        for (var i = 0; i < poly._points.Length; i++)
-                        {
-                            var screenPos = envToScreenScale * poly._points[i] + envToScreenTranslate;
-                            MyFontHelper.DrawString(
-                                MyGuiConstants.DEFAULT_FONT,
-                                $"{i}",
-                                screenPos, 0.5f,
-                                colorMask: poly._fillColor.Value);
-                        }
-                    }
-            }
         }
 
         protected override void Render(in ShapeRenderArgs args, ref RenderContext ctx)
@@ -101,8 +74,80 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
                 foreach (var shape in shapes)
                 {
+                    if (!shape.Visibility.IsVisible(View.Zoom))
+                        continue;
                     ctx.StencilRule = shape.StencilRule;
                     shape.DrawTo(in shapesCtx, ref ctx);
+                }
+            }
+        }
+
+        private const int TooltipInterval = 5;
+        private int _recalculateTooltips;
+
+        protected override void AfterDrawn(in ShapeRenderArgs args, in StencilAccessor stencil)
+        {
+            base.AfterDrawn(in args, in stencil);
+            if (_recalculateTooltips++ < TooltipInterval)
+                return;
+            _recalculateTooltips = 0;
+
+            var environmentViewport = Map.GetEnvironmentMapViewport(out var face);
+            var screenViewport = Map.GetScreenViewport();
+            var mouseNormPos = (MyGuiManager.MouseCursorPosition - screenViewport.Position) / screenViewport.Size;
+            if (mouseNormPos.X < 0 || mouseNormPos.Y < 0 || mouseNormPos.X >= 1 || mouseNormPos.Y >= 1 || face != args.Face)
+            {
+                _boundTooltip = null;
+                this.BindTooltip(null);
+                return;
+            }
+
+            var mouseEnv = (mouseNormPos * environmentViewport.Size) + environmentViewport.Position;
+            var envQuerySize = .01f * environmentViewport.Size;
+            var envQueryRadius = envQuerySize.Length();
+
+            byte mouseStencilValue = default;
+            if (_definition.HasStencil)
+            {
+                var mouseStencil = Vector2I.Floor(mouseNormPos * stencil.Size);
+                mouseStencilValue = stencil.ReadStencil(mouseStencil.X, mouseStencil.Y);
+            }
+
+            bool TestShape(EquiShapesMapLayerDefinition.Shape shape)
+            {
+                if (shape.Tooltip.Count == 0
+                    || shape.Face != face
+                    || !shape.TooltipVisibility.IsVisible(View.Zoom)
+                    || !shape.StencilRule.Test(mouseStencilValue))
+                    return false;
+
+                return shape.Intersects(mouseEnv, envQueryRadius);
+            }
+
+            if (_boundTooltip != null && TestShape(_boundTooltip))
+                return;
+
+            var envQuery = new RectangleF(mouseEnv - envQuerySize / 2, envQuerySize);
+
+            using (PoolManager.Get(out List<EquiShapesMapLayerDefinition.Shape> shapes))
+            {
+                _definition.QueryShapes(args.Face, envQuery, shapes);
+                EquiShapesMapLayerDefinition.Shape bestTooltip = null;
+                for (var i = shapes.Count - 1; i >= 0; i--)
+                {
+                    var shape = shapes[i];
+                    if (TestShape(shape))
+                    {
+                        bestTooltip = shape;
+                        break;
+                    }
+                }
+
+                if (_boundTooltip != bestTooltip)
+                {
+                    _boundTooltip = bestTooltip;
+                    bestTooltip?.Tooltip.AddAllTo(_tooltip);
+                    this.BindTooltip(bestTooltip != null ? _tooltip : null);
                 }
             }
         }
@@ -167,26 +212,42 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 var minElevation = shape.MinElevation ?? 0;
                 var maxElevation = shape.MaxElevation ?? 1;
                 StencilRule = new StencilRule(owner.StencilValue(minElevation), owner.StencilValue(maxElevation));
+                Tooltip = shape.Tooltip;
+                Face = shape.Face;
+                Visibility = shape.Visibility ?? CustomMapLayerVisibility.Both;
+                TooltipVisibility = shape.TooltipVisibility ?? CustomMapLayerVisibility.Both;
             }
 
+            public abstract bool Intersects(Vector2 pt, float radius);
+
             public abstract void DrawTo(in EquiShapesMapLayer.ShapesRenderContext shapes, ref RenderContext ctx);
+
+            public int Face { get; private set; }
+
+            public CustomMapLayerVisibility Visibility { get; }
 
             public BoundingBox2 Bounds { get; protected set; }
 
             public StencilRule StencilRule { get; }
+
+            public CustomMapLayerVisibility TooltipVisibility { get; }
+
+            public ListReader<TooltipLine> Tooltip { get; }
         }
 
-        public sealed class Polygon : Shape
+        private sealed class Polygon : Shape
         {
-            public readonly Vector2[] _points;
+            private readonly Vector2[] _points;
             private readonly Color? _strokeColor;
-            public readonly Color? _fillColor;
+            private readonly RenderContext.LineWidthPattern _strokeWidth;
+            private readonly Color? _fillColor;
             private readonly FillStyle _fillStyle;
 
             public Polygon(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerPolygon polygon) : base(owner, polygon)
             {
                 _points = new Vector2[polygon.Points.Count];
                 _strokeColor = polygon.StrokeColor;
+                _strokeWidth = new RenderContext.LineWidthPattern(polygon.StrokeWidth ?? "1", Log);
                 _fillColor = polygon.FillColor;
                 _fillStyle = polygon.FillStyle ?? FillStyle.Solid;
                 var bounds = BoundingBox2.CreateInvalid();
@@ -207,8 +268,93 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                         loop.Capacity = _points.Length;
                     foreach (var pt in _points)
                         loop.Add(shapes.Project(pt));
-                    ctx.DrawPolygon(loop, _fillColor, _fillStyle, _strokeColor);
+                    var pattern = _strokeWidth;
+                    ctx.DrawPolygon(loop, _fillColor, _fillStyle, _strokeColor, ref pattern);
                 }
+            }
+
+            public override bool Intersects(Vector2 pt, float radius)
+            {
+                // Not query radius aware.
+                var crossings = 0;
+                var prev = _points[_points.Length - 1];
+                foreach (var curr in _points)
+                {
+                    if (
+                        // ReSharper disable once CompareOfFloatsByEqualityOperator
+                        prev.Y != curr.Y
+                        && Math.Min(prev.Y, curr.Y) <= pt.Y
+                        && pt.Y < Math.Max(prev.Y, curr.Y)
+                        && pt.X < Math.Max(prev.X, curr.X))
+                    {
+                        var dxPerDy = (curr.X - prev.X) / (curr.Y - prev.Y);
+                        var crossesAtX = prev.X + dxPerDy * (pt.Y - prev.Y);
+                        if (crossesAtX > pt.X)
+                            crossings++;
+                    }
+
+                    prev = curr;
+                }
+
+                return (crossings & 1) == 1;
+            }
+        }
+
+        private sealed class Line : Shape
+        {
+            private readonly Vector2[] _points;
+            private readonly float[] _len2;
+            private readonly Color? _strokeColor;
+            private readonly RenderContext.LineWidthPattern _strokeWidth;
+
+            public Line(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerLine line) : base(owner, line)
+            {
+                _len2 = new float[line.Points.Count - 1];
+                _points = new Vector2[line.Points.Count];
+                _strokeColor = line.StrokeColor;
+                _strokeWidth = new RenderContext.LineWidthPattern(line.StrokeWidth ?? "1", Log);
+                var bounds = BoundingBox2.CreateInvalid();
+                for (var i = 0; i < line.Points.Count; i++)
+                {
+                    _points[i] = line.Points[i];
+                    if (i > 0)
+                        _len2[i - 1] = Vector2.DistanceSquared(_points[i - 1], _points[i]);
+                    bounds.Include(_points[i]);
+                }
+
+                Bounds = bounds;
+            }
+
+            public override void DrawTo(in EquiShapesMapLayer.ShapesRenderContext shapes, ref RenderContext ctx)
+            {
+                if (_points.Length < 2 || !_strokeColor.HasValue)
+                    return;
+                var pattern = _strokeWidth;
+                var prev = shapes.Project(_points[0]);
+                for (var i = 1; i < _points.Length; i++)
+                {
+                    var curr = shapes.Project(_points[i]);
+                    ctx.DrawLine(prev, curr, _strokeColor.Value, ref pattern);
+                    prev = curr;
+                }
+            }
+
+            public override bool Intersects(Vector2 pt, float radius)
+            {
+                var radiusSquared = radius * radius;
+                for (var i = 0; i < _points.Length - 1; i++)
+                {
+                    var from = _points[i];
+                    var to = _points[i + 1];
+                    var len2 = _len2[i];
+                    var delta = to - from;
+                    var t = MathHelper.Clamp(Vector2.Dot(delta, pt - from) / len2, 0, 1);
+                    var projection = from + t * delta;
+                    if (Vector2.DistanceSquared(projection, pt) <= radiusSquared)
+                        return true;
+                }
+
+                return false;
             }
         }
 
@@ -269,11 +415,19 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             for (var i = 0; i < _shapeTrees.Length; i++)
                 _shapeTrees[i] = new MyDynamicAABBTree(Vector3.Zero);
             foreach (var polygon in ob.Polygons)
-                if (!polygon.Disabled)
+                if (!polygon.Disabled && polygon.Points.Count >= 3)
                 {
                     var built = new Polygon(this, polygon);
                     var box = To3D(built.Bounds);
                     _shapeTrees[polygon.Face].AddProxy(ref box, built, 1);
+                }
+
+            foreach (var line in ob.Lines)
+                if (!line.Disabled && line.Points.Count >= 2)
+                {
+                    var built = new Line(this, line);
+                    var box = To3D(built.Bounds);
+                    _shapeTrees[line.Face].AddProxy(ref box, built, 1);
                 }
         }
 
@@ -291,6 +445,9 @@ namespace Equinox76561198048419394.Cartography.MapLayers
     {
         [XmlElement("Polygon")]
         public List<MyObjectBuilder_ShapesLayerPolygon> Polygons;
+
+        [XmlElement("Line")]
+        public List<MyObjectBuilder_ShapesLayerLine> Lines;
     }
 
     public class MyObjectBuilder_ShapesLayerShape
@@ -306,6 +463,15 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
         [XmlElement]
         public float? MaxElevation;
+
+        [XmlElement]
+        public CustomMapLayerVisibility? Visibility;
+
+        [XmlElement]
+        public CustomMapLayerVisibility? TooltipVisibility;
+
+        [XmlElement("Tooltip")]
+        public List<TooltipLine> Tooltip;
     }
 
     public class MyObjectBuilder_ShapesLayerPolygon : MyObjectBuilder_ShapesLayerShape
@@ -314,7 +480,17 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         public List<SerializableVector2> Points;
 
         public ColorDefinitionRGBA? StrokeColor;
+        public string StrokeWidth;
         public ColorDefinitionRGBA? FillColor;
         public FillStyle? FillStyle;
+    }
+
+    public class MyObjectBuilder_ShapesLayerLine : MyObjectBuilder_ShapesLayerShape
+    {
+        [XmlElement("Pt")]
+        public List<SerializableVector2> Points;
+
+        public ColorDefinitionRGBA? StrokeColor;
+        public string StrokeWidth;
     }
 }

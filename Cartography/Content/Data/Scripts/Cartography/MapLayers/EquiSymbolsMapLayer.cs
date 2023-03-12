@@ -35,12 +35,13 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             _tooltip = new MyTooltip();
         }
 
-        public MyMapGridView BoundTo => View;
+        MyPlanetMapControl ICustomMapLayer.Map => Map;
+        MyMapGridView ICustomMapLayer.View => View;
 
         public override void Draw(float transitionAlpha)
         {
-            var environmentViewport = Map.GetEnvironmentMapViewport(View, out var face);
-            var screenViewport = new RectangleF(Map.GetPositionAbsoluteTopLeft() + Map.MapOffset, Map.MapSize);
+            var environmentViewport = Map.GetEnvironmentMapViewport(out var face);
+            var screenViewport = Map.GetScreenViewport();
             var mouseScreenPos = MyGuiManager.MouseCursorPosition;
 
             using (PoolManager.Get(out List<EquiSymbolsMapLayerDefinition.Symbol> symbols))
@@ -55,7 +56,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
                 void MaybeTooltip(EquiSymbolsMapLayerDefinition.Symbol symbol, RectangleF region)
                 {
-                    if (!region.Contains(mouseScreenPos) || symbol.Tooltip.Count == 0)
+                    if (symbol.Tooltip.Count == 0 || !symbol.TooltipVisibility.IsVisible(View.Zoom) || !region.Contains(mouseScreenPos))
                         return;
                     var dist2 = Vector2.Distance(region.Position + region.Size / 2, mouseScreenPos);
                     if (dist2 < bestTooltipAnchorDist2)
@@ -67,6 +68,8 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
                 foreach (var symbol in symbols)
                 {
+                    if (!symbol.Visibility.IsVisible(View.Zoom))
+                        continue;
                     ref readonly var placement = ref symbol.Placement(View.Zoom);
                     var anchor = symbol.Center * envToScreenScale + envToScreenTranslate;
                     if (placement.IconGroupsSize.X > 0 && placement.IconGroupsSize.Y > 0)
@@ -112,19 +115,8 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 if (_currentTooltipFor != bestTooltip)
                 {
                     _currentTooltipFor = bestTooltip;
-                    if (bestTooltip != null)
-                    {
-                        ((ICollection<MyColoredText>)_tooltip.ToolTips).Clear();
-                        foreach (var line in bestTooltip.Tooltip)
-                        {
-                            _tooltip.AddLine(line.Content,
-                                line.Scale ?? (line.Title ? _tooltip.TitleFont.Size : _tooltip.BodyFont.Size),
-                                line.Font != null ? MyStringHash.GetOrCompute(line.Font) : (line.Title ? _tooltip.TitleFont.Font : _tooltip.BodyFont.Font),
-                                line.Color ?? (line.Title ? _tooltip.TitleFont.Color : _tooltip.BodyFont.Color));
-                        }
-                    }
-
-                    EquiCustomMapLayersControl.CustomLayers(Map)?.BindTooltip(this, bestTooltip != null ? _tooltip : null);
+                    bestTooltip?.Tooltip.AddAllTo(_tooltip);
+                    this.BindTooltip(bestTooltip != null ? _tooltip : null);
                 }
             }
         }
@@ -189,7 +181,10 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             public readonly SymbolPlacement KingdomPlacement;
             public readonly SymbolPlacement RegionPlacement;
 
-            public readonly ListReader<MyObjectBuilder_EquiSymbolsMapLayerDefinition.TooltipLine> Tooltip;
+            public readonly CustomMapLayerVisibility TooltipVisibility;
+            public readonly ListReader<TooltipLine> Tooltip;
+
+            public readonly CustomMapLayerVisibility Visibility;
 
             public Symbol(MyObjectBuilder_EquiSymbolsMapLayerDefinition.MyObjectBuilder_Symbol ob)
             {
@@ -203,6 +198,8 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                     .ToList();
                 IconColor = ob.IconColor ?? Color.White;
                 Tooltip = ob.Tooltip;
+                Visibility = ob.Visibility ?? CustomMapLayerVisibility.Both;
+                TooltipVisibility = ob.TooltipVisibility ?? CustomMapLayerVisibility.Both;
 
                 SymbolPlacement CreatePlacement(float textScale, float iconSize)
                 {
@@ -310,31 +307,6 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         [XmlElement("Symbol")]
         public List<MyObjectBuilder_Symbol> Symbols;
 
-        public struct TooltipLine
-        {
-            [XmlAttribute]
-            public bool Title;
-
-            [XmlAttribute]
-            public string Font;
-
-            [XmlIgnore]
-            public float? Scale;
-
-            [XmlAttribute("Scale")]
-            public float ScaleAttr
-            {
-                get => Scale ?? .7f;
-                set => Scale = value;
-            }
-
-            [XmlAttribute]
-            public string Content;
-
-            [XmlElement]
-            public ColorDefinitionRGBA? Color;
-        }
-
         public class MyObjectBuilder_Symbol
         {
             [XmlAttribute]
@@ -380,8 +352,11 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             public float? IconRegionSize;
 
             [XmlElement]
-            public string TooltipTitle;
+            public CustomMapLayerVisibility? Visibility;
 
+            [XmlElement]
+            public CustomMapLayerVisibility? TooltipVisibility;
+            
             [XmlElement("Tooltip")]
             public List<TooltipLine> Tooltip;
         }

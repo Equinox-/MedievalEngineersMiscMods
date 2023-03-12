@@ -27,21 +27,43 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         protected abstract TArgs GetArgs(out bool shouldRender);
         protected abstract void Render(in TArgs args, ref RenderContext ctx);
 
+        public readonly struct StencilAccessor
+        {
+            public readonly Vector2I Size;
+            private readonly byte[] _stencil;
+            private readonly int _rowStride;
+
+            public StencilAccessor(Vector2I size, byte[] stencil, int rowStride)
+            {
+                Size = size;
+                _stencil = stencil;
+                _rowStride = rowStride;
+            }
+
+            public byte ReadStencil(int x, int y) => _stencil[y * _rowStride + x];
+        }
+
+        protected virtual void AfterDrawn(in TArgs args, in StencilAccessor stencil)
+        {
+        }
+
         public override void Draw(float transitionAlpha)
         {
             var args = GetArgs(out var shouldRender);
             if (!shouldRender)
                 return;
             var pos = MyGuiManager.GetScreenCoordinateFromNormalizedCoordinate(Map.GetPositionAbsoluteTopLeft() + Map.MapOffset).Round();
-            var size = MyGuiManager.GetScreenSizeFromNormalizedSize(Map.MapSize).Round() - 1;
-            var trueSize = new Vector2I(MathHelper.GetNearestBiggerPowerOfTwo(size.X), MathHelper.GetNearestBiggerPowerOfTwo(size.Y));
-            if (trueSize != _targetTextureSize)
+            var uiSize = MyGuiManager.GetScreenSizeFromNormalizedSize(Map.MapSize).Round() - 1;
+            const int pixelSize = 1;
+            var size = uiSize / pixelSize;
+            var texSize = new Vector2I(MathHelper.GetNearestBiggerPowerOfTwo(size.X), MathHelper.GetNearestBiggerPowerOfTwo(size.Y));
+            if (texSize != _targetTextureSize)
             {
-                _targetTextureSize = trueSize;
+                _targetTextureSize = texSize;
                 MyRenderProxy.UnloadTexture(_targetTexture);
-                MyRenderProxy.CreateGeneratedTexture(_targetTexture, trueSize.X, trueSize.Y);
-                var stencilSize = trueSize.X * trueSize.Y;
-                var neededSize = trueSize.X * trueSize.Y * 4;
+                MyRenderProxy.CreateGeneratedTexture(_targetTexture, texSize.X, texSize.Y);
+                var stencilSize = texSize.X * texSize.Y;
+                var neededSize = texSize.X * texSize.Y * 4;
                 if (_targetTextureData == null || _targetTexture.Length != neededSize)
                     _targetTextureData = new byte[neededSize];
                 if (_stencilData == null || _stencilData.Length != stencilSize)
@@ -51,14 +73,13 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             if (_renderedSize != size || !args.Equals(_renderedArgs))
                 RenderInternal(in args, size);
 
-            var dest = new RectangleF(pos, size);
+            var dest = new RectangleF(pos, uiSize);
             Rectangle? src = new Rectangle(Vector2.Zero, size);
             var origin = Vector2.Zero;
-            MyRenderProxy.DrawSprite(_targetTexture,
-                ref dest, true,
-                ref src, Color.White,
-                0, Vector2.UnitX, ref origin,
-                SpriteEffects.None, 0);
+            MyRenderProxy.DrawSprite(_targetTexture, ref dest, true, ref src, Color.White, 0,
+                Vector2.UnitX, ref origin, SpriteEffects.None, 0);
+            var stencil = new StencilAccessor(_renderedSize, _stencilData, _targetTextureSize.Y);
+            AfterDrawn(in args, in stencil);
         }
 
         public override void OnRemoving()
@@ -68,7 +89,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             _renderedArgs = default;
             _targetTextureSize = default;
         }
-        
+
         private void RenderInternal(in TArgs args, Vector2I size)
         {
             var targetData = _targetTextureData;
@@ -132,37 +153,8 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         {
             var planet = Map.Planet;
             shouldRender = true;
-            var rectangle = Map.GetEnvironmentMapViewport(View, out var face);
+            var rectangle = Map.GetEnvironmentMapViewport(out var face);
             return new SimpleRasterizedLayerArgs(planet, face, rectangle);
-        }
-    }
-
-    public static class EquiPlanetControlExtensions
-    {
-        public static RectangleF GetEnvironmentMapViewport(this MyPlanetMapControl control, MyMapGridView view, out int face)
-        {
-            var planet = control.Planet;
-            var areas = planet.Get<MyPlanetAreasComponent>();
-            int scalingCount;
-            switch (view.Zoom)
-            {
-                case MyPlanetMapZoomLevel.Kingdom:
-                    scalingCount = areas.RegionCount;
-                    break;
-                case MyPlanetMapZoomLevel.Region:
-                    scalingCount = areas.AreaCount;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            var counts = view.Size;
-            MyPlanetAreasComponent.UnpackAreaId(view[0, 0], out face, out var minCellX, out var minCellY);
-            MyPlanetAreasComponent.UnpackAreaId(view[counts.X - 1, counts.Y - 1], out _, out int maxCellX, out var maxCellY);
-
-            var minTexCoord = (2 * new Vector2(minCellX, minCellY) - scalingCount) / scalingCount;
-            var maxTexCoord = (2 * new Vector2(maxCellX + 1, maxCellY + 1) - scalingCount) / scalingCount;
-            return new RectangleF(minTexCoord, maxTexCoord - minTexCoord);
         }
     }
 }

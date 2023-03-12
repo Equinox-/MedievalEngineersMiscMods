@@ -1,3 +1,4 @@
+using System;
 using Medieval.GUI.Ingame.Map;
 using Sandbox.Game.Entities;
 using VRage.Game;
@@ -11,21 +12,21 @@ namespace Equinox76561198048419394.Cartography.MapLayers
     public abstract class EquiCustomMapLayerDefinition : MyVisualDefinitionBase
     {
         public string Order { get; private set; }
-        public bool VisibleByDefaultInKingdoms { get; private set; }
-        public bool VisibleByDefaultInRegions { get; private set; }
+        public CustomMapLayerVisibility Visible { get; private set; }
+        public CustomMapLayerVisibility VisibleByDefault { get; private set; }
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
             base.Init(def);
             var ob = (MyObjectBuilder_EquiCustomMapLayerDefinition)def;
             Order = ob.Order ?? Id.SubtypeName;
-            VisibleByDefaultInKingdoms = ob.VisibleByDefaultInKingdoms ?? ob.VisibleByDefault ?? false;
-            VisibleByDefaultInRegions = ob.VisibleByDefaultInRegions ?? ob.VisibleByDefault ?? false;
+            Visible = ob.Visible ?? CustomMapLayerVisibility.Both;
+            VisibleByDefault = (ob.VisibleByDefault ?? CustomMapLayerVisibility.None) & Visible;
         }
 
         public virtual bool IsSupported(MyPlanet planet, MyPlanetMapZoomLevel zoom)
         {
-            return true;
+            return Visible.IsVisible(zoom);
         }
 
         public abstract ICustomMapLayer CreateLayer(MyPlanetMapControl control, MyMapGridView view);
@@ -34,8 +35,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
     public abstract class MyObjectBuilder_EquiCustomMapLayerDefinition : MyObjectBuilder_VisualDefinitionBase
     {
         public string Order;
-        public bool? VisibleByDefault;
-        public bool? VisibleByDefaultInKingdoms;
-        public bool? VisibleByDefaultInRegions;
+        public CustomMapLayerVisibility? Visible;
+        public CustomMapLayerVisibility? VisibleByDefault;
     }
 }

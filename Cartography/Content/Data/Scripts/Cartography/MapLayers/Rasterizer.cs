@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Equinox76561198048419394.Cartography.Utils;
 using VRage.Library.Collections;
+using VRage.Logging;
 using VRageMath;
 
 namespace Equinox76561198048419394.Cartography.MapLayers
@@ -28,7 +30,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         private void PaintPixel(int pos, Color color)
         {
             var stencilVal = Stencil[pos >> 2];
-            if (stencilVal < StencilRule.MinValue || stencilVal >= StencilRule.MaxValue)
+            if (!StencilRule.Test(stencilVal))
                 return;
             // Don't bother doing alpha compositing, things don't really overlap
             Pixels[pos] = color.R;
@@ -37,17 +39,63 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             Pixels[pos + 3] = color.A;
         }
 
-        public void DrawLine(Vector2I p0, Vector2I p1, Color color)
+        private void PaintPixel(int x, int y, Color color, bool boundsCheck = false)
+        {
+            if (boundsCheck && (x < 0 || y < 0 || x >= Size.X || y >= Size.Y))
+                return;
+            PaintPixel(x * PixelStride + y * RowStride, color);
+        }
+
+        private void PaintPixel(Vector2I pos, Color color, bool boundsCheck = false) => PaintPixel(pos.X, pos.Y, color, boundsCheck);
+
+        private void PaintRect(int x, int y, int width, int height, Color color, bool boundsCheck = false)
+        {
+            if (boundsCheck)
+            {
+                if (x >= Size.X || y >= Size.Y)
+                    return;
+                if (x < 0)
+                {
+                    width += x;
+                    x = 0;
+                }
+
+                if (y < 0)
+                {
+                    height += y;
+                    y = 0;
+                }
+
+                if (width <= 0 || height <= 0)
+                    return;
+            }
+
+            var pos = x * PixelStride + y * RowStride;
+            var modifiedRowStride = RowStride - width * PixelStride;
+            for (var cy = 0; cy < height; cy++)
+            {
+                for (var cx = 0; cx < width; cx++)
+                {
+                    PaintPixel(pos, color);
+                    pos += PixelStride;
+                }
+
+                pos += modifiedRowStride;
+            }
+        }
+
+        public void DrawLine<TWidth>(Vector2I p0, Vector2I p1, Color color, ref TWidth widthPainter) where TWidth : struct, ILineWidthPainter
         {
             if (!CohenSutherlandClip(Size, ref p0, ref p1))
                 return;
             if (p0 == p1)
                 PaintPixel(p0.Y * RowStride + p0.X * PixelStride, color);
             else
-                DrawLineInternal(p0, p1, color);
+                DrawLineInternal(p0, p1, color, ref widthPainter);
         }
 
-        public void DrawPolygon(List<Vector2I> loop, Color? fillColor, FillStyle fillStyle, Color? strokeColor)
+        public void DrawPolygon<TWidth>(List<Vector2I> loop, Color? fillColor, FillStyle fillStyle, Color? strokeColor, ref TWidth widthPainter)
+            where TWidth : struct, ILineWidthPainter
         {
             if (fillColor.HasValue)
             {
@@ -63,7 +111,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             var prev = loop[loop.Count - 1];
             foreach (var curr in loop)
             {
-                DrawLine(prev, curr, strokeColor.Value);
+                DrawLine(prev, curr, strokeColor.Value, ref widthPainter);
                 prev = curr;
             }
         }
@@ -164,7 +212,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                         break;
 
                     // Re-sort crossings
-                    Array.Sort(_crossings, 0, _crossingsCount, CrossingSortByX);
+                    Array.Sort(_crossings, 0, _crossingsCount, _crossingSortByX);
 
                     for (var i = 0; i < _crossingsCount - 1; i += 2)
                     {
@@ -219,11 +267,11 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             }
 
             private static readonly EdgeSorter EdgeSortByMinY = new EdgeSorter();
-            private readonly CrossingSorter CrossingSortByX;
+            private readonly CrossingSorter _crossingSortByX;
 
             public PolygonRasterHelper()
             {
-                CrossingSortByX = new CrossingSorter(this);
+                _crossingSortByX = new CrossingSorter(this);
             }
         }
 
@@ -307,40 +355,333 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             }
         }
 
-        private void DrawLineInternal(Vector2I p0, Vector2I p1, Color color)
+        private void DrawLineInternal<TWidth>(Vector2I p0, Vector2I p1, Color color, ref TWidth widthPattern) where TWidth : struct, ILineWidthPainter
         {
-            var dx = Math.Abs(p1.X - p0.X);
-            var dy = -Math.Abs(p1.Y - p0.Y);
+            var delta = p1 - p0;
+            var step = Vector2I.One;
 
+            void FlipDelta(ref int deltaValue, ref int stepValue)
+            {
+                if (deltaValue < 0)
+                {
+                    stepValue = -1;
+                    deltaValue = -deltaValue;
+                }
+                else if (deltaValue == 0)
+                {
+                    stepValue = 0;
+                }
+            }
+
+            FlipDelta(ref delta.X, ref step.X);
+            FlipDelta(ref delta.Y, ref step.Y);
+
+            var constantWidth = widthPattern.ConstantWidth;
+            // Vertical or horizontal line of constant width
+            if (constantWidth.HasValue && (delta.X == 0 || delta.Y == 0))
+            {
+                var min = Vector2I.Min(p0, p1);
+                var max = Vector2I.Max(p0, p1);
+                var width = constantWidth.Value;
+                var half = (constantWidth.Value - 1) / 2;
+                if (delta.X == 0)
+                    PaintRect(min.X - half, min.Y, width, max.Y - min.Y + 1, color, true);
+                else
+                    PaintRect(min.X, min.Y - half, max.X - min.X + 1, width, color, true);
+            }
+            // Complex line of 1 pixel width
+            else if (constantWidth <= 1)
+                DrawSinglePixelLineInternal(p0, p1, delta, step, color);
+            // Complex line of constant >1 pixel width
+            else if (constantWidth.HasValue)
+                DrawConstantWidthLineInternal(p0, p1, delta, step, constantWidth.Value, color);
+            // Horizontal line of variable width
+            else if (delta.Y == 0)
+            {
+                for (var x = p0.X; x <= p1.X; x += step.X)
+                {
+                    var width = widthPattern.NextWidth();
+                    var half = (width - 1) / 2;
+                    PaintRect(x, p0.Y - half, 1, width, color, true);
+                }
+            }
+            // Vertical line of variable width
+            else if (delta.X == 0)
+            {
+                for (var y = p0.Y; y <= p1.Y; y += step.Y)
+                {
+                    var width = widthPattern.NextWidth();
+                    var half = (width - 1) / 2;
+                    PaintRect(p0.X - half, y, width, 1, color, true);
+                }
+            }
+            // Complex line of variable width
+            else
+                new VariableWidthLinePainter<TWidth>(p0, delta, step, color).Execute(ref this, ref widthPattern);
+        }
+
+        private void DrawSinglePixelLineInternal(Vector2I p0, Vector2I p1, Vector2I delta, Vector2I step, Color color)
+        {
+            var err = delta.X - delta.Y;
+            var stepPosX = step.X * PixelStride;
+            var stepPosY = step.Y * RowStride;
             var pos = p0.Y * RowStride + p0.X * PixelStride;
             var end = p1.Y * RowStride + p1.X * PixelStride;
 
-            var sx = p0.X < p1.X ? PixelStride : -PixelStride;
-            var sy = p0.Y < p1.Y ? RowStride : -RowStride;
-            var err = dx + dy;
             while (true)
             {
                 if (pos == end) break;
                 PaintPixel(pos, color);
                 var e2 = 2 * err;
-                if (e2 >= dy)
+                if (e2 >= -delta.Y)
                 {
-                    err += dy;
-                    pos += sx;
+                    err -= delta.Y;
+                    pos += stepPosX;
                 }
 
-                if (e2 <= dx)
+                if (e2 <= delta.X)
                 {
-                    err += dx;
-                    pos += sy;
+                    err += delta.X;
+                    pos += stepPosY;
                 }
+            }
+        }
+
+        private void DrawConstantWidthLineInternal(Vector2I p0, Vector2I p1, Vector2I delta, Vector2I step, int width, Color color)
+        {
+            var err = delta.X - delta.Y;
+            var pt = p0;
+            var half = (width - 1) / 2;
+            while (true)
+            {
+                if (pt == p1) break;
+
+                PaintPixel(pt.X, pt.Y, color);
+
+                var e2 = 2 * err;
+                if (e2 >= -delta.Y)
+                {
+                    PaintRect(pt.X, pt.Y - half, 1, width, color, true);
+                    err -= delta.Y;
+                    pt.X += step.X;
+                }
+
+                if (e2 <= delta.X)
+                {
+                    PaintRect(pt.X - half, pt.Y, width, 1, color, true);
+                    err += delta.X;
+                    pt.Y += step.Y;
+                }
+            }
+        }
+
+        private readonly struct VariableWidthLinePainter<TWidth> where TWidth : struct, ILineWidthPainter
+        {
+            private readonly Vector2I p0;
+            private readonly Vector2I delta;
+            private readonly Vector2I step;
+            private readonly Vector2I pStep;
+            private readonly Color color;
+
+            public VariableWidthLinePainter(Vector2I p0, Vector2I delta, Vector2I step, Color color)
+            {
+                this.p0 = p0;
+                this.delta = delta;
+                this.step = step;
+                this.color = color;
+                pStep = new Vector2I(step.Y, -step.X);
+                // Weird edge cases...
+                if (step.X == step.Y || step == new Vector2I(1, 0))
+                    pStep = -pStep;
+            }
+
+            public void Execute(ref RenderContext render, ref TWidth widthPattern)
+            {
+                if (delta.X > delta.Y)
+                    DrawVariableWidthLineInternal(ref render, ref widthPattern, 1, default(XAccessor), default(YAccessor));
+                else
+                    DrawVariableWidthLineInternal(ref render, ref widthPattern, -1, default(YAccessor), default(XAccessor));
+            }
+
+            private void DrawPerpendicular<TP, TS>(
+                ref RenderContext render, Vector2I start, int pError, int halfWidth, int mainError,
+                TP primary, TS secondary)
+                where TP : struct, ICoordinateAccessor<Vector2I, int> where TS : struct, ICoordinateAccessor<Vector2I, int>
+            {
+                var threshold = primary.Read(in delta) - 2 * secondary.Read(in delta);
+                var errorDiagonal = -2 * primary.Read(in delta);
+                var errorSquare = 2 * secondary.Read(in delta);
+                var q = 0;
+                var p = 0;
+
+                var pos = start;
+                var error = pError;
+                var tk = primary.Read(in delta) + secondary.Read(in delta) - mainError;
+
+                while (tk <= halfWidth)
+                {
+                    render.PaintPixel(pos, color, true);
+                    if (error >= threshold)
+                    {
+                        primary.Write(ref pos) += primary.Read(in pStep);
+                        error += errorDiagonal;
+                        tk += 2 * secondary.Read(in delta);
+                    }
+
+                    error += errorSquare;
+                    secondary.Write(ref pos) += secondary.Read(in pStep);
+                    tk += 2 * primary.Read(in delta);
+                    q++;
+                }
+
+                pos = start;
+                error = -pError;
+                tk = primary.Read(in delta) + secondary.Read(in delta) + mainError;
+
+                while (tk <= halfWidth)
+                {
+                    if (p != 0)
+                        render.PaintPixel(pos, color, true);
+                    if (error > threshold)
+                    {
+                        primary.Write(ref pos) -= primary.Read(in pStep);
+                        error += errorDiagonal;
+                        tk += 2 * secondary.Read(in delta);
+                    }
+
+                    error += errorSquare;
+                    secondary.Write(ref pos) -= secondary.Read(in pStep);
+                    tk += 2 * primary.Read(in delta);
+                    p++;
+                }
+
+                if (q == 0 && p < 2) render.PaintPixel(start, color);
+            }
+
+            private void DrawVariableWidthLineInternal<TP, TS>(
+                ref RenderContext render, ref TWidth widthPattern, int pErrorScale,
+                TP primary, TS secondary)
+                where TP : struct, ICoordinateAccessor<Vector2I, int>
+                where TS : struct, ICoordinateAccessor<Vector2I, int>
+            {
+                var pError = 0;
+                var error = 0;
+                var pos = p0;
+                var threshold = primary.Read(in delta) - 2 * secondary.Read(in delta);
+                var errorDiagonal = -2 * primary.Read(in delta);
+                var errorSquare = 2 * secondary.Read(in delta);
+                var length = Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
+
+                for (var p = 0; p <= primary.Read(in delta); p++)
+                {
+                    var width = widthPattern.NextWidth();
+                    var halfWidth = (int)((width - 1) * length * 2);
+                    if (width > 0)
+                        DrawPerpendicular(ref render, pos, pError * pErrorScale, halfWidth, error * pErrorScale, primary, secondary);
+                    if (error >= threshold)
+                    {
+                        secondary.Write(ref pos) += secondary.Read(in step);
+                        error += errorDiagonal;
+                        if (pError >= threshold)
+                        {
+                            if (width > 0)
+                                DrawPerpendicular(ref render, pos, pErrorScale * (pError + errorDiagonal + errorSquare), halfWidth, error * pErrorScale,
+                                    primary, secondary);
+                            pError += errorDiagonal;
+                        }
+
+                        pError += errorSquare;
+                    }
+
+                    error += errorSquare;
+                    primary.Write(ref pos) += primary.Read(in step);
+                }
+            }
+        }
+
+        public interface ILineWidthPainter
+        {
+            int? ConstantWidth { get; }
+
+            int NextWidth();
+        }
+
+        public struct LineWidthPattern : ILineWidthPainter
+        {
+            private int _pos;
+            private readonly int[] _pattern;
+
+            public LineWidthPattern(int[] pattern)
+            {
+                _pos = 0;
+                _pattern = pattern;
+            }
+
+            public LineWidthPattern(string pattern, NamedLogger logger)
+            {
+                var tmp = new List<int>();
+                var prevComma = -1;
+                while (prevComma < pattern.Length)
+                {
+                    var nextComma = pattern.IndexOf(',', prevComma + 1);
+                    if (nextComma < 0)
+                        nextComma = pattern.Length;
+                    var repeat = pattern.IndexOf('*', prevComma + 1);
+                    var hasRepeats = repeat >= 0 && repeat < nextComma;
+                    var width = pattern.Substring(prevComma + 1, (hasRepeats ? repeat : nextComma) - prevComma - 1);
+                    if (!int.TryParse(width, out var widthValue))
+                    {
+                        logger.Warning($"Failed to parse line width {width}");
+                        prevComma = nextComma;
+                        continue;
+                    }
+
+                    var count = 1;
+                    if (hasRepeats)
+                    {
+                        var repeats = pattern.Substring(repeat + 1, nextComma - repeat - 1);
+                        if (!int.TryParse(repeats, out count))
+                        {
+                            count = 1;
+                            logger.Warning($"Failed to parse line width repeats {repeats}");
+                        }
+                    }
+
+                    for (var i = 0; i < count; i++)
+                        tmp.Add(widthValue);
+                    prevComma = nextComma;
+                }
+
+                _pos = 0;
+                _pattern = tmp.ToArray();
+            }
+
+            public int? ConstantWidth
+            {
+                get
+                {
+                    if (_pattern == null || _pattern.Length == 0)
+                        return 1;
+                    if (_pattern.Length == 1)
+                        return _pattern[0];
+                    return null;
+                }
+            }
+
+            public int NextWidth()
+            {
+                var value = _pattern[_pos];
+                _pos++;
+                if (_pos >= _pattern.Length)
+                    _pos = 0;
+                return value;
             }
         }
 
         #endregion
     }
 
-    public readonly struct StencilRule
+    public readonly struct StencilRule : IEquatable<StencilRule>
     {
         public readonly int MinValue;
         public readonly int MaxValue;
@@ -352,7 +693,15 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             MinValue = minValue;
             MaxValue = maxValue;
         }
-    } 
+
+        public bool Test(byte stencilVal) => stencilVal >= MinValue && stencilVal < MaxValue;
+
+        public bool Equals(StencilRule other) => MinValue == other.MinValue && MaxValue == other.MaxValue;
+
+        public override bool Equals(object obj) => obj is StencilRule other && Equals(other);
+
+        public override int GetHashCode() => (MinValue * 397) ^ MaxValue;
+    }
 
     public enum FillStyle
     {

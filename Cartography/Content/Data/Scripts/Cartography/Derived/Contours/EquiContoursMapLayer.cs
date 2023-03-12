@@ -71,17 +71,20 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
                 var prev = MapVertex(contour.StartVertex);
                 var major = _opts.MajorContourEvery != 0 && (contour.ContourId % _opts.MajorContourEvery) == 0;
                 var color = major ? _opts.MajorContourColor : _opts.MinorContourColor;
+                var pattern = default(RenderContext.LineWidthPattern);
                 for (var v = contour.StartVertex + 1; v <= contour.EndVertex; v++)
                 {
                     var curr = MapVertex(v);
-                    ctx.DrawLine(prev, curr, color);
+                    ctx.DrawLine(prev, curr, color, ref pattern);
                     prev = curr;
                 }
             }
         }
 
         public EquiCustomMapLayerDefinition Source { get; }
-        public MyMapGridView BoundTo => View;
+
+        MyPlanetMapControl ICustomMapLayer.Map => Map;
+        MyMapGridView ICustomMapLayer.View => View;
     }
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiContoursMapLayerDefinition))]

@@ -30,11 +30,11 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         private ICustomMapLayer _boundTooltipOwner;
         private int _boundTooltipDelay;
 
-        public EquiCustomMapLayersControl(MyMapScreen screen) : base(position: new Vector2(-.28f, .35f), size: new Vector2(.32f, .05f))
+        public EquiCustomMapLayersControl(MyMapScreen screen) : base(position: new Vector2(-.28f, .3495f), size: new Vector2(.32f, .05f))
         {
             _owner = screen;
             Layout = new MyHorizontalLayoutBehavior();
-            var buttonSize = new Vector2(50, 50) / MyGuiConstants.GUI_OPTIMAL_SIZE;
+            var buttonSize = new Vector2(75) / MyGuiConstants.GUI_OPTIMAL_SIZE;
             var space = new MyGuiControlLabel(size: buttonSize)
             {
                 LayoutStyle = MyGuiControlLayoutStyle.DynamicX
@@ -51,7 +51,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 if (definition.IsSupported(mapControl.Planet, MyPlanetMapZoomLevel.Kingdom))
                 {
                     kingdomLayer = definition.CreateLayer(mapControl, mapControl.KingdomView);
-                    kingdomLayer.Visible = definition.VisibleByDefaultInKingdoms;
+                    kingdomLayer.Visible = definition.VisibleByDefault.IsVisible(MyPlanetMapZoomLevel.Kingdom);
                     mapControl.KingdomView.AddLayer(kingdomLayer);
                 }
 
@@ -59,7 +59,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 if (definition.IsSupported(mapControl.Planet, MyPlanetMapZoomLevel.Region))
                 {
                     regionLayer = definition.CreateLayer(mapControl, mapControl.RegionView);
-                    regionLayer.Visible = definition.VisibleByDefaultInRegions;
+                    regionLayer.Visible = definition.VisibleByDefault.IsVisible(MyPlanetMapZoomLevel.Region);
                     mapControl.RegionView.AddLayer(regionLayer);
                 }
 
@@ -117,7 +117,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
             if (_boundTooltip != null
                 && _boundTooltipOwner.Visible
-                && _boundTooltipOwner.BoundTo == _owner.MapControl.CurrentView
+                && _boundTooltipOwner.View == _owner.MapControl.CurrentView
                 && MyGuiManager.TotalTimeInMilliseconds > _boundTooltipDelay)
             {
                 var timeToFullAlpha = _boundTooltipDelay + MyGuiConstants.SHOW_ALPHA_ANIMATION_TOOLTIP_TIME - MyGuiManager.TotalTimeInMilliseconds;

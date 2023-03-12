@@ -15,6 +15,7 @@ using VRage.Game.Definitions;
 using VRage.Input.Devices.Mouse;
 using VRage.Logging;
 using VRage.ObjectBuilders;
+using VRage.Session;
 using VRageMath;
 
 namespace Equinox76561198048419394.Cartography.MapLayers
@@ -24,23 +25,29 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         private readonly EquiDebugMapLayerDefinition _definition;
 
         public EquiDebugMapLayer(EquiDebugMapLayerDefinition definition) => _definition = definition;
-        public MyMapGridView BoundTo => View;
+
+        MyPlanetMapControl ICustomMapLayer.Map => Map;
+        MyMapGridView ICustomMapLayer.View => View;
         public EquiCustomMapLayerDefinition Source => _definition;
 
         public override void Draw(float transitionAlpha)
         {
             if (!Map.IsMouseOver)
                 return;
-            var environmentViewport = Map.GetEnvironmentMapViewport(View, out var face);
-            var screenViewport = new RectangleF(Map.GetPositionAbsoluteTopLeft() + Map.MapOffset, Map.MapSize);
-            var mouseNormPos = (MyGuiManager.MouseCursorPosition - screenViewport.Position) / screenViewport.Size;
-            if (mouseNormPos.X < 0 || mouseNormPos.Y < 0 || mouseNormPos.X > 1 || mouseNormPos.Y > 1)
+            if (!Map.TryGetMouseEnvironmentPosition(out var face, out var mouseEnvPos))
                 return;
-            var mouseEnvPos = (mouseNormPos * environmentViewport.Size) + environmentViewport.Position;
+            var screenViewport = Map.GetScreenViewport();
+            var player = MySession.Static?.PlayerEntity?.GetPosition() ?? Vector3D.Zero;
             
+            var localPos = player - Map.Planet.GetPosition();
+
+            var elevation = localPos.Normalize() - Map.Planet.AverageRadius;
+            var lng = MathHelper.ToDegrees(Math.Atan2(-localPos.X, -localPos.Z));
+            var lat = MathHelper.ToDegrees(Math.Atan2(localPos.Y, Math.Sqrt(localPos.X * localPos.X + localPos.Z * localPos.Z)));
+
             MyFontHelper.DrawString(
                 MyGuiConstants.DEFAULT_FONT, 
-                $"F: {face}\nX: {mouseEnvPos.X:F08}\nY: {mouseEnvPos.Y:F08}", 
+                $"F: {face}\nX: {mouseEnvPos.X:F08}\nY: {mouseEnvPos.Y:F08}\nP: {lng:F8},{lat:F8},{elevation:F8}", 
                 screenViewport.Position, 1f);
             if (MyAPIGateway.Input.IsMousePressed(MyMouseButtons.Left))
             {

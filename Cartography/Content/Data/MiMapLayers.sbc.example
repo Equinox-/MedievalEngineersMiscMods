@@ -26,6 +26,8 @@
             <Pt x="-0.5699347" y="-0.1560719" />
             <FillColor R="0" G="255" B="0" A="200" />
             <FillStyle>DashDiagonalTopLeftBottomRight</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Peaceful" Title="true" />
         </Polygon>
         <!-- Neutral -->
         <Polygon Face="0">
@@ -50,6 +52,8 @@
             <Pt x="-0.7529414" y="-0.3730654" />
             <FillColor R="255" G="255" B="0" A="200" />
             <FillStyle>DashVertical</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Neutral" Title="true" />
         </Polygon>
         <!-- War, Mainland -->
         <Polygon Face="0">
@@ -74,6 +78,8 @@
             <Pt x="-0.1568629" y="0.09752297" />
             <FillColor R="255" G="0" B="0" A="200" />
             <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Combat" Title="true" />
         </Polygon>
         <!-- War, NW Island -->
         <Polygon Face="0">
@@ -84,6 +90,8 @@
             <Pt x="-1" y="-0.4436536" />
             <FillColor R="255" G="0" B="0" A="200" />
             <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Combat" Title="true" />
         </Polygon>
         <Polygon Face="2">
             <MinElevation>0.1905</MinElevation>
@@ -94,6 +102,8 @@
             <Pt x="0.8156861" y="-0.4514968" />
             <FillColor R="255" G="0" B="0" A="200" />
             <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Combat" Title="true" />
         </Polygon>
         <!-- War, SW Island -->
         <Polygon Face="0">
@@ -103,6 +113,8 @@
             <Pt x="-1" y="0.5890262" />
             <FillColor R="255" G="0" B="0" A="200" />
             <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Combat" Title="true" />
         </Polygon>
         <Polygon Face="2">
             <MinElevation>0.1905</MinElevation>
@@ -112,6 +124,8 @@
             <Pt x="0.5960782" y="0.3485034" />
             <FillColor R="255" G="0" B="0" A="200" />
             <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Combat" Title="true" />
         </Polygon>
         <!-- War, E Island -->
         <Polygon Face="3">
@@ -123,7 +137,41 @@
             <Pt x="-0.5175165" y="0.4696797" />
             <FillColor R="255" G="0" B="0" A="200" />
             <FillStyle>DashDiagonalTopRightBottomLeft</FillStyle>
+            <TooltipVisibility>Kingdoms</TooltipVisibility>
+            <Tooltip Content="Combat" Title="true" />
         </Polygon>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiShapesMapLayerDefinition">
+        <Id Type="MyObjectBuilder_EquiShapesMapLayerDefinition" Subtype="MiTransport" />
+        <DisplayName>Transport</DisplayName>
+        <Description>Transporation</Description>
+        <Icon>Textures\GUI\ContextualMenus\ButtonsBrown\Hands.png</Icon>
+        <!-- Railway -->
+        <Line Face="0">
+            <Pt x="0.1098037" y="-0.2135882" />
+            <Pt x="0.06797373" y="-0.2162026" />
+            <Pt x="0.04967308" y="-0.2345033" />
+            <Pt x="0.03398681" y="-0.2684902" />
+            <Pt x="-0.005228937" y="-0.2789477" />
+            <Pt x="-0.04967332" y="-0.2998627" />
+            <Pt x="-0.0915035" y="-0.2972484" />
+            <Pt x="-0.1176472" y="-0.2841765" />
+            <Pt x="-0.130719" y="-0.2528039" />
+            <Pt x="-0.1359478" y="-0.2266602" />
+            <Pt x="-0.1542485" y="-0.2005163" />
+            <Pt x="-0.1751636" y="-0.1952876" />
+            <Pt x="-0.2013073" y="-0.1926733" />
+            <Pt x="-0.2196079" y="-0.1639151" />
+            <Pt x="-0.240523" y="-0.1299282" />
+            <Pt x="-0.240523" y="-0.09071243" />
+            <Pt x="-0.2326798" y="-0.06979746" />
+            <Pt x="-0.2169936" y="-0.01228112" />
+            <Pt x="-0.2039217" y="0.08183658" />
+            <StrokeColor R="255" G="0" B="0" A="200" />
+            <StrokeWidth>3*16,7*2</StrokeWidth>
+            <Tooltip Content="Railway" Title="true" />
+        </Line>
     </Definition>
 
     <!-- find . -name '*.entity' | xargs xq '.MySerializedEntity.Entity | select(.["@Subtype"] == "LargeGrid") | (.ComponentContainer.Component |= map(.BlockToEntityMap.BlockToEntity.Entity.ComponentContainer.Component | select(. != null) | map(select(.Action != null)))) | { "pos": .PositionAndOrientation.Position, "c": (.ComponentContainer.Component | first | first) }' | jq -s  > ~/Downloads/all-data.json -->
@@ -180,7 +228,7 @@
                 <Icon>Textures\GUI\Icons\fluid_crude_oil.dds</Icon>
             </IconGroup>
             <Tooltip Content="Producing..." />
-            <Tooltip Content=" 2100x Crude Oil" />
+            <Tooltip Content=" 21L Crude Oil" />
             <Tooltip Content=" ...per hour" />
         </Symbol>
         <Symbol Face="0">
@@ -307,7 +355,7 @@
                 <Icon>Textures\GUI\Icons\fluid_crude_oil.dds</Icon>
             </IconGroup>
             <Tooltip Content="Producing..." />
-            <Tooltip Content=" 2100x Crude Oil" />
+            <Tooltip Content=" 21L Crude Oil" />
             <Tooltip Content=" ...per hour" />
         </Symbol>
         <Symbol Face="0">
@@ -481,7 +529,7 @@
                 <Icon>Textures\GUI\Icons\fluid_crude_oil.dds</Icon>
             </IconGroup>
             <Tooltip Content="Producing..." />
-            <Tooltip Content=" 2100x Crude Oil" />
+            <Tooltip Content=" 21L Crude Oil" />
             <Tooltip Content=" ...per hour" />
         </Symbol>
         <Symbol Face="2">
@@ -532,6 +580,5 @@
             <Tooltip Content=" 180x Copper Ore" />
             <Tooltip Content=" ...per hour" />
         </Symbol>
-
     </Definition>
 </Definitions>
