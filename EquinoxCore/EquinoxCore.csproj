@@ -108,7 +108,6 @@
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiLightComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiPhysicsTweakerComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiVoxelReplacer.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Misc\GridSyncer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedOwnershipComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedSkeletonComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\MiscInjections.cs" />
