@@ -548,6 +548,10 @@ namespace Equinox76561198048419394.Core.Controller
                 return false;
             }
 
+            // Clients don't do validation.
+            if (!MyMultiplayerModApi.Static.IsServer)
+                return true;
+
             if (!MyEventContext.Current.IsLocallyInvoked)
             {
                 var player = MyAPIGateway.Players.GetPlayerControllingEntity(Entity);
