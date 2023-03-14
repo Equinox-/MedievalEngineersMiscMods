@@ -337,7 +337,11 @@ namespace Equinox76561198048419394.Core.Mesh
             Vector3 alignNormal, PackedHsvShift color = default)
         {
             Vector3 norm;
-            if (d.HasValue)
+            const float eps = 1e-6f;
+            if (d.HasValue
+                && !a.Equals(b, eps) && !a.Equals(c, eps) && !a.Equals(d.Value, eps)
+                && !b.Equals(c, eps) && !b.Equals(d.Value, eps)
+                && !c.Equals(d.Value, eps))
             {
                 var tmpD = d.Value;
                 EquiMeshHelpers.SortSurfacePositions(alignNormal, ref a, ref b, ref c, ref tmpD);

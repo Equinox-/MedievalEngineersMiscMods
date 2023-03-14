@@ -219,7 +219,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
                 var dot = dir0.Dot(dir);
                 var cross = dir0.Cross(dir).Dot(normal);
-                Key = Math.Sign(cross) * (1 - dot);
+                Key = (cross < 0 ? -1 : 1) * (1 - dot);
             }
         }
 
@@ -227,7 +227,11 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var norm = (a - b).Cross(c - b);
             if (norm.Dot(alignment) < 0) norm = -norm;
-            norm.Normalize();
+            if (norm.Normalize() > 1e-3f)
+                return norm;
+            norm = alignment;
+            if (norm.Normalize() < 1e-3f)
+                norm = Vector3.Left;
             return norm;
         }
 
@@ -235,7 +239,12 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var center = (a + b + c + d) / 4;
             var norm = AlignedNormal(alignment, a, b, c) + AlignedNormal(alignment, b, c, d);
-            norm.Normalize();
+            if (norm.Normalize() < 1e-3f)
+            {
+                norm = alignment;
+                if (norm.Normalize() < 1e-3f)
+                    norm = Vector3.Left;
+            }
 
             if (!QuadSorting.TryDequeue(out var temp))
                 temp = new QuadSortKey[4];
