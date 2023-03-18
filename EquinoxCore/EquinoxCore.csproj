@@ -182,6 +182,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqReadOnlySpan.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\MemoryStream.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\SpanAllocator.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\Memory\SpanUtils.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MessageUtil.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MultiComponentReference.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\NetworkTrust.cs" />

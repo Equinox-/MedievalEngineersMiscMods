@@ -12,21 +12,21 @@ namespace Equinox76561198048419394.Cartography.MapLayers
     public abstract class EquiCustomMapLayerDefinition : MyVisualDefinitionBase
     {
         public string Order { get; private set; }
-        public CustomMapLayerVisibility Visible { get; private set; }
-        public CustomMapLayerVisibility VisibleByDefault { get; private set; }
+        public CustomMapLayerVisibility Visibility { get; private set; }
+        public CustomMapLayerVisibility VisibilityByDefault { get; private set; }
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
             base.Init(def);
             var ob = (MyObjectBuilder_EquiCustomMapLayerDefinition)def;
             Order = ob.Order ?? Id.SubtypeName;
-            Visible = ob.Visible ?? CustomMapLayerVisibility.Both;
-            VisibleByDefault = (ob.VisibleByDefault ?? CustomMapLayerVisibility.None) & Visible;
+            Visibility = ob.Visible ?? CustomMapLayerVisibility.Both;
+            VisibilityByDefault = (ob.VisibleByDefault ?? CustomMapLayerVisibility.None) & Visibility;
         }
 
         public virtual bool IsSupported(MyPlanet planet, MyPlanetMapZoomLevel zoom)
         {
-            return Visible.IsVisible(zoom);
+            return Visibility.IsVisible(zoom);
         }
 
         public abstract ICustomMapLayer CreateLayer(MyPlanetMapControl control, MyMapGridView view);

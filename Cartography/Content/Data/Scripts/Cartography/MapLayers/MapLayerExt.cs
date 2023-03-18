@@ -17,6 +17,9 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         [XmlAttribute]
         public bool Title;
 
+        [XmlIgnore]
+        public bool TitleSpecified => Title;
+
         [XmlAttribute]
         public string Font;
 
@@ -30,11 +33,17 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             set => Scale = value;
         }
 
+        [XmlIgnore]
+        public bool ScaleAttrSpecified => Scale.HasValue;
+
         [XmlAttribute]
         public string Content;
 
         [XmlElement]
         public ColorDefinitionRGBA? Color;
+
+        [XmlIgnore]
+        public bool ColorSpecified => Color.HasValue;
 
         public void AddTo(MyTooltip tooltip)
         {

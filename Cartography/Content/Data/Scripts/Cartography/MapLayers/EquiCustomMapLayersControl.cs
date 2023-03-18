@@ -51,7 +51,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 if (definition.IsSupported(mapControl.Planet, MyPlanetMapZoomLevel.Kingdom))
                 {
                     kingdomLayer = definition.CreateLayer(mapControl, mapControl.KingdomView);
-                    kingdomLayer.Visible = definition.VisibleByDefault.IsVisible(MyPlanetMapZoomLevel.Kingdom);
+                    kingdomLayer.Visible = definition.VisibilityByDefault.IsVisible(MyPlanetMapZoomLevel.Kingdom);
                     mapControl.KingdomView.AddLayer(kingdomLayer);
                 }
 
@@ -59,7 +59,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
                 if (definition.IsSupported(mapControl.Planet, MyPlanetMapZoomLevel.Region))
                 {
                     regionLayer = definition.CreateLayer(mapControl, mapControl.RegionView);
-                    regionLayer.Visible = definition.VisibleByDefault.IsVisible(MyPlanetMapZoomLevel.Region);
+                    regionLayer.Visible = definition.VisibilityByDefault.IsVisible(MyPlanetMapZoomLevel.Region);
                     mapControl.RegionView.AddLayer(regionLayer);
                 }
 

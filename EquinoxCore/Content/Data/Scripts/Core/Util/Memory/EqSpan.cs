@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util.Memory
 {
@@ -63,5 +64,7 @@ namespace Equinox76561198048419394.Core.Util.Memory
                 _currentIndex = -1;
             }
         }
+
+        public EqSpan<T> Slice(int offset, int count) => new EqSpan<T>(_array, _offset + offset, count);
     }
 }

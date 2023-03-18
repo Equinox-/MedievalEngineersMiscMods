@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Equinox76561198048419394.Cartography.Utils;
+using Equinox76561198048419394.Core.Util.Memory;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
 using Sandbox.ModAPI;
@@ -248,26 +250,6 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
                 return false;
             }
 
-            private static void MaxDistSq(List<Vector2> sequence, int left, int right, out float maxDist2, out int maxDistIndex)
-            {
-                var leftPos = sequence[left];
-                var delta = sequence[right] - leftPos;
-                var deltaLen2 = delta.LengthSquared();
-                maxDist2 = -1;
-                maxDistIndex = left;
-                for (var i = left + 1; i <= right - 1; i++)
-                {
-                    var pos = sequence[i];
-                    var t = MathHelper.Clamp(Vector2.Dot(pos - leftPos, delta) / deltaLen2, 0, 1);
-                    var dist2 = Vector2.DistanceSquared(pos, leftPos + t * delta);
-                    if (dist2 > maxDist2)
-                    {
-                        maxDist2 = dist2;
-                        maxDistIndex = i;
-                    }
-                }
-            }
-
             public void CollectEdges(short contour, float contourInterval, List<uint> vertices, List<ContourData.ContourLine> loops)
             {
                 void CollectLoop(int x, int y, Side incoming, List<Vector2> sequence, Stack<MyTuple<int, int>> ranges)
@@ -299,51 +281,15 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
                 {
                     if (sequence.Count <= 1)
                         return;
-                    ranges.Clear();
-                    if (Vector2.DistanceSquared(sequence[0], sequence[sequence.Count - 1]) < SimplificationDistanceSq)
-                    {
-                        if (sequence.Count >= 3)
-                        {
-                            var midway = sequence.Count / 2;
-                            ranges.Push(MyTuple.Create(0, midway));
-                            ranges.Push(MyTuple.Create(midway, sequence.Count - 1));
-                        }
-                    }
-                    else
-                    {
-                        ranges.Push(MyTuple.Create(0, sequence.Count - 1));
-                    }
-
-                    while (ranges.Count > 0)
-                    {
-                        var tmp = ranges.Pop();
-                        var left = tmp.Item1;
-                        var right = tmp.Item2;
-                        MaxDistSq(sequence, left, right, out var maxDist2, out var maxDistIndex);
-                        if (maxDist2 <= SimplificationDistanceSq)
-                        {
-                            // Acceptable error, clear out inner vertices
-                            for (var i = left + 1; i <= right - 1; i++)
-                                sequence[i] = new Vector2(float.NaN, float.NaN);
-                            continue;
-                        }
-
-                        // Subdivide
-                        if (left < maxDistIndex - 1)
-                            ranges.Push(MyTuple.Create(left, maxDistIndex));
-                        if (maxDistIndex + 1 < right)
-                            ranges.Push(MyTuple.Create(maxDistIndex, right));
-                    }
+                    var simplified = LineSimplifier.SimplifySequence(sequence.AsEqSpan(), SimplificationDistanceSq, ranges);
 
                     // Commit to vertex list.
                     var vertexOffset = vertices.Count;
-                    foreach (var vert in sequence)
-                    {
-                        if (!float.IsNaN(vert.X))
-                            vertices.Add(ContourData.PackVertex(vert / ElevationRasterSize));
-                    }
+                    foreach (var vert in simplified)
+                        vertices.Add(ContourData.PackVertex(vert / ElevationRasterSize));
 
-                    loops.Add(new ContourData.ContourLine(contour, contour * contourInterval, vertexOffset, vertices.Count - 1));
+                    loops.Add(new ContourData.ContourLine(contour, contour * contourInterval, 
+                        vertexOffset, vertexOffset + simplified.Length - 1));
                 }
 
                 for (var y = 0; y < ElevationRasterSize; y++)

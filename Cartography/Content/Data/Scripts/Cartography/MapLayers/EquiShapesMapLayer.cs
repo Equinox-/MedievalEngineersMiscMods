@@ -207,13 +207,13 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
         public abstract class Shape
         {
-            protected Shape(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerShape shape)
+            protected Shape(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerShape shape, int face)
             {
                 var minElevation = shape.MinElevation ?? 0;
                 var maxElevation = shape.MaxElevation ?? 1;
                 StencilRule = new StencilRule(owner.StencilValue(minElevation), owner.StencilValue(maxElevation));
                 Tooltip = shape.Tooltip;
-                Face = shape.Face;
+                Face = face;
                 Visibility = shape.Visibility ?? CustomMapLayerVisibility.Both;
                 TooltipVisibility = shape.TooltipVisibility ?? CustomMapLayerVisibility.Both;
             }
@@ -243,17 +243,21 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             private readonly Color? _fillColor;
             private readonly FillStyle _fillStyle;
 
-            public Polygon(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerPolygon polygon) : base(owner, polygon)
+            public Polygon(EquiShapesMapLayerDefinition owner,
+                MyObjectBuilder_ShapesLayerPolygon polygon,
+                int face,
+                List<SerializableVector2> points
+            ) : base(owner, polygon, face)
             {
-                _points = new Vector2[polygon.Points.Count];
+                _points = new Vector2[points.Count];
                 _strokeColor = polygon.StrokeColor;
                 _strokeWidth = new RenderContext.LineWidthPattern(polygon.StrokeWidth ?? "1", Log);
                 _fillColor = polygon.FillColor;
                 _fillStyle = polygon.FillStyle ?? FillStyle.Solid;
                 var bounds = BoundingBox2.CreateInvalid();
-                for (var i = 0; i < polygon.Points.Count; i++)
+                for (var i = 0; i < points.Count; i++)
                 {
-                    _points[i] = polygon.Points[i];
+                    _points[i] = points[i];
                     bounds.Include(_points[i]);
                 }
 
@@ -307,16 +311,17 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             private readonly Color? _strokeColor;
             private readonly RenderContext.LineWidthPattern _strokeWidth;
 
-            public Line(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerLine line) : base(owner, line)
+            public Line(EquiShapesMapLayerDefinition owner, MyObjectBuilder_ShapesLayerLine line,
+                int face, List<SerializableVector2> points) : base(owner, line, face)
             {
-                _len2 = new float[line.Points.Count - 1];
-                _points = new Vector2[line.Points.Count];
+                _len2 = new float[points.Count - 1];
+                _points = new Vector2[points.Count];
                 _strokeColor = line.StrokeColor;
                 _strokeWidth = new RenderContext.LineWidthPattern(line.StrokeWidth ?? "1", Log);
                 var bounds = BoundingBox2.CreateInvalid();
-                for (var i = 0; i < line.Points.Count; i++)
+                for (var i = 0; i < points.Count; i++)
                 {
-                    _points[i] = line.Points[i];
+                    _points[i] = points[i];
                     if (i > 0)
                         _len2[i - 1] = Vector2.DistanceSquared(_points[i - 1], _points[i]);
                     bounds.Include(_points[i]);
@@ -414,20 +419,31 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
             for (var i = 0; i < _shapeTrees.Length; i++)
                 _shapeTrees[i] = new MyDynamicAABBTree(Vector3.Zero);
+
+            void Register(Shape built)
+            {
+                var box = To3D(built.Bounds);
+                _shapeTrees[built.Face].AddProxy(ref box, built, 1);
+            }
+
             foreach (var polygon in ob.Polygons)
-                if (!polygon.Disabled && polygon.Points.Count >= 3)
+                if (!polygon.Disabled)
                 {
-                    var built = new Polygon(this, polygon);
-                    var box = To3D(built.Bounds);
-                    _shapeTrees[polygon.Face].AddProxy(ref box, built, 1);
+                    if (polygon.TopLevelPoints.Count >= 3)
+                        Register(new Polygon(this, polygon, polygon.TopLevelFace, polygon.TopLevelPoints));
+                    foreach (var child in polygon.Polygons)
+                        if (child.Points.Count >= 3)
+                            Register(new Polygon(this, polygon, child.Face, child.Points));
                 }
 
             foreach (var line in ob.Lines)
-                if (!line.Disabled && line.Points.Count >= 2)
+                if (!line.Disabled)
                 {
-                    var built = new Line(this, line);
-                    var box = To3D(built.Bounds);
-                    _shapeTrees[line.Face].AddProxy(ref box, built, 1);
+                    if (line.TopLevelPoints.Count >= 2)
+                        Register(new Line(this, line, line.TopLevelFace, line.TopLevelPoints));
+                    foreach (var child in line.Lines)
+                        if (child.Points.Count >= 2)
+                            Register(new Line(this, line, child.Face, child.Points));
                 }
         }
 
@@ -453,9 +469,6 @@ namespace Equinox76561198048419394.Cartography.MapLayers
     public class MyObjectBuilder_ShapesLayerShape
     {
         [XmlAttribute]
-        public int Face;
-
-        [XmlAttribute]
         public bool Disabled;
 
         [XmlElement]
@@ -476,8 +489,14 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
     public class MyObjectBuilder_ShapesLayerPolygon : MyObjectBuilder_ShapesLayerShape
     {
+        [XmlAttribute("Face")]
+        public int TopLevelFace;
+
         [XmlElement("Pt")]
-        public List<SerializableVector2> Points;
+        public List<SerializableVector2> TopLevelPoints;
+
+        [XmlElement("Polygon")]
+        public List<MyObjectBuilder_ShapesLayerCoordinates> Polygons;
 
         public ColorDefinitionRGBA? StrokeColor;
         public string StrokeWidth;
@@ -487,10 +506,25 @@ namespace Equinox76561198048419394.Cartography.MapLayers
 
     public class MyObjectBuilder_ShapesLayerLine : MyObjectBuilder_ShapesLayerShape
     {
+        [XmlAttribute("Face")]
+        public int TopLevelFace;
+
         [XmlElement("Pt")]
-        public List<SerializableVector2> Points;
+        public List<SerializableVector2> TopLevelPoints;
+
+        [XmlElement("Line")]
+        public List<MyObjectBuilder_ShapesLayerCoordinates> Lines;
 
         public ColorDefinitionRGBA? StrokeColor;
         public string StrokeWidth;
+    }
+
+    public class MyObjectBuilder_ShapesLayerCoordinates
+    {
+        [XmlAttribute]
+        public int Face;
+
+        [XmlElement("Pt")]
+        public List<SerializableVector2> Points;
     }
 }
