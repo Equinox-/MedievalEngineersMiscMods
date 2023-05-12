@@ -158,6 +158,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\BubbleSort.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\CollectionExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ContainerDefinitionExtension.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\DbvtExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\BooleanMath.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\CatenarySolver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Hashing.cs" />

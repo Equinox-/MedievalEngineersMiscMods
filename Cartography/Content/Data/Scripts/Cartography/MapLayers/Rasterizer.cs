@@ -398,7 +398,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             // Horizontal line of variable width
             else if (delta.Y == 0)
             {
-                for (var x = p0.X; x <= p1.X; x += step.X)
+                for (var x = Math.Min(p0.X, p1.X); x <= Math.Max(p0.X, p1.X); x++)
                 {
                     var width = widthPattern.NextWidth();
                     var half = (width - 1) / 2;
@@ -408,7 +408,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             // Vertical line of variable width
             else if (delta.X == 0)
             {
-                for (var y = p0.Y; y <= p1.Y; y += step.Y)
+                for (var y = Math.Min(p0.Y, p1.Y); y <= Math.Max(p0.Y, p1.Y); y++)
                 {
                     var width = widthPattern.NextWidth();
                     var half = (width - 1) / 2;

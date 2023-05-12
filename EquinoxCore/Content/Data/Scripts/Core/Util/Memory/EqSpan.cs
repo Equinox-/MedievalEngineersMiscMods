@@ -1,10 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util.Memory
 {
-    public struct EqSpan<T> : IEnumerable<T>
+    public readonly struct EqSpan<T> : IEnumerable<T>
     {
         private readonly T[] _array;
         private readonly int _offset;
@@ -17,7 +17,11 @@ namespace Equinox76561198048419394.Core.Util.Memory
             Length = length;
         }
 
+        public static implicit operator EqReadOnlySpan<T>(EqSpan<T> span) => new EqReadOnlySpan<T>(span._array, span._offset, span.Length);
+
         public ref T this[int index] => ref _array[index + _offset];
+
+        public void CopyTo(T[] dest, int offset) => Array.Copy(_array, _offset, dest, offset, Length);
 
         public Enumerator GetEnumerator()
         {
