@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+        <Id Type="HandItem" Subtype="VoxelResetTool" />
+        <DisplayName>Voxel Reset Tool</DisplayName>
+        <Description>Fully resets single chunks in a voxel map. Requires a Equinox-/medieval-engineers-ds-manager enabled server.</Description>
+        <Public>false</Public>
+        <Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
+        <Size>
+            <X>1.2</X>
+            <Y>0.6</Y>
+            <Z>0.3</Z>
+        </Size>
+        <Mass>0.5</Mass>
+        <Model>Models\Weapons\Axe_OneHandSteel.mwm</Model>
+        <PhysicalMaterial>Axe</PhysicalMaterial>
+        <MaxStackAmount>1</MaxStackAmount>
+        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
+        <MaxDurability>5</MaxDurability>
+        <Position>
+            <Slot>MainHand</Slot>
+        </Position>
+        <StanceToBehavior>
+            <StanceName>NormalMode</StanceName>
+            <BehaviorId Type="EquiVoxelResetToolBehaviorDefinition" Subtype="VoxelResetTool" />
+        </StanceToBehavior>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiVoxelResetToolBehaviorDefinition">
+        <Id Type="EquiVoxelResetToolBehaviorDefinition" Subtype="VoxelResetTool" />
+    </Definition>
+</Definitions>

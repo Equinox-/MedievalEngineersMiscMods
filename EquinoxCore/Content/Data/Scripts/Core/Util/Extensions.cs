@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
 using Medieval.Entities.UseObject;
 using Medieval.GameSystems;
-using Medieval.GameSystems.Tools;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Players;
 using Sandbox.ModAPI;
 using VRage.Components.Physics;
-using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
 using VRage.Game.ModAPI;
@@ -16,6 +14,7 @@ using VRage.Utils;
 using VRageMath;
 using VRageRender.Animations;
 using VRageRender.Import;
+using VRage.Session;
 
 namespace Equinox76561198048419394.Core.Util
 {
@@ -111,6 +110,12 @@ namespace Equinox76561198048419394.Core.Util
             return MyAPIGateway.Session.CreativeMode || MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
         }
 
+        public static bool IsCreative(this MyToolBehaviorBase behavior)
+        {
+            var player = MyAPIGateway.Players?.GetPlayerControllingEntity(behavior.Holder);
+            return player != null && player.IsCreative();
+        }
+
         public static bool IsServerDecider(this IMySession session)
         {
             return MyMultiplayerModApi.Static.IsServer;
@@ -119,6 +124,14 @@ namespace Equinox76561198048419394.Core.Util
         public static bool HasPermission(this IMyPlayer player, Vector3D location, MyStringId id)
         {
             return MyAreaPermissionSystem.Static == null || MyAreaPermissionSystem.Static.HasPermission(player.IdentityId, location, id);
+        }
+
+        public static bool IsLocallyControlled(this MyToolBehaviorBase behavior) => MySession.Static.PlayerEntity == behavior.Holder;
+
+        public static bool IsAdmin(this MyToolBehaviorBase behavior)
+        {
+            var player = MyAPIGateway.Players?.GetPlayerControllingEntity(behavior.Holder);
+            return player != null && MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
         }
 
         public static bool TryGetSendersHeldBehavior<T>(this MyEventContext context, out T behavior) where T : MyHandItemBehaviorBase
@@ -135,9 +148,10 @@ namespace Equinox76561198048419394.Core.Util
         }
 
         private static MyUseObjectClaimBlock _localizedInteractionHelper;
+
         public static string GetLocalizedInteractionButton(this IMyInput input)
         {
-            var helper = _localizedInteractionHelper ?? 
+            var helper = _localizedInteractionHelper ??
                          (_localizedInteractionHelper = new MyUseObjectClaimBlock(new MyEntity(), new MyModelDummy(), 0));
             var args = helper.GetActionInfo(UseActionEnum.OpenTerminal).FormatParams;
             if (args != null && args.Length == 2 && args[0] != null)
