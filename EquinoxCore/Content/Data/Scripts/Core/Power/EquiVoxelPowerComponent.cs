@@ -100,6 +100,8 @@ namespace Equinox76561198048419394.Core.Power
 
         private void InvalidateCache()
         {
+            if (Entity == null || !Entity.InScene)
+                return;
             Disturbed = true;
             IsPowered = IsPowered && Definition.PoweredWhenDisturbed;
             RemoveScheduledUpdate(RefreshCache);
