@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Components;
+using VRage.Components.Entity.Camera;
 using VRage.Library.Collections;
 using VRage.ModAPI;
 using VRage.Network;
@@ -16,6 +18,13 @@ namespace Equinox76561198048419394.VoxelReset
     [MySessionComponent(AllowAutomaticCreation = true, AlwaysOn = true)]
     public class VoxelResetSystem : MySessionComponent
     {
+        public const int SizeResolution = 256;
+
+        public const int ViewRangeChunks = 10;
+        public const int ViewRangeMaxChunks = 500;
+        public const int ViewRangeMeters = ViewRangeChunks * VoxelResetHooks.LeafSizeInVoxels;
+        public const double ViewLabelsRange = 50;
+
         protected override void OnSessionReady()
         {
             base.OnSessionReady();
@@ -48,6 +57,8 @@ namespace Equinox76561198048419394.VoxelReset
             RefreshModifiedCellsForClient(voxel, sender, position);
         }
 
+        private static readonly MyParallelTask Parallel = new MyParallelTask();
+
         private void RefreshModifiedCellsForClient(MyVoxelBase voxel, EndpointId sender, Vector3D position)
         {
             var storage = ((IMyVoxelBase)voxel)?.Storage;
@@ -63,16 +74,21 @@ namespace Equinox76561198048419394.VoxelReset
             }
 
             MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxel.PositionLeftBottomCorner, ref position, out var center);
-            const int halfExtentInChunks = 5; // ~1000 chunks of space.
-            const int halfExtentInMeters = halfExtentInChunks * VoxelResetHooks.LeafSizeInVoxels;
-            var queryBox = new BoundingBoxI(center - halfExtentInMeters, center + halfExtentInMeters);
-            var result = PoolManager.Get<List<ulong>>();
-            MyAPIGateway.Parallel.Start(
+            var queryBox = new BoundingBoxI(center - ViewRangeMeters, center + ViewRangeMeters);
+            var result = PoolManager.Get<List<PackedLeaf>>();
+            Parallel.Start(
                 () =>
                 {
-                    var query = new ObservationQuery(queryBox, result);
-                    VoxelResetHooks.QueryChunks(storage, MyStorageDataTypeEnum.Content, ref query);
-                    VoxelResetHooks.QueryChunks(storage, MyStorageDataTypeEnum.Material, ref query);
+                    using (PoolManager.Get(out Dictionary<ulong, int> temp))
+                    {
+                        var query = new ObservationQuery(queryBox, temp);
+                        VoxelResetHooks.QueryChunks(storage, MyStorageDataTypeEnum.Content, ref query);
+                        VoxelResetHooks.QueryChunks(storage, MyStorageDataTypeEnum.Material, ref query);
+                        if (result.Capacity < temp.Count)
+                            result.Capacity = temp.Count + 32;
+                        foreach (var leaf in temp)
+                            result.Add(new PackedLeaf(leaf.Key, (byte)Math.Min(leaf.Value / SizeResolution, byte.MaxValue)));
+                    }
                 },
                 () =>
                 {
@@ -91,8 +107,31 @@ namespace Equinox76561198048419394.VoxelReset
                 });
         }
 
-        private void SendModifiedCellsToClient(MyVoxelBase voxel, EndpointId target, List<ulong> query, BoundingBoxI queryBox)
+        private sealed class ChunkDistanceSorter : IComparer<PackedLeaf>
         {
+            public Vector3I RelativeTo;
+
+            private int DistanceTo(ulong leafId)
+            {
+                var coord = MyCellCoord.UnpackCoord(leafId) << VoxelResetHooks.LeafLodCount;
+                return coord.RectangularDistance(RelativeTo);
+            }
+
+            public int Compare(PackedLeaf x, PackedLeaf y) => DistanceTo(x.LeafId).CompareTo(DistanceTo(y.LeafId));
+        }
+
+        private void SendModifiedCellsToClient(MyVoxelBase voxel, EndpointId target, List<PackedLeaf> query, BoundingBoxI queryBox)
+        {
+            var queryLimit = query.Count;
+            if (queryLimit > ViewRangeMaxChunks)
+            {
+                using (PoolManager.Get(out ChunkDistanceSorter sorter))
+                {
+                    sorter.RelativeTo = queryBox.Center;
+                    query.Sort(sorter);
+                    queryLimit = ViewRangeMaxChunks;
+                }
+            }
             using (PoolManager.Get(out List<DeltaEncodedChunk> encoded))
             {
                 MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.OnQueryResult, voxel.EntityId, true, query.Count, queryBox, target);
@@ -109,13 +148,14 @@ namespace Equinox76561198048419394.VoxelReset
                     bytes = 0;
                 }
 
-                while (queryOffset < query.Count)
+                while (queryOffset < queryLimit)
                 {
-                    var pos = MyCellCoord.UnpackCoord(query[queryOffset++]);
+                    var leaf = query[queryOffset++];
+                    var pos = MyCellCoord.UnpackCoord(leaf.LeafId);
                     if (encoded.Count == 0)
                         encodingOffset = pos;
                     var delta = pos - encodingOffset;
-                    encoded.Add(new DeltaEncodedChunk { X = delta.X, Y = delta.Y, Z = delta.Z });
+                    encoded.Add(new DeltaEncodedChunk { X = delta.X, Y = delta.Y, Z = delta.Z, PackedSize = leaf.PackedSize, });
                     var deltaBytes = BytesForVariant(delta.X) + BytesForVariant(delta.Y) + BytesForVariant(delta.Z);
                     bytes += deltaBytes;
                     if (bytes > queryChunkMaxBytes)
@@ -187,7 +227,8 @@ namespace Equinox76561198048419394.VoxelReset
         private IMyVoxelBase _voxel;
         private bool _querySuccess;
         private BoundingBoxI _queryVoxelBounds;
-        private readonly List<ulong> _modifiedLeaves = new List<ulong>();
+        private readonly List<PackedLeaf> _modifiedLeaves = new List<PackedLeaf>();
+        public bool ShowSizes;
 
         /// <summary>
         /// Attempts to determine if the chunk is modified.
@@ -203,7 +244,7 @@ namespace Equinox76561198048419394.VoxelReset
             }
 
             var leafId = new MyCellCoord(0, voxelCoord >> VoxelResetHooks.LeafLodCount).PackId64();
-            isModified = _modifiedLeaves.Contains(leafId);
+            isModified = _modifiedLeaves.Contains(new PackedLeaf(leafId, 0));
             return true;
         }
 
@@ -213,13 +254,15 @@ namespace Equinox76561198048419394.VoxelReset
             var voxel = _voxel;
             if (voxel == null)
                 return;
-            using (var batch = MyRenderProxy.DebugDrawBatchAABB(MatrixD.CreateTranslation(voxel.PositionLeftBottomCorner), Color.Red, true, false))
+            var matrix = MatrixD.CreateTranslation(voxel.PositionLeftBottomCorner);
+            var cameraPos = MyCameraComponent.ActiveCamera?.GetPosition() ?? Vector3D.Zero;
+            using (var batch = MyRenderProxy.DebugDrawBatchAABB(matrix, Color.Red, true, false))
             {
                 BoundingBoxI leafBounds = default;
                 BoundingBox box = default;
-                foreach (var leafId in _modifiedLeaves)
+                foreach (var leaf in _modifiedLeaves)
                 {
-                    VoxelResetHooks.LeafMaxLodBounds(leafId, ref leafBounds);
+                    VoxelResetHooks.LeafMaxLodBounds(leaf.LeafId, ref leafBounds);
                     // Make the box exclusive
                     leafBounds.Max += 1;
                     MyVoxelCoordSystems.VoxelCoordToLocalPosition(ref leafBounds.Min, out box.Min);
@@ -228,6 +271,16 @@ namespace Equinox76561198048419394.VoxelReset
                     box.Inflate(-0.25f);
                     BoundingBoxD boxD = box;
                     batch.Add(ref boxD);
+
+                    if (!ShowSizes || leaf.PackedSize == 0)
+                        continue;
+                    var worldPos = Vector3D.Transform(box.Center, ref matrix);
+                    if (Vector3D.DistanceSquared(worldPos, cameraPos) < ViewLabelsRange * ViewLabelsRange)
+                    {
+                        var size = leaf.Size;
+                        var text = $"{size / 1024:F1} KiB";
+                        MyRenderProxy.DebugDrawText3D(worldPos, text, Color.Lime, 0.5f, true);
+                    }
                 }
             }
         }
@@ -303,13 +356,13 @@ namespace Equinox76561198048419394.VoxelReset
         [Reliable]
         private void OnQueryResultPiece(Vector3I offset, DeltaEncodedChunk[] chunks)
         {
-            var cell = new MyCellCoord { Lod = 0 };
+            var leaf = new MyCellCoord { Lod = 0 };
             foreach (var chunk in chunks)
             {
-                cell.CoordInLod.X = offset.X + chunk.X;
-                cell.CoordInLod.Y = offset.Y + chunk.Y;
-                cell.CoordInLod.Z = offset.Z + chunk.Z;
-                _modifiedLeaves.Add(cell.PackId64());
+                leaf.CoordInLod.X = offset.X + chunk.X;
+                leaf.CoordInLod.Y = offset.Y + chunk.Y;
+                leaf.CoordInLod.Z = offset.Z + chunk.Z;
+                _modifiedLeaves.Add(new PackedLeaf(leaf.PackId64(), chunk.PackedSize));
             }
         }
 
@@ -323,6 +376,9 @@ namespace Equinox76561198048419394.VoxelReset
 
             [Serialize(MyPrimitiveFlags.VariantSigned)]
             public int Z;
+
+            [Serialize]
+            public byte PackedSize;
         }
 
         #endregion
@@ -330,9 +386,9 @@ namespace Equinox76561198048419394.VoxelReset
         private struct ObservationQuery : VoxelResetHooks.IChunkQuery
         {
             private BoundingBoxI _query;
-            private readonly List<ulong> _dirtyCells;
+            private readonly Dictionary<ulong, int> _dirtyCells;
 
-            public ObservationQuery(BoundingBoxI query, List<ulong> dirtyCells)
+            public ObservationQuery(BoundingBoxI query, Dictionary<ulong, int> dirtyCells)
             {
                 _query = query;
                 _dirtyCells = dirtyCells;
@@ -342,14 +398,34 @@ namespace Equinox76561198048419394.VoxelReset
             {
             }
 
-            public void VisitMicroOctreeLeaf(ulong id, in BoundingBoxI maxLodRange)
+            public void VisitMicroOctreeLeaf(ulong id, in BoundingBoxI maxLodRange, int leafSize)
             {
                 if (!_query.Intersects(maxLodRange))
                     return;
-                _dirtyCells.Add(id);
+                _dirtyCells[id] = _dirtyCells.GetValueOrDefault(id) + leafSize;
             }
 
             public bool VisitNode(ulong id, in BoundingBoxI maxLodRange) => _query.Intersects(maxLodRange);
+        }
+
+        private readonly struct PackedLeaf : IEquatable<PackedLeaf>
+        {
+            public readonly ulong LeafId;
+            public readonly byte PackedSize;
+
+            public PackedLeaf(ulong leafId, byte packedSize)
+            {
+                LeafId = leafId;
+                PackedSize = packedSize;
+            }
+
+            public int Size => PackedSize * SizeResolution;
+
+            public bool Equals(PackedLeaf other) => LeafId == other.LeafId;
+
+            public override bool Equals(object obj) => obj is PackedLeaf other && Equals(other);
+
+            public override int GetHashCode() => LeafId.GetHashCode();
         }
     }
 }

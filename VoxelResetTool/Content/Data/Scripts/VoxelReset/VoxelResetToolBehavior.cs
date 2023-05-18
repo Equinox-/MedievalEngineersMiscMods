@@ -47,6 +47,9 @@ namespace Equinox76561198048419394.VoxelReset
         {
             if (!IsLocallyControlled || !IsAdmin)
                 return;
+            var system = MySession.Static?.Components.Get<VoxelResetSystem>();
+            if (system == null)
+                return;
             var pos = Position;
             var voxel = MyGamePruningStructureSandbox.GetClosestPlanet(pos);
             if (voxel == null)
@@ -54,10 +57,12 @@ namespace Equinox76561198048419394.VoxelReset
             switch (ActiveAction)
             {
                 case MyHandItemActionEnum.Primary:
-                    MySession.Static?.Components.Get<VoxelResetSystem>()?.RequestShow(voxel, pos);
+                    if (Modified)
+                        system.ShowSizes ^= true;
+                    system.RequestShow(voxel, pos);
                     break;
                 case MyHandItemActionEnum.Secondary:
-                    MySession.Static?.Components.Get<VoxelResetSystem>()?.RequestResetVoxel(voxel, pos);
+                    system.RequestResetVoxel(voxel, pos);
                     break;
                 case MyHandItemActionEnum.Tertiary:
                 case MyHandItemActionEnum.None:

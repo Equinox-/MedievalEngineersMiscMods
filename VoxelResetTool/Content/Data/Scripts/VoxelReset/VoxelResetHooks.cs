@@ -6,28 +6,28 @@
 // In general you should NEVER enable this implementation unless you're fixing bugs with this script.
 // On https://github.com/Equinox-/medieval-engineers-ds-manager enabled dedicated servers the server will have an implementation of all these methods
 // injected at runtime.
-//
-// <AllowType Path="System.Reflection.BindingFlags" />
-// <AllowType Path="System.Reflection.FieldAccess" />
-// <AllowType Path="System.Reflection.ConstructorInfo" />
-// <AllowType Path="System.Reflection.FieldInfo" />
-// <AllowType Path="System.Reflection.MethodInfo" />
-// <AllowType Path="System.Reflection.MethodBase" />
-// <AllowType Path="System.Delegate" />
-// <AllowType Path="Sandbox.Engine.Voxels.MyOctreeStorage" />
-// <AllowType Path="Sandbox.Engine.Voxels.MyStorageBase" />
-// <AllowType Path="Sandbox.Engine.Voxels.IMyOctreeLeafNode" />
-// <AllowType Path="Sandbox.Engine.Voxels.MyVoxelHands" />
-// <AllowType Path="Sandbox.Engine.Voxels.Shape.MySignedDistanceShape" />
-// <AllowType Path="Sandbox.Engine.Voxels.Shape.MyShapeBox" />
-// <AllowType Path="System.Type" />
-// <AllowType Path="VRage.Game.Voxels.IMyStorage" />
-// <AllowType Path="VRage.Game.Voxels.IMyStorageDataProvider" />
+/*
+<AllowType Path="System.Reflection.BindingFlags" />
+<AllowType Path="System.Reflection.FieldAccess" />
+<AllowType Path="System.Reflection.ConstructorInfo" />
+<AllowType Path="System.Reflection.FieldInfo" />
+<AllowType Path="System.Reflection.MethodInfo" />
+<AllowType Path="System.Reflection.MethodBase" />
+<AllowType Path="System.Delegate" />
+<AllowType Path="Sandbox.Engine.Voxels.MyOctreeStorage" />
+<AllowType Path="Sandbox.Engine.Voxels.MyStorageBase" />
+<AllowType Path="Sandbox.Engine.Voxels.IMyOctreeLeafNode" />
+<AllowType Path="Sandbox.Engine.Voxels.MyVoxelHands" />
+<AllowType Path="Sandbox.Engine.Voxels.Shape.MySignedDistanceShape" />
+<AllowType Path="Sandbox.Engine.Voxels.Shape.MyShapeBox" />
+<AllowType Path="System.Type" />
+<AllowType Path="VRage.Game.Voxels.IMyStorage" />
+<AllowType Path="VRage.Game.Voxels.IMyStorageDataProvider" />
+*/
 
 using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
-using Sandbox.ModAPI;
 using VRage.Library.Collections;
 using VRage.Library.Threading;
 using VRage.Voxels;
@@ -35,6 +35,7 @@ using VRageMath;
 using IMyStorage = VRage.ModAPI.IMyStorage;
 
 #if VOXEL_RESET_HOOKS_ENABLED
+using Sandbox.ModAPI;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
@@ -61,7 +62,7 @@ namespace Equinox76561198048419394.VoxelReset
 #if VOXEL_RESET_HOOKS_ENABLED
         public static bool IsAvailable(IMyStorage storage) => storage is MyOctreeStorage;
 
-        private const BindingFlags Bindings = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+        private const BindingFlags Bindings = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
 
         private static readonly Func<MyOctreeStorage, int> TreeHeightField = typeof(MyOctreeStorage)
             .GetField("m_treeHeight", Bindings)
@@ -136,12 +137,14 @@ namespace Equinox76561198048419394.VoxelReset
             return dictionary != null && dictionary.Contains(key) ? (byte)OctreeNodeChildMask.GetValue(dictionary[key]) : (byte)0;
         }
 
-        private static int TryGetLeafTypeInternal(IMyStorage storage, ulong leafId, MyStorageDataTypeEnum type)
+        private static int TryGetLeafTypeInternal(IMyStorage storage, ulong leafId, MyStorageDataTypeEnum type, out int leafSize)
         {
+            leafSize = 0;
             var dictionary = LeafDictionary(storage, type);
             if (dictionary == null || !dictionary.TryGetValue(leafId, out var leaf))
                 return LeafTypeMissing;
             var leafType = leaf.GetType();
+            leafSize = leaf.SerializedChunkSize;
             if (leafType == MicroOctreeLeafType)
                 return LeafTypeMicroOctree;
             if (leafType == ProviderLeafType)
@@ -198,7 +201,7 @@ namespace Equinox76561198048419394.VoxelReset
         private static int TreeHeightInternal(IMyStorage storage) => throw new NotSupportedException();
         private static byte NodeChildMaskInternal(IMyStorage storage, ulong nodeId, MyStorageDataTypeEnum type) => throw new NotSupportedException();
 
-        private static int TryGetLeafTypeInternal(IMyStorage storage, ulong leafId, MyStorageDataTypeEnum type) => throw new NotSupportedException();
+        private static int TryGetLeafTypeInternal(IMyStorage storage, ulong leafId, MyStorageDataTypeEnum type, out int leafSize) => throw new NotSupportedException();
 
         private static void SetLeafToProvider(IMyStorage storage, ulong leafId, MyStorageDataTypeEnum type) => throw new NotSupportedException();
 
@@ -229,7 +232,8 @@ namespace Equinox76561198048419394.VoxelReset
             /// </summary>
             /// <param name="leafId">leaf chunk ID</param>
             /// <param name="maxLodRange">voxel range of the chunk at the max LOD</param>
-            void VisitMicroOctreeLeaf(ulong leafId, in BoundingBoxI maxLodRange);
+            /// <param name="serializedSize">how large the leaf is when serialized</param>
+            void VisitMicroOctreeLeaf(ulong leafId, in BoundingBoxI maxLodRange, int serializedSize);
 
             /// <summary>
             /// Visits an octree leaf that has children.
@@ -287,14 +291,14 @@ namespace Equinox76561198048419394.VoxelReset
                     var cell = new MyCellCoord(Math.Max(data.Lod - LeafLodCount, 0), ref data.CoordInLod);
                     CellMaxLodBounds(in data, ref maxLodRange);
                     var leafId = cell.PackId64();
-                    var leafType = TryGetLeafTypeInternal(storage, leafId, treeType);
+                    var leafType = TryGetLeafTypeInternal(storage, leafId, treeType, out var leafSize);
                     switch (leafType)
                     {
                         case LeafTypeProvider:
                             query.VisitProviderLeaf(leafId, in maxLodRange);
                             continue;
                         case LeafTypeMicroOctree:
-                            query.VisitMicroOctreeLeaf(leafId, in maxLodRange);
+                            query.VisitMicroOctreeLeaf(leafId, in maxLodRange, leafSize);
                             continue;
                         case LeafTypeMissing:
                         default:
@@ -352,7 +356,7 @@ namespace Equinox76561198048419394.VoxelReset
 
         private static bool ResetLeafInternal(IMyStorage storage, MyStorageDataTypeEnum type, ulong chunkId)
         {
-            if (TryGetLeafTypeInternal(storage, chunkId, type) != LeafTypeMicroOctree)
+            if (TryGetLeafTypeInternal(storage, chunkId, type, out _) != LeafTypeMicroOctree)
                 return false;
             var leafToReplaceId = chunkId;
             var treeHeight = TreeHeightInternal(storage);
@@ -378,7 +382,7 @@ namespace Equinox76561198048419394.VoxelReset
                     var siblingId = leaf.PackId64();
                     if (siblingId == leafToReplaceId)
                         continue;
-                    if (TryGetLeafTypeInternal(storage, siblingId, type) == LeafTypeMicroOctree
+                    if (TryGetLeafTypeInternal(storage, siblingId, type, out _) == LeafTypeMicroOctree
                         || NodeChildMaskInternal(storage, LeafIdAsNodeId(siblingId), type) != 0)
                     {
                         hasAnyDataNodes = true;

@@ -4,7 +4,7 @@
         <Id Type="HandItem" Subtype="VoxelResetTool" />
         <DisplayName>Voxel Reset Tool</DisplayName>
         <Description>Fully resets single chunks in a voxel map. Requires a Equinox-/medieval-engineers-ds-manager enabled server.</Description>
-        <Public>false</Public>
+        <Public>true</Public>
         <Icon>Textures\GUI\Icons\RedHerring.dds</Icon>
         <Size>
             <X>1.2</X>
