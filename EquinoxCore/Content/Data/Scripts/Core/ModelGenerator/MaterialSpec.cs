@@ -6,6 +6,9 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 {
     public sealed class MaterialSpec
     {
+        [XmlAttribute("Name")]
+        public string Name;
+        
         [XmlElement("Parameter")]
         public List<Parameter> Parameters;
 

@@ -5,11 +5,13 @@ using Equinox76561198048419394.Core.Util;
 using Medieval.GUI.ContextMenu;
 using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Character;
 using Sandbox.Game.Entities.Planet;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
+using VRage.Components.Entity.Camera;
 using VRage.Components.Session;
 using VRage.Entities.Gravity;
 using VRage.Game;
@@ -31,6 +33,8 @@ namespace Equinox76561198048419394.Core.Controller
     [MyDependency(typeof(MyAnimationControllerComponent), Critical = false)]
     [MyDependency(typeof(MyCharacterMovementComponent), Critical = false)]
     [ReplicatedComponent]
+    [UpdateAfter(typeof(MyPhysicsUpdateProxy))]
+    [UpdateBefore(typeof(MyCharacterShapecastDetectorComponent))]
     public class EquiEntityControllerComponent : MyEntityComponent, IMyEventProxy
     {
         private readonly MyObjectBuilder_EquiEntityControllerComponent _saveData = new MyObjectBuilder_EquiEntityControllerComponent();
@@ -243,7 +247,7 @@ namespace Equinox76561198048419394.Core.Controller
                 RemoveFixedUpdate(FixPosition);
 
             if (slot?.Controllable != null)
-                AddFixedUpdate(FixPosition, PriorityOverride);
+                AddFixedUpdate(FixPosition);
 
             FixPosition();
 
@@ -360,8 +364,6 @@ namespace Equinox76561198048419394.Core.Controller
 
             return false;
         }
-
-        private const int PriorityOverride = int.MaxValue;
 
         private const double AutoDetachDistance = 25;
 

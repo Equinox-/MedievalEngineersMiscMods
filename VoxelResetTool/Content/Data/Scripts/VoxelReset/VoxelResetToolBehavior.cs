@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Sandbox.Definitions.Equipment;
@@ -6,9 +7,11 @@ using Sandbox.Game.EntityComponents.Character;
 using Sandbox.ModAPI;
 using VRage.Components.Entity.Camera;
 using VRage.Game.Definitions;
+using VRage.ModAPI;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Equipment;
 using VRage.Session;
+using VRage.Voxels;
 using VRageMath;
 
 namespace Equinox76561198048419394.VoxelReset
@@ -16,6 +19,10 @@ namespace Equinox76561198048419394.VoxelReset
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiVoxelResetToolBehaviorDefinition))]
     public class EquiVoxelResetToolBehavior : MyToolBehaviorBase
     {
+        private const int ModifiedResetChunksHalfExtent = 2;
+
+        private bool _showSizes;
+
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
 
         private bool IsAdmin
@@ -43,6 +50,8 @@ namespace Equinox76561198048419394.VoxelReset
             }
         }
 
+        private int ResetHalfExtent => Modified ? ModifiedResetChunksHalfExtent : 0;
+
         protected override void Hit()
         {
             if (!IsLocallyControlled || !IsAdmin)
@@ -58,11 +67,11 @@ namespace Equinox76561198048419394.VoxelReset
             {
                 case MyHandItemActionEnum.Primary:
                     if (Modified)
-                        system.ShowSizes ^= true;
+                        _showSizes ^= true;
                     system.RequestShow(voxel, pos);
                     break;
                 case MyHandItemActionEnum.Secondary:
-                    system.RequestResetVoxel(voxel, pos);
+                    system.RequestResetVoxel(voxel, pos, ResetHalfExtent);
                     break;
                 case MyHandItemActionEnum.Tertiary:
                 case MyHandItemActionEnum.None:
@@ -71,8 +80,16 @@ namespace Equinox76561198048419394.VoxelReset
             }
         }
 
+        public override void Activate()
+        {
+            base.Activate();
+            if (IsLocallyControlled)
+                Scene.Scheduler.AddFixedUpdate(Render);
+        }
+
         public override void Deactivate()
         {
+            Scene.Scheduler.RemoveFixedUpdate(Render);
             MySession.Static?.Components.Get<VoxelResetSystem>()?.RequestHide();
             base.Deactivate();
         }
@@ -94,14 +111,54 @@ namespace Equinox76561198048419394.VoxelReset
             }
 
             yield return "Press [KEY:ToolPrimary] to show modified chunks";
-            var modified = false;
-            var okay = MySession.Static?.Components.Get<VoxelResetSystem>()?.TryGetChunkState(voxel, pos, out modified) ?? false;
-            if (okay && modified)
-                yield return "Press [KEY:ToolSecondary] to reset chunk";
-            else if (okay)
-                yield return "Chunk is not modified";
-            else
+            var state = VoxelResetSystem.ResetState.NotModified;
+            var leafBox = LeafBox(voxel);
+            var okay = MySession.Static?.Components.Get<VoxelResetSystem>()?.TryGetLeafStates(voxel, leafBox, out state) ?? false;
+            if (!okay)
+            {
                 yield return "Chunk state is not known (Press [KEY:ToolPrimary] to refresh)";
+                yield break;
+            }
+
+            switch (state)
+            {
+                case VoxelResetSystem.ResetState.NotModified:
+                    yield return "Area is not modified";
+                    break;
+                case VoxelResetSystem.ResetState.Modified:
+                    yield return "Press [KEY:ToolSecondary] to reset area";
+                    break;
+                case VoxelResetSystem.ResetState.ModifiedAndForbidden:
+                    yield return "Press [KEY:ToolSecondary] to reset area (will desync!)";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private void Render()
+        {
+            var system = MySession.Static?.Components.Get<VoxelResetSystem>();
+            if (system == null)
+                return;
+            var pos = Position;
+            var voxel = MyGamePruningStructureSandbox.GetClosestPlanet(pos);
+            if (voxel == null || voxel != system.Voxel)
+                return;
+            var resetBox = LeafBox(voxel);
+            system.Render(_showSizes, resetBox);
+        }
+
+        private BoundingBoxI LeafBox(IMyVoxelBase voxel)
+        {
+            var pos = Position;
+            var halfExtent = ResetHalfExtent;
+            MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxel.PositionLeftBottomCorner, ref pos, out var leafCoord);
+            leafCoord >>= VoxelResetHooks.LeafLodCount;
+            // Min inclusive, max exclusive.
+            var minLeaf = leafCoord - halfExtent;
+            var maxLeaf = leafCoord + halfExtent;
+            return new BoundingBoxI(minLeaf, maxLeaf);
         }
     }
 

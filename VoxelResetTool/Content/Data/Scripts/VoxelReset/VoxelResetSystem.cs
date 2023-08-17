@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
+using Sandbox.Game.EntityComponents.Grid;
 using Sandbox.ModAPI;
-using VRage.Components;
 using VRage.Components.Entity.Camera;
+using VRage.Components.Session;
+using VRage.Game.Entity;
 using VRage.Library.Collections;
 using VRage.ModAPI;
 using VRage.Network;
@@ -20,17 +22,9 @@ namespace Equinox76561198048419394.VoxelReset
     {
         public const int SizeResolution = 256;
 
-        public const int ViewRangeChunks = 10;
+        public const int ViewRangeLeaves = 10;
         public const int ViewRangeMaxChunks = 500;
-        public const int ViewRangeMeters = ViewRangeChunks * VoxelResetHooks.LeafSizeInVoxels;
         public const double ViewLabelsRange = 50;
-
-        protected override void OnSessionReady()
-        {
-            base.OnSessionReady();
-            if (!Session.IsDedicated)
-                AddFixedUpdate(Render);
-        }
 
         #region Server
 
@@ -65,17 +59,19 @@ namespace Equinox76561198048419394.VoxelReset
             if (storage == null || !VoxelResetHooks.IsAvailable(storage))
             {
                 if (sender.Value == 0)
-                    OnQueryResult(voxel?.EntityId ?? 0, false, 0, default);
+                    OnQueryResult(voxel?.EntityId ?? 0, false, 0, default, default);
                 else
                     MyAPIGateway.Multiplayer.RaiseEvent(this,
                         x => x.OnQueryResult, voxel?.EntityId ?? 0,
-                        false, 0, default(BoundingBoxI), sender);
+                        false, 0, default(BoundingBoxI), default(int), sender);
                 return;
             }
 
             MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxel.PositionLeftBottomCorner, ref position, out var center);
-            var queryBox = new BoundingBoxI(center - ViewRangeMeters, center + ViewRangeMeters);
+            center >>= VoxelResetHooks.LeafLodCount;
+            var queryBox = new BoundingBoxI(center - ViewRangeLeaves, center + ViewRangeLeaves);
             var result = PoolManager.Get<List<PackedLeaf>>();
+            var totalSize = 0;
             Parallel.Start(
                 () =>
                 {
@@ -87,7 +83,10 @@ namespace Equinox76561198048419394.VoxelReset
                         if (result.Capacity < temp.Count)
                             result.Capacity = temp.Count + 32;
                         foreach (var leaf in temp)
+                        {
                             result.Add(new PackedLeaf(leaf.Key, (byte)Math.Min(leaf.Value / SizeResolution, byte.MaxValue)));
+                            totalSize += leaf.Value;
+                        }
                     }
                 },
                 () =>
@@ -95,12 +94,12 @@ namespace Equinox76561198048419394.VoxelReset
                     // Locally invoked
                     if (sender.Value == 0)
                     {
-                        OnQueryResult(voxel.EntityId, true, result.Count, queryBox);
+                        OnQueryResult(voxel.EntityId, true, result.Count, queryBox, totalSize);
                         _modifiedLeaves.AddCollection(result);
                     }
                     else
                     {
-                        SendModifiedCellsToClient(voxel, sender, result, queryBox);
+                        SendModifiedCellsToClient(voxel, sender, result, queryBox, totalSize);
                     }
 
                     PoolManager.Return(ref result);
@@ -109,32 +108,31 @@ namespace Equinox76561198048419394.VoxelReset
 
         private sealed class ChunkDistanceSorter : IComparer<PackedLeaf>
         {
-            public Vector3I RelativeTo;
+            public Vector3I RelativeToLeaf;
 
-            private int DistanceTo(ulong leafId)
-            {
-                var coord = MyCellCoord.UnpackCoord(leafId) << VoxelResetHooks.LeafLodCount;
-                return coord.RectangularDistance(RelativeTo);
-            }
+            private int DistanceTo(ulong leafId) => MyCellCoord.UnpackCoord(leafId).RectangularDistance(RelativeToLeaf);
 
             public int Compare(PackedLeaf x, PackedLeaf y) => DistanceTo(x.LeafId).CompareTo(DistanceTo(y.LeafId));
         }
 
-        private void SendModifiedCellsToClient(MyVoxelBase voxel, EndpointId target, List<PackedLeaf> query, BoundingBoxI queryBox)
+        private void SendModifiedCellsToClient(MyVoxelBase voxel, EndpointId target, List<PackedLeaf> query, BoundingBoxI leafBox, int totalSize)
         {
             var queryLimit = query.Count;
             if (queryLimit > ViewRangeMaxChunks)
             {
                 using (PoolManager.Get(out ChunkDistanceSorter sorter))
                 {
-                    sorter.RelativeTo = queryBox.Center;
+                    sorter.RelativeToLeaf = leafBox.Center;
                     query.Sort(sorter);
                     queryLimit = ViewRangeMaxChunks;
                 }
             }
+
             using (PoolManager.Get(out List<DeltaEncodedChunk> encoded))
             {
-                MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.OnQueryResult, voxel.EntityId, true, query.Count, queryBox, target);
+                MyAPIGateway.Multiplayer.RaiseEvent(this,
+                    x => x.OnQueryResult,
+                    voxel.EntityId, true, query.Count, leafBox, totalSize, target);
                 const int queryChunkMaxBytes = 1024;
                 var queryOffset = 0;
                 var bytes = 0;
@@ -195,7 +193,7 @@ namespace Equinox76561198048419394.VoxelReset
         [Event]
         [Reliable]
         [Server]
-        private void ResetVoxel(long entityId, Vector3D position, ulong leafId)
+        private void ResetVoxel(long entityId, Vector3D position, Vector3I leafCenter, int halfExtent)
         {
             var sender = MyEventContext.Current.Sender;
             if (!MyEventContext.Current.IsLocallyInvoked && !MyAPIGateway.Session.IsAdminModeEnabled(sender.Value))
@@ -211,47 +209,102 @@ namespace Equinox76561198048419394.VoxelReset
                 return;
             }
 
-            var changed = VoxelResetHooks.ResetLeaf(voxel.Storage, MyStorageDataTypeEnum.Content, leafId);
-            changed |= VoxelResetHooks.ResetLeaf(voxel.Storage, MyStorageDataTypeEnum.Material, leafId);
-            if (changed)
+            if (ResetImpl(voxel, leafCenter, halfExtent, out var resetBox))
             {
                 RefreshModifiedCellsForClient(voxel, sender, position);
-                VoxelResetHooks.TryResetClients(voxel, leafId);
+                VoxelResetHooks.TryResetClients(voxel, resetBox);
             }
+        }
+
+        private bool ResetImpl(IMyVoxelBase voxel, Vector3I leafCenter, int halfExtent, out BoundingBoxI resetBox)
+        {
+            resetBox = new BoundingBoxI(leafCenter - halfExtent, leafCenter + halfExtent);
+            var changed = false;
+            // note that EnumeratePoints treats the max as exclusive.
+            resetBox.Max += 1;
+            foreach (var pt in resetBox.EnumeratePoints())
+            {
+                var leafId = new MyCellCoord(0, pt).PackId64();
+                changed |= VoxelResetHooks.ResetLeaf(voxel.Storage, MyStorageDataTypeEnum.Content, leafId);
+                changed |= VoxelResetHooks.ResetLeaf(voxel.Storage, MyStorageDataTypeEnum.Material, leafId);
+            }
+
+            resetBox.Max -= 1;
+            return changed;
         }
 
         #endregion
 
         #region Client
 
-        private IMyVoxelBase _voxel;
+        public IMyVoxelBase Voxel { get; private set; }
         private bool _querySuccess;
-        private BoundingBoxI _queryVoxelBounds;
+        private BoundingBoxI _queryLeafBounds;
         private readonly List<PackedLeaf> _modifiedLeaves = new List<PackedLeaf>();
-        public bool ShowSizes;
 
+        public enum ResetState
+        {
+            NotModified,
+            Modified,
+            ModifiedAndForbidden
+        }
+        
         /// <summary>
         /// Attempts to determine if the chunk is modified.
         /// This requires a previously issued query using RequestShow.
         /// </summary>
-        public bool TryGetChunkState(IMyVoxelBase voxel, Vector3D worldPos, out bool isModified)
+        public bool TryGetLeafStates(IMyVoxelBase voxel, BoundingBoxI leaves, out ResetState state)
         {
-            MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxel.PositionLeftBottomCorner, ref worldPos, out var voxelCoord);
-            if (_voxel != voxel || !_querySuccess || !_queryVoxelBounds.Contains(voxelCoord))
+            if (Voxel != voxel || !_querySuccess || !_queryLeafBounds.Intersects(leaves))
             {
-                isModified = default;
+                state = default;
                 return false;
             }
 
-            var leafId = new MyCellCoord(0, voxelCoord >> VoxelResetHooks.LeafLodCount).PackId64();
-            isModified = _modifiedLeaves.Contains(new PackedLeaf(leafId, 0));
+            state = ResetState.NotModified;
+
+            // EnumeratePoints is exclusive
+            leaves.Max += 1;
+            foreach (var leafCoord in leaves.EnumeratePoints())
+            {
+                var leafId = new MyCellCoord(0, leafCoord).PackId64();
+                if (!_modifiedLeaves.Contains(new PackedLeaf(leafId, 0)))
+                    continue;
+                
+                state = ResetState.Modified;
+                break;
+            }
+
+            if (state == ResetState.NotModified)
+                return true;
+
+            // Maintain exclusive for world box.
+            leaves.Min <<= VoxelResetHooks.LeafLodCount;
+            leaves.Max = (leaves.Max + 1) << VoxelResetHooks.LeafLodCount;
+            var worldBox = default(BoundingBoxD);
+            MyVoxelCoordSystems.VoxelCoordToWorldPosition(voxel.PositionLeftBottomCorner, ref leaves.Min, out worldBox.Min);
+            MyVoxelCoordSystems.VoxelCoordToWorldPosition(voxel.PositionLeftBottomCorner, ref leaves.Max, out worldBox.Max);
+
+            using (PoolManager.Get(out List<MyEntity> entities))
+            {
+                MyGamePruningStructure.GetTopmostEntitiesInBox(worldBox, entities);
+                foreach (var entity in entities)
+                {
+                    if (MyAPIGateway.Players?.GetPlayerControllingEntity(entity) != null
+                        || (entity.Components.TryGet(out MyGridRigidBodyComponent rb) && !rb.IsStatic))
+                    {
+                        state = ResetState.ModifiedAndForbidden;
+                        break;
+                    }
+                }
+            }
+
             return true;
         }
 
-        [FixedUpdate]
-        private void Render()
+        public void Render(bool showSize, BoundingBoxI highlightLeaves)
         {
-            var voxel = _voxel;
+            var voxel = Voxel;
             if (voxel == null)
                 return;
             var matrix = MatrixD.CreateTranslation(voxel.PositionLeftBottomCorner);
@@ -262,17 +315,18 @@ namespace Equinox76561198048419394.VoxelReset
                 BoundingBox box = default;
                 foreach (var leaf in _modifiedLeaves)
                 {
-                    VoxelResetHooks.LeafMaxLodBounds(leaf.LeafId, ref leafBounds);
-                    // Make the box exclusive
-                    leafBounds.Max += 1;
+                    var cell = new MyCellCoord();
+                    cell.SetUnpack(leaf.LeafId);
+                    leafBounds.Min = cell.CoordInLod << VoxelResetHooks.LeafLodCount;
+                    leafBounds.Max = (cell.CoordInLod + 1) << VoxelResetHooks.LeafLodCount;
                     MyVoxelCoordSystems.VoxelCoordToLocalPosition(ref leafBounds.Min, out box.Min);
                     MyVoxelCoordSystems.VoxelCoordToLocalPosition(ref leafBounds.Max, out box.Max);
                     // Shrink slightly so the border between chunks is clearer.
                     box.Inflate(-0.25f);
                     BoundingBoxD boxD = box;
-                    batch.Add(ref boxD);
+                    batch.Add(ref boxD, highlightLeaves.Contains(cell.CoordInLod) ? Color.Cyan : Color.Red);
 
-                    if (!ShowSizes || leaf.PackedSize == 0)
+                    if (!showSize || leaf.PackedSize == 0)
                         continue;
                     var worldPos = Vector3D.Transform(box.Center, ref matrix);
                     if (Vector3D.DistanceSquared(worldPos, cameraPos) < ViewLabelsRange * ViewLabelsRange)
@@ -290,9 +344,9 @@ namespace Equinox76561198048419394.VoxelReset
         /// </summary>
         public void RequestHide()
         {
-            _voxel = null;
+            Voxel = null;
             _querySuccess = false;
-            _queryVoxelBounds = default;
+            _queryLeafBounds = default;
             _modifiedLeaves.Clear();
         }
 
@@ -309,42 +363,32 @@ namespace Equinox76561198048419394.VoxelReset
                 RefreshModifiedCellsForClient(voxel, new EndpointId(0), position);
         }
 
-        private static ulong GetLeafId(MyVoxelBase voxel, Vector3D worldPos)
-        {
-            MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxel.PositionLeftBottomCorner, ref worldPos, out var voxelCoord);
-            return new MyCellCoord(0, voxelCoord >> VoxelResetHooks.LeafLodCount).PackId64();
-        }
-
         /// <summary>
         /// Resets a specific voxel chunk.
         /// </summary>
         /// <param name="voxel">voxel to reset a chunk for</param>
         /// <param name="worldPos">world position of the chunk to reset</param>
-        public void RequestResetVoxel(MyVoxelBase voxel, Vector3D worldPos)
+        public void RequestResetVoxel(MyVoxelBase voxel, Vector3D worldPos, int halfExtent)
         {
-            var leafId = GetLeafId(voxel, worldPos);
+            MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxel.PositionLeftBottomCorner, ref worldPos, out var leafCoord);
+            leafCoord >>= VoxelResetHooks.LeafLodCount;
             if (MyAPIGateway.Multiplayer != null)
-                MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.ResetVoxel, voxel.EntityId, worldPos, leafId);
-            else
-            {
-                var changed = VoxelResetHooks.ResetLeaf(voxel.Storage, MyStorageDataTypeEnum.Content, leafId);
-                changed |= VoxelResetHooks.ResetLeaf(voxel.Storage, MyStorageDataTypeEnum.Material, leafId);
-                if (changed)
-                    RequestShow(voxel, worldPos);
-            }
+                MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.ResetVoxel, voxel.EntityId, worldPos, leafCoord, halfExtent);
+            else if (ResetImpl(voxel, leafCoord, halfExtent, out _))
+                RequestShow(voxel, worldPos);
         }
 
         [Event]
         [Client]
         [Reliable]
-        private void OnQueryResult(long entityId, bool success, int resultCount, BoundingBoxI queryBox)
+        private void OnQueryResult(long entityId, bool success, int resultCount, BoundingBoxI queryLeafBox, int totalSize)
         {
-            _voxel = Scene.TryGetEntity(entityId, out var ent) ? ent as IMyVoxelBase : null;
-            _querySuccess = success && _voxel != null;
-            _queryVoxelBounds = queryBox;
+            Voxel = Scene.TryGetEntity(entityId, out var ent) ? ent as IMyVoxelBase : null;
+            _querySuccess = success && Voxel != null;
+            _queryLeafBounds = queryLeafBox;
             _modifiedLeaves.Clear();
             if (_querySuccess)
-                MyAPIGateway.Utilities?.ShowNotification($"Found {resultCount} modified voxel chunks");
+                MyAPIGateway.Utilities?.ShowNotification($"Found {resultCount} modified voxel chunks ({totalSize / 1024f:F1} KiB)");
             else
                 MyAPIGateway.Utilities?.ShowNotification(
                     "Failed to load modified voxel chunks. Only usable on a https://github.com/Equinox-/medieval-engineers-ds-manager enabled server.",
@@ -385,27 +429,27 @@ namespace Equinox76561198048419394.VoxelReset
 
         private struct ObservationQuery : VoxelResetHooks.IChunkQuery
         {
-            private BoundingBoxI _query;
+            private BoundingBoxI _leafQuery;
             private readonly Dictionary<ulong, int> _dirtyCells;
 
-            public ObservationQuery(BoundingBoxI query, Dictionary<ulong, int> dirtyCells)
+            public ObservationQuery(BoundingBoxI leafQuery, Dictionary<ulong, int> dirtyCells)
             {
-                _query = query;
+                _leafQuery = leafQuery;
                 _dirtyCells = dirtyCells;
             }
 
-            public void VisitProviderLeaf(ulong id, in BoundingBoxI maxLodRange)
+            public void VisitProviderLeaf(ulong id, in BoundingBoxI leafRange)
             {
             }
 
             public void VisitMicroOctreeLeaf(ulong id, in BoundingBoxI maxLodRange, int leafSize)
             {
-                if (!_query.Intersects(maxLodRange))
+                if (!_leafQuery.Intersects(maxLodRange))
                     return;
                 _dirtyCells[id] = _dirtyCells.GetValueOrDefault(id) + leafSize;
             }
 
-            public bool VisitNode(ulong id, in BoundingBoxI maxLodRange) => _query.Intersects(maxLodRange);
+            public bool VisitNode(ulong id, in BoundingBoxI maxLodRange) => _leafQuery.Intersects(maxLodRange);
         }
 
         private readonly struct PackedLeaf : IEquatable<PackedLeaf>

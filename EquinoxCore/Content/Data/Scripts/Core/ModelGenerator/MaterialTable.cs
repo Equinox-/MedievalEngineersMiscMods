@@ -45,6 +45,18 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         public static MaterialDescriptor From(MaterialSpec spec)
         {
+            var materialId = spec.Name ?? GenerateMaterialId(spec);
+            using (MaterialsLock.AcquireExclusiveUsing())
+            {
+                if (Materials.TryGetValue(materialId, out var value))
+                    return value;
+                Materials.Add(materialId, value = ToMwmMaterial(materialId, spec));
+                return value;
+            }
+        }
+
+        private static string GenerateMaterialId(MaterialSpec spec)
+        {
             var hasher = new Hashing.HashBuilder();
             var iconMode = spec.Icons != null && spec.Icons.Count > 0;
             using (PoolManager.Get<List<MaterialSpec.Parameter>>(out var sorted))
@@ -65,14 +77,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                 }
             }
 
-            var materialId = hasher.Build().ToCompactString();
-            using (MaterialsLock.AcquireExclusiveUsing())
-            {
-                if (Materials.TryGetValue(materialId, out var value))
-                    return value;
-                Materials.Add(materialId, value = ToMwmMaterial(materialId, spec));
-                return value;
-            }
+            return hasher.Build().ToCompactString();
         }
 
         public static bool TryGetById(string id, out MaterialDescriptor descriptor)

@@ -224,37 +224,23 @@ namespace Equinox76561198048419394.VoxelReset
             /// Visits an octree leaf that is using the data provider (no changes)
             /// </summary>
             /// <param name="leafId">leaf chunk ID</param>
-            /// <param name="maxLodRange">voxel range of the chunk at the max LOD</param>
-            void VisitProviderLeaf(ulong leafId, in BoundingBoxI maxLodRange);
+            /// <param name="leafRange">leaf range of the chunk at LeafLodCount</param>
+            void VisitProviderLeaf(ulong leafId, in BoundingBoxI leafRange);
 
             /// <summary>
             /// Visits an octree leaf that has stored data (changes)
             /// </summary>
             /// <param name="leafId">leaf chunk ID</param>
-            /// <param name="maxLodRange">voxel range of the chunk at the max LOD</param>
+            /// <param name="leafRange">leaf range of the chunk at LeafLodCount</param>
             /// <param name="serializedSize">how large the leaf is when serialized</param>
-            void VisitMicroOctreeLeaf(ulong leafId, in BoundingBoxI maxLodRange, int serializedSize);
+            void VisitMicroOctreeLeaf(ulong leafId, in BoundingBoxI leafRange, int serializedSize);
 
             /// <summary>
             /// Visits an octree leaf that has children.
             /// </summary>
             /// <param name="nodeId">node chunk ID.  This is NOT a leaf chunk ID</param>
-            /// <param name="maxLodRange">voxel range of the chunk at the max LOD</param>
-            bool VisitNode(ulong nodeId, in BoundingBoxI maxLodRange);
-        }
-
-        public static void LeafMaxLodBounds(ulong leafId, ref BoundingBoxI maxLodRange)
-        {
-            var cell = new MyCellCoord();
-            cell.SetUnpack(leafId);
-            cell.Lod += LeafLodCount;
-            CellMaxLodBounds(in cell, ref maxLodRange);
-        }
-
-        public static void CellMaxLodBounds(in MyCellCoord data, ref BoundingBoxI maxLodRange)
-        {
-            maxLodRange.Min = data.CoordInLod << data.Lod;
-            maxLodRange.Max = ((data.CoordInLod + 1) << data.Lod) - 1;
+            /// <param name="leafRange">leaf range of the chunk at LeafLodCount</param>
+            bool VisitNode(ulong nodeId, in BoundingBoxI leafRange);
         }
 
         /// <summary>
@@ -284,21 +270,22 @@ namespace Equinox76561198048419394.VoxelReset
             {
                 var treeHeight = TreeHeightInternal(storage);
                 stack.Push(new MyCellCoord(treeHeight + LeafLodCount, ref Vector3I.Zero));
-                var maxLodRange = new BoundingBoxI();
+                var leafLodRange = new BoundingBoxI();
                 while (stack.Count > 0)
                 {
                     var data = stack.Pop();
                     var cell = new MyCellCoord(Math.Max(data.Lod - LeafLodCount, 0), ref data.CoordInLod);
-                    CellMaxLodBounds(in data, ref maxLodRange);
+                    leafLodRange.Min = (cell.CoordInLod) << cell.Lod;
+                    leafLodRange.Max = (cell.CoordInLod + 1) << cell.Lod;
                     var leafId = cell.PackId64();
                     var leafType = TryGetLeafTypeInternal(storage, leafId, treeType, out var leafSize);
                     switch (leafType)
                     {
                         case LeafTypeProvider:
-                            query.VisitProviderLeaf(leafId, in maxLodRange);
+                            query.VisitProviderLeaf(leafId, in leafLodRange);
                             continue;
                         case LeafTypeMicroOctree:
-                            query.VisitMicroOctreeLeaf(leafId, in maxLodRange, leafSize);
+                            query.VisitMicroOctreeLeaf(leafId, in leafLodRange, leafSize);
                             continue;
                         case LeafTypeMissing:
                         default:
@@ -307,7 +294,7 @@ namespace Equinox76561198048419394.VoxelReset
 
                     var nodeId = LeafIdAsNodeId(leafId);
                     var childMask = NodeChildMaskInternal(storage, nodeId, treeType);
-                    if (childMask == 0 || !query.VisitNode(leafId, in maxLodRange))
+                    if (childMask == 0 || !query.VisitNode(leafId, in leafLodRange))
                         continue;
                     var childTreePos = data.CoordInLod << 1;
                     var childPos = Vector3I.Zero;
@@ -411,12 +398,10 @@ namespace Equinox76561198048419394.VoxelReset
 
         /// <summary>
         /// Resets a voxel range on all clients.
-        /// Requires 
         /// </summary>
-        public static bool TryResetClients(MyVoxelBase voxel, ulong leafId)
+        public static bool TryResetClients(MyVoxelBase voxel, BoundingBoxI leafBox)
         {
-            var box = new BoundingBoxI();
-            LeafMaxLodBounds(leafId, ref box);
+            var box = new BoundingBoxI(leafBox.Min << LeafLodCount, (leafBox.Max + 1) << LeafLodCount);
             MyVoxelCoordSystems.VoxelCoordToWorldPosition(voxel.PositionLeftBottomCorner, ref box.Min, out var worldMin);
             MyVoxelCoordSystems.VoxelCoordToWorldPosition(voxel.PositionLeftBottomCorner, ref box.Max, out var worldMax);
             // Extend the reset region a bit to make up for the voxel brush not being exact.
