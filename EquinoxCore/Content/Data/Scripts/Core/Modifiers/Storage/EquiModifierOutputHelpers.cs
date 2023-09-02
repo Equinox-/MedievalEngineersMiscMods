@@ -8,6 +8,7 @@ using VRage.Components.Entity.CubeGrid;
 using VRage.Components.Entity.Render;
 using VRage.Entity.Block;
 using VRage.Entity.EntityComponents;
+using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
@@ -15,6 +16,7 @@ using VRage.Game.Models;
 using VRage.Logging;
 using VRage.Models;
 using VRage.Session;
+using VRage.Utils;
 using VRageMath;
 using VRageRender;
 
@@ -31,6 +33,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
     public static class EquiModifierOutputHelpers
     {
+
         private static NamedLogger _log = new NamedLogger(nameof(EquiModifierOutputHelpers), MyLog.Default);
 
         private static bool IsDedicated => ((IMyUtilities) MyAPIUtilities.Static).IsDedicated;
@@ -50,7 +53,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     modelComp.ColorMask = modifier.ColorMaskHsv ?? Vector3.Zero;
                     if (render != null && !render.EnableColorMaskHsv)
                         render.EnableColorMaskHsv = true;
-                    if (modifier.ColorMaskHsv.HasValue && render is MyRenderComponent && !(render is ForceOldPipelineRenderComponent))
+#if !VRAGE_VERSION_0_7_4
+                    if (modifier.ColorMaskHsv.HasValue
+                        && render is MyRenderComponent && !(render is ForceOldPipelineRenderComponent))
                     {
                         // Big hack...
                         target.Components.Remove(render);
@@ -58,6 +63,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         target.Render = render;
                         forceRenderInit = true;
                     }
+#endif
                 }
 
                 var model = modifier.Model;

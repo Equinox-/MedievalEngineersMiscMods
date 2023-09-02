@@ -11,10 +11,19 @@ namespace Equinox76561198048419394.Core.ModelGenerator
     public class MaterialEditsBuilder : IDisposable
     {
         private static readonly ConcurrentBag<MaterialEditsBuilder> BuilderPool = new ConcurrentBag<MaterialEditsBuilder>();
+        private readonly Dictionary<string, string> _materialSwap = new Dictionary<string, string>();
         private readonly Dictionary<string, List<ListReader<MaterialEdit>>> _builders = new Dictionary<string, List<ListReader<MaterialEdit>>>();
 
         private MaterialEditsBuilder()
         {
+        }
+
+        public void SwapMaterial(string originalMaterial, string newMaterial)
+        {
+            if (originalMaterial == newMaterial)
+                _materialSwap.Remove(originalMaterial);
+            else
+                _materialSwap[originalMaterial] = newMaterial;
         }
 
         public void Add(string material, ListReader<MaterialEdit> edit)
@@ -24,10 +33,13 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             list.Add(edit);
         }
 
-        public void Get(string material, List<MaterialEdit> dest)
+        public bool TryGetMaterialSwap(string material, out string newMaterial) => _materialSwap.TryGetValue(material, out newMaterial);
+
+        public void Get(MaterialInModel material, List<MaterialEdit> dest)
         {
             dest.Clear();
-            if (!_builders.TryGetValue(material, out var builders)) return;
+            if (!material.CanEditInternals) return;
+            if (!_builders.TryGetValue(material.Name, out var builders)) return;
             foreach (var builder in builders)
             foreach (var edit in builder)
                 dest.AddOrReplace(edit);

@@ -1,22 +1,14 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Util;
-using VRage.Collections;
-using VRage.Components;
-using VRage.Definitions;
 using VRage.Game;
 using VRage.Game.Definitions;
-using VRage.Game.Models;
 using VRage.Library.Collections;
-using VRage.Library.Utils;
 using VRage.ObjectBuilders;
 using VRage.Session;
-using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Modifiers.Def
 {
@@ -26,6 +18,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         // Change materials per model (including LODs)
         private readonly ConcurrentDictionary<string, InterningBag<string>> _memorizedMaterialEdits = new ConcurrentDictionary<string, InterningBag<string>>();
         private readonly Dictionary<string, List<MaterialEdit>> _edits = new Dictionary<string, List<MaterialEdit>>();
+        private readonly Dictionary<string, string> _swaps = new Dictionary<string, string>();
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
@@ -33,6 +26,15 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             var ob = (MyObjectBuilder_EquiModifierChangeMaterialDefinition) def;
             if (ob.Replacements == null) return;
             foreach (var mod in ob.Replacements)
+            {
+                if (mod.NewName != null)
+                {
+                    if (!string.IsNullOrEmpty(mod.Name))
+                        _swaps[mod.Name] = mod.NewName;
+                    if (mod.Names != null)
+                        foreach (var name in mod.Names)
+                            _swaps[name] = mod.NewName;
+                }
                 if (mod.Parameters != null)
                 {
                     if (!string.IsNullOrEmpty(mod.Name))
@@ -52,6 +54,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                         }
                     }
                 }
+            }
         }
 
         public override bool CanApply(in ModifierContext ctx)
@@ -70,9 +73,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             {
                 using (PoolManager.Get(out HashSet<string> valid))
                 {
-                    foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ?? InterningBag<string>.Empty)
-                        if (_edits.ContainsKey(mtl))
-                            valid.Add(mtl);
+                    foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ?? InterningBag<MaterialInModel>.Empty)
+                        if ((mtl.CanEditInternals && _edits.ContainsKey(mtl.Name)) || _swaps.ContainsKey(mtl.Name))
+                            valid.Add(mtl.Name);
                     return InterningBag<string>.Of(valid);
                 }
             });
@@ -89,7 +92,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             if (output.MaterialEditsBuilder == null)
                 output.MaterialEditsBuilder = MaterialEditsBuilder.Allocate();
             foreach (var mtl in materials)
-                output.MaterialEditsBuilder.Add(mtl, _edits[mtl]);
+            {
+                if (_swaps.TryGetValue(mtl, out var swap))
+                    output.MaterialEditsBuilder.SwapMaterial(mtl, swap);
+                if (_edits.TryGetValue(mtl, out var edits))
+                    output.MaterialEditsBuilder.Add(mtl, edits);
+            }
         }
 
         public override IModifierData CreateDefaultData(in ModifierContext ctx)
@@ -120,6 +128,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
             [XmlElement("Parameter")]
             public MaterialParameter[] Parameters;
+
+            [XmlElement("NewName")]
+            public string NewName;
 
             public void GetChanges(List<MaterialEdit> list)
             {

@@ -42,8 +42,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         {
             return base.CanApply(in ctx) && (_materialDependencies == null || _memorizedApplicableTo.GetOrAdd(ctx.OriginalModel, (modelName) =>
             {
-                foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ?? InterningBag<string>.Empty)
-                    if (_materialDependencies.Contains(mtl))
+                foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ?? InterningBag<MaterialInModel>.Empty)
+                    if (_materialDependencies.Contains(mtl.Name))
                         return true;
                 return false;
             }));

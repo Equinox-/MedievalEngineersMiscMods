@@ -44,7 +44,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         private readonly ConcurrentDictionary<string, MaterialBvh> _originalModelsBvh = new ConcurrentDictionary<string, MaterialBvh>();
 
         private readonly FastResourceLock _materialsByModelLock = new FastResourceLock();
-        private readonly Dictionary<string, InterningBag<string>> _materialsByModel = new Dictionary<string, InterningBag<string>>();
+        private readonly Dictionary<string, InterningBag<MaterialInModel>> _materialsByModel = new Dictionary<string, InterningBag<MaterialInModel>>();
         private readonly MyConcurrentPool<ModelImporter> _modelImporterPool = new MyConcurrentPool<ModelImporter>(0, (importer) => importer.Clear());
 
         public string CreateModel(string baseModel, MaterialEditsBuilder editor)
@@ -140,11 +140,19 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             {
                 foreach (var mtl in GetMaterialsForModel(baseModel))
                 {
+                    if (editor.TryGetMaterialSwap(mtl.Name, out var swap))
+                    {
+                        hashBuilder.Add(mtl.Name);
+                        hashBuilder.Add(0x2183209L);
+                        hashBuilder.Add(swap);
+                        continue;
+                    }
+
                     edits.Clear();
                     editor.Get(mtl, edits);
                     if (edits.Count <= 0)
                         continue;
-                    hashBuilder.Add(mtl);
+                    hashBuilder.Add(mtl.Name);
                     foreach (var edit in edits)
                         hashBuilder.Add(in edit.Hash);
                 }
@@ -171,8 +179,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     return _derivedModels[finalHash.Value] = resolvedPath;
                 }
 
-                using (PoolManager.Get(out Dictionary<string, string> materialMapping))
-                using (PoolManager.Get(out Dictionary<string, string> materialMappingInverse))
+                using (PoolManager.Get(out Dictionary<string, string> materialNameMapping))
                 {
                     using (ReadModel(rawModel, out var tags))
                     {
@@ -192,35 +199,34 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
                             foreach (var part in meshParts)
                             {
-                                var originalMaterialName = part.m_MaterialDesc.MaterialName;
-                                edits.Clear();
-                                builder.Get(originalMaterialName, edits);
-                                if (edits.Count == 0)
+                                var originalMaterial = new MaterialInModel(part.m_MaterialDesc.MaterialName, part.Technique);
+                                var newMaterialName = originalMaterial.Name;
+                                if (builder.TryGetMaterialSwap(originalMaterial.Name, out var swappedMaterialName))
+                                    newMaterialName = swappedMaterialName;
+                                else if (part.m_MaterialDesc.TechniqueEnum != MyMeshDrawTechnique.GLASS)
                                 {
-                                    var safeName = SafeMaterialName(part.m_MaterialDesc.MaterialName);
-                                    if (safeName != part.m_MaterialDesc.MaterialName)
+                                    edits.Clear();
+                                    builder.Get(originalMaterial, edits);
+                                    if (edits.Count != 0)
                                     {
-                                        part.m_MaterialDesc = part.m_MaterialDesc.Clone(safeName);
-                                        part.m_MaterialHash = part.m_MaterialDesc.MaterialName.GetHashCode();
+                                        foreach (var edit in edits)
+                                            edit.ApplyTo(part.m_MaterialDesc);
+                                        newMaterialName = SafeMaterialName(GenerateMaterialName(part.m_MaterialDesc));
                                     }
-                                    continue;
                                 }
-
-                                foreach (var edit in edits)
-                                    edit.ApplyTo(part.m_MaterialDesc);
-
-                                var newMaterialName = SafeMaterialName(GenerateMaterialName(part.m_MaterialDesc));
-                                materialMapping.Add(originalMaterialName, newMaterialName);
-                                materialMappingInverse.Add(newMaterialName, originalMaterialName);
-                                part.m_MaterialDesc = part.m_MaterialDesc.Clone(newMaterialName);
-                                part.m_MaterialHash = part.m_MaterialDesc.MaterialName.GetHashCode();
+                                if (newMaterialName != originalMaterial.Name)
+                                {
+                                    part.m_MaterialDesc = part.m_MaterialDesc.Clone(newMaterialName);
+                                    part.m_MaterialHash = part.m_MaterialDesc.MaterialName.GetHashCode();
+                                    materialNameMapping[originalMaterial.Name] = newMaterialName;
+                                }
                             }
 
                             foreach (var orphan in GetMaterialsForModelInternal(rawModel))
-                                if (usedMaterials.Add(orphan))
+                                if (usedMaterials.Add(orphan.Name))
                                 {
-                                    this.GetLogger().Info($"Including dummy mesh part for destruction material {orphan}");
-                                    var tmp = new MyMaterialDescriptor(orphan);
+                                    this.GetLogger().Info($"Including dummy mesh part for destruction material {orphan.Name}");
+                                    var tmp = new MyMaterialDescriptor(orphan.Name);
                                     edits.Clear();
                                     builder.Get(orphan, edits);
                                     foreach (var e in edits)
@@ -235,8 +241,6 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                                         m_MaterialHash = newMaterialName.GetHashCode(),
                                         Technique = MyMeshDrawTechnique.MESH
                                     });
-
-                                    materialMapping[orphan] = newMaterialName;
                                 }
 
                             if (!isTranslatingLod)
@@ -256,7 +260,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                                 tags[MyImporterConstants.TAG_LODS] = resultLods.ToArray();
                             }
 
-                            Save(resolvedPath, finalHash.Value, materialMapping, tags);
+                            Save(resolvedPath, finalHash.Value, materialNameMapping, tags);
                         }
                     }
                     if (DebugFlags.Debug(typeof(DerivedModelManager)))
@@ -506,7 +510,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         #region Materials Per Model
 
-        public InterningBag<string> GetMaterialsForModel(string model)
+        public InterningBag<MaterialInModel> GetMaterialsForModel(string model)
         {
             using (_materialsByModelLock.AcquireSharedUsing())
                 if (_materialsByModel.TryGetValue(model, out var materials))
@@ -614,12 +618,11 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                 raw[offset + i] = (byte) value[i];
         }
 
-        private InterningBag<string> GetMaterialsForModelInternal(string model, bool isTranslatingLod = false)
+        private InterningBag<MaterialInModel> GetMaterialsForModelInternal(string model, bool isTranslatingLod = false)
         {
             if (_materialsByModel.TryGetValue(model, out var materialsCurrent))
                 return materialsCurrent;
-            using (PoolManager.Get(out HashSet<string> materials))
-            using (PoolManager.Get(out HashSet<string> destructionMaterials))
+            using (PoolManager.Get(out HashSet<MaterialInModel> materials))
             {
                 try
                 {
@@ -628,7 +631,12 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                         if (tags.TryGetValue(MyImporterConstants.TAG_MESH_PARTS, out var meshPartsRaw) && meshPartsRaw is List<MyMeshPartInfo> meshParts)
                         {
                             foreach (var part in meshParts)
-                                materials.Add(part.GetMaterialName());
+                            {
+                                var mtl = part.m_MaterialDesc;
+                                var name = mtl?.MaterialName;
+                                if (name == null) continue;
+                                materials.Add(new MaterialInModel(name, mtl.TechniqueEnum));
+                            }
                         }
 
                         if (!isTranslatingLod && tags.TryGetValue(MyImporterConstants.TAG_LODS, out var lodsRaw) && lodsRaw is MyLODDescriptor[] lods)
@@ -644,8 +652,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                             foreach (var str in DestructionMaterials)
                                 if (ByteSequenceContains(raw, str))
                                 {
-                                    materials.Add(str);
-                                    destructionMaterials.Add(str);
+                                    materials.Add(new MaterialInModel(str, MyMeshDrawTechnique.MESH));
                                     break;
                                 }
                         }
@@ -656,8 +663,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     // Ignore
                 }
 
-                var result = InterningBag<string>.Of(materials);
-                var resultDestruction = InterningBag<string>.Of(destructionMaterials);
+                var result = InterningBag<MaterialInModel>.Of(materials);
                 var k2 = !model.EndsWith(".mwm", StringComparison.OrdinalIgnoreCase) ? (model + ".mwm") : model.Substring(0, model.Length - 4);
                 _materialsByModel[k2] = result;
                 _materialsByModel[model] = result;
@@ -694,5 +700,19 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         }
 
         #endregion
+    }
+
+    public readonly struct MaterialInModel
+    {
+        public readonly string Name;
+        public readonly MyMeshDrawTechnique Technique;
+
+        public bool CanEditInternals => Technique != MyMeshDrawTechnique.GLASS;
+
+        public MaterialInModel(string name, MyMeshDrawTechnique technique)
+        {
+            Name = name;
+            Technique = technique;
+        }
     }
 }
