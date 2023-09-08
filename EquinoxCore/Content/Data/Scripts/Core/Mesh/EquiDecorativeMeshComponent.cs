@@ -402,20 +402,6 @@ namespace Equinox76561198048419394.Core.Mesh
 
         private static void FindUvProjection(UvProjectionMode projection, UvBiasMode bias, Vector3 normal, out Vector3 uvX, out Vector3 uvY)
         {
-            Vector3 uvPlaneNormal;
-            switch (projection)
-            {
-                case UvProjectionMode.Cube:
-                    uvPlaneNormal = Vector3.DominantAxisProjection(normal);
-                    break;
-                case UvProjectionMode.Bevel:
-                    uvPlaneNormal = FindBeveledUvNormal(normal);
-                    break;
-                case UvProjectionMode.Count:
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(projection), projection, null);
-            }
-
             Vector3 biasVector;
             switch (bias)
             {
@@ -433,6 +419,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     throw new ArgumentOutOfRangeException(nameof(bias), bias, null);
             }
 
+            var uvPlaneNormal = FindUvNormal(projection, normal, biasVector);
             Vector3.Cross(ref biasVector, ref uvPlaneNormal, out uvY);
             var yLength = uvY.LengthSquared();
             if (yLength <= 1e-6f)
@@ -454,8 +441,35 @@ namespace Equinox76561198048419394.Core.Mesh
             new Vector3(0.57735f, 0.57735f, 0.57735f),
         };
 
-        private static Vector3 FindBeveledUvNormal(Vector3 normal)
+        private static Vector3 FindUvNormal(UvProjectionMode mode, Vector3 normal, Vector3 except)
         {
+            switch (mode)
+            {
+                case UvProjectionMode.Cube:
+                    return FindCubeUvNormal(normal, except);
+                case UvProjectionMode.Bevel:
+                    return FindBeveledUvNormal(normal, except);
+                case UvProjectionMode.Count:
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+            }
+        }
+
+        private static Vector3 FindCubeUvNormal(Vector3 normal, Vector3 except)
+        {
+            var rejected = Vector3.Reject(normal, except);
+            if (rejected.LengthSquared() < 1e-6)
+                rejected = normal;
+            var best = Vector3.DominantAxisProjection(rejected);
+            best.Normalize();
+            return best;
+        }
+
+        private static Vector3 FindBeveledUvNormal(Vector3 normal, Vector3 except)
+        {
+            var exceptAbs = Vector3.Abs(except);
+            exceptAbs.Normalize();
+
             var abs = Vector3.Abs(normal);
             // First octant, 8 possibilities.
             var bestI = 0;
@@ -463,6 +477,7 @@ namespace Equinox76561198048419394.Core.Mesh
             for (var i = 0; i < FirstQuadrantUvProjections.Length; i++)
             {
                 ref var candidate = ref FirstQuadrantUvProjections[i];
+                if (candidate.Dot(ref exceptAbs) > 0.99999f) continue;
                 Vector3.Dot(ref abs, ref candidate, out var dot);
                 if (dot <= bestDot) continue;
                 bestDot = dot;
