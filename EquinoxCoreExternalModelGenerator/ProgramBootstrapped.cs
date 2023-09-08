@@ -97,22 +97,23 @@ namespace Equinox76561198048419394.Core.ModelCreator
             Console.WriteLine("Translating definitions...");
             var translatedSet = new DefinitionObSet();
             var modelTranslator = new ModelAssetTranslator(config.OutputDirectory, config.VariantName);
-            Func<string, string> assetTranslator = (asset) =>
+            var changesDictionary = new Dictionary<string, MyObjectBuilder_EquiModifierChangeMaterialDefinition.MaterialModifier>();
+            foreach (var edit in config.Changes)
+                changesDictionary[edit.Name] = edit;
+
+            string AssetTranslator(string asset)
             {
-                if (string.IsNullOrWhiteSpace(asset))
-                    return asset;
-                if (config.AssetTranslations.TryGetValue(asset, out var assetTranslation))
-                    return assetTranslation;
+                if (string.IsNullOrWhiteSpace(asset)) return asset;
+                if (config.AssetTranslations.TryGetValue(asset, out var assetTranslation)) return assetTranslation;
                 if (asset.EndsWith(".mwm", StringComparison.OrdinalIgnoreCase) && config.Changes != null)
                 {
-                    if (asset.Contains("GeneratedStoneEdge"))
-                        Debugger.Break();
+                    if (asset.Contains("GeneratedStoneEdge")) Debugger.Break();
                     var modelMaterials = modelTranslator.GetMaterialsForModel(asset);
                     using (PoolManager.Get(out List<MyObjectBuilder_EquiModifierChangeMaterialDefinition.MaterialModifier> changes))
                     {
-                        foreach (var x in config.Changes)
-                            if (modelMaterials.Contains(x.Name))
-                                changes.Add(x);
+                        foreach (var material in modelMaterials)
+                            if (changesDictionary.TryGetValue(material.Name, out var change))
+                                changes.Add(change);
                         if (changes.Count > 0)
                         {
                             Console.WriteLine("Translating model " + asset);
@@ -132,11 +133,12 @@ namespace Equinox76561198048419394.Core.ModelCreator
                 }
 
                 return asset;
-            };
+            }
+
             var translator = new DefinitionObTranslator(
                 DefinitionObLoader.Loaded,
                 translatedSet,
-                assetTranslator,
+                AssetTranslator,
                 (displayName) => $"{displayName} ({config.VariantName})",
                 "_" + config.VariantName,
                 config.Translations);
@@ -158,7 +160,7 @@ namespace Equinox76561198048419394.Core.ModelCreator
                         if (k.Id.TypeId == id.TypeId && k is MyObjectBuilder_PhysicalModelDefinition physModel)
                         {
                             var originalModel = physModel.Model;
-                            var translatedModel = assetTranslator(originalModel);
+                            var translatedModel = AssetTranslator(originalModel);
                             if (!originalModel.Equals(translatedModel))
                             {
                                 ids.Add(k.Id);

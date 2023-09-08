@@ -43,8 +43,6 @@ namespace Equinox76561198048419394.Core.Mesh
         private EquiDecorativeDecalToolDefinition _definition;
         private ValueToControl _currentValueToChange = ValueToControl.Decal;
         private int _currentDecal;
-        private int _currentRotationDeg = 0;
-        private float _currentHeight = 0.125f;
 
         private enum ValueToControl
         {
@@ -74,7 +72,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var gridInv = gridPos.WorldMatrixNormalizedInv;
             var camWorld = MyCameraComponent.ActiveCamera.GetWorldMatrix();
 
-            var rot = Quaternion.CreateFromAxisAngle(normal, MathHelper.ToRadians(_currentRotationDeg));
+            var rot = Quaternion.CreateFromAxisAngle(normal, MathHelper.ToRadians(DecorativeToolSettings.DecalRotationDeg));
 
             Vector3 RotateAndAlign(Vector3 localUp)
             {
@@ -109,7 +107,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var decalDef = DecalDef;
             if (!remove)
             {
-                var area = _currentHeight * _currentDecal * decalDef.AspectRatio;
+                var area = DecorativeToolSettings.DecalHeight * _currentDecal * decalDef.AspectRatio;
                 var durabilityCost = (int)Math.Ceiling(decalDef.DurabilityBase + decalDef.DurabilityPerSquareMeter * area);
                 if (!TryRemoveDurability(durabilityCost))
                     return;
@@ -122,7 +120,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveDecal(points[0].Anchor);
                 else
-                    gridDecor.AddDecal(points[0].Anchor, decalDef, normal, ComputeDecalUp(points[0].Grid, normal), _currentHeight, _color);
+                    gridDecor.AddDecal(points[0].Anchor, decalDef, normal, ComputeDecalUp(points[0].Grid, normal), DecorativeToolSettings.DecalHeight, _color);
                 return;
             }
 
@@ -139,7 +137,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     DecalId = decalDef.Id,
                     PackedNormal = VF_Packer.PackNormal(normal),
                     PackedUp = VF_Packer.PackNormal(up),
-                    Height = _currentHeight,
+                    Height = DecorativeToolSettings.DecalHeight,
                     Color = _color,
                 }, false);
         }
@@ -255,14 +253,14 @@ namespace Equinox76561198048419394.Core.Mesh
                     localNormal = Vector3.Backward;
                 }
 
-                var rot = Quaternion.CreateFromAxisAngle(localNormal, MathHelper.ToRadians(_currentRotationDeg));
+                var rot = Quaternion.CreateFromAxisAngle(localNormal, MathHelper.ToRadians(DecorativeToolSettings.DecalRotationDeg));
                 var rotated = Vector3.Transform(Vector3.Up, rot);
                 var left = Vector3.Cross(localNormal, rotated);
                 localUp = Vector3.Cross(left, localNormal);
                 localUp.Normalize();
             }
 
-            var prepared = EquiDecorativeMeshComponent.CreateDecalData(def, localPos, localNormal, localUp, _currentHeight);
+            var prepared = EquiDecorativeMeshComponent.CreateDecalData(def, localPos, localNormal, localUp, DecorativeToolSettings.DecalHeight);
 
             var renderMatrix = MatrixD.Identity;
             renderMatrix.Translation = prepared.Position;
@@ -307,8 +305,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 fmt = "0000";
             MyRenderProxy.DebugDrawText2D(new Vector2(-.45f, -.45f),
                 $"Decal: {DecalDef.Name} ({(_currentDecal+1).ToString(fmt)}/{totalDecals}) {SelectionIndicator(ValueToControl.Decal)}\n" +
-                $"Height: {_currentHeight:F3} m {SelectionIndicator(ValueToControl.Height)}\n" +
-                $"Rotation: {_currentRotationDeg}° {SelectionIndicator(ValueToControl.Rotation)}",
+                $"Height: {DecorativeToolSettings.DecalHeight:F3} m {SelectionIndicator(ValueToControl.Height)}\n" +
+                $"Rotation: {DecorativeToolSettings.DecalRotationDeg}° {SelectionIndicator(ValueToControl.Rotation)}",
                 Color.White, 1f);
 
             var scrollDelta = Math.Sign(MyAPIGateway.Input.MouseScrollWheelValue());
@@ -330,18 +328,17 @@ namespace Equinox76561198048419394.Core.Mesh
                     break;
                 case ValueToControl.Rotation:
                     const int fastSnapIncrement = 45;
-                    _currentRotationDeg += scrollDelta * (fast ? fastSnapIncrement : 5);
-                    _currentRotationDeg = (_currentRotationDeg + 360) % 360;
-                    if (fast)
-                        _currentRotationDeg = _currentRotationDeg / fastSnapIncrement * fastSnapIncrement;
+                    DecorativeToolSettings.DecalRotationDeg += scrollDelta * (fast ? fastSnapIncrement : 5);
+                    DecorativeToolSettings.DecalRotationDeg = (DecorativeToolSettings.DecalRotationDeg + 360) % 360;
+                    if (fast) DecorativeToolSettings.DecalRotationDeg = DecorativeToolSettings.DecalRotationDeg / fastSnapIncrement * fastSnapIncrement;
                     break;
                 case ValueToControl.Height:
                     const float increment = .125f / 4;
                     const float fastIncrement = .125f;
                     var step = fast ? fastIncrement : increment;
-                    _currentHeight += scrollDelta * step;
-                    _currentHeight = (float) Math.Round(_currentHeight / step) * step;
-                    _currentHeight = MathHelper.Clamp(_currentHeight, increment, 5f);
+                    DecorativeToolSettings.DecalHeight += scrollDelta * step;
+                    DecorativeToolSettings.DecalHeight = (float) Math.Round(DecorativeToolSettings.DecalHeight / step) * step;
+                    DecorativeToolSettings.DecalHeight = MathHelper.Clamp(DecorativeToolSettings.DecalHeight, increment, 5f);
                     break;
             }
         }

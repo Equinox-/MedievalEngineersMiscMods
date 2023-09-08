@@ -391,6 +391,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             SetTarget();
 
+            var renderedShape = false;
             foreach (var anchor in _anchors)
                 anchor.Draw();
 
@@ -427,11 +428,23 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
 
                 if (grid != null && homogenous && points.Count >= RenderPoints)
+                {
+                    renderedShape = true;
                     RenderShape(grid, points);
+                }
+            }
+
+            if (!renderedShape)
+            {
+                RenderWithoutShape();
             }
         }
 
         protected abstract void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions);
+
+        protected virtual void RenderWithoutShape()
+        {
+        }
     }
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]

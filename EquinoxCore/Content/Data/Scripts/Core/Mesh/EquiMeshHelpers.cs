@@ -161,6 +161,9 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public Vector3 Position;
             public HalfVector2 Uv;
+            // Normal should be aligned such that the vertices are in counter clockwise order when the normal is pointing to the camera.
+            public uint Normal;
+            public uint Tangent;
         }
 
         public struct SurfaceData
@@ -170,8 +173,6 @@ namespace Equinox76561198048419394.Core.Mesh
 
             public VertexData? Pt3;
 
-            // Normal should be aligned such that the vertices are in counter clockwise order when the normal is pointing to the camera.
-            public Vector3 Normal;
             public bool FlipRearNormals;
 
             public PackedHsvShift ColorMask;
@@ -293,33 +294,24 @@ namespace Equinox76561198048419394.Core.Mesh
             mesh.Tangents.EnsureCapacity(neededVertices);
 
             var vertexOffset = mesh.Positions.Count;
-            var tangent = Vector3.CalculatePerpendicularVector(tri.Normal);
-            tangent.Normalize();
             for (var i = 0; i < repeats; i++)
             {
-                var normal = tri.Normal;
-                if (i == 1) normal = -normal;
-                mesh.Positions.Add(tri.Pt0.Position);
-                mesh.TexCoords.Add(tri.Pt0.Uv.ToVector2());
-                mesh.Normals.Add(normal);
-                mesh.Tangents.Add(tangent);
+                void AddVertex(in VertexData vtx)
+                {
+                    var normal = VF_Packer.UnpackNormal(vtx.Normal);
+                    var tangent = VF_Packer.UnpackNormal(vtx.Tangent);
+                    if (i == 1) normal = -normal;
+                    mesh.Positions.Add(vtx.Position);
+                    mesh.TexCoords.Add(vtx.Uv.ToVector2());
+                    mesh.Normals.Add(normal);
+                    mesh.Tangents.Add(tangent);
+                }
 
-                mesh.Positions.Add(tri.Pt1.Position);
-                mesh.TexCoords.Add(tri.Pt1.Uv.ToVector2());
-                mesh.Normals.Add(normal);
-                mesh.Tangents.Add(tangent);
-
-                mesh.Positions.Add(tri.Pt2.Position);
-                mesh.TexCoords.Add(tri.Pt2.Uv.ToVector2());
-                mesh.Normals.Add(normal);
-                mesh.Tangents.Add(tangent);
-
-                if (!tri.Pt3.HasValue) continue;
-                var pt3 = tri.Pt3.Value;
-                mesh.Positions.Add(pt3.Position);
-                mesh.TexCoords.Add(pt3.Uv.ToVector2());
-                mesh.Normals.Add(normal);
-                mesh.Tangents.Add(tangent);
+                AddVertex(in tri.Pt0);
+                AddVertex(in tri.Pt1);
+                AddVertex(in tri.Pt2);
+                if (tri.Pt3.HasValue)
+                    AddVertex(tri.Pt3.Value);
             }
 
             var indexOffset = mesh.Indices.Count;
@@ -410,6 +402,29 @@ namespace Equinox76561198048419394.Core.Mesh
             mesh.Indices.Add(vertexOffset);
             mesh.Indices.Add(vertexOffset + 3);
             mesh.Indices.Add(vertexOffset + 2);
+        }
+
+        public static Vector3 ComputeTriangleTangent(Vector3 edgeDelta1, Vector2 uvDelta1, Vector3 edgeDelta2, Vector2 uvDelta2)
+        {
+            // uv(j, k) = uvDelta1 * j + uvDelta2 * k 
+
+            var det = uvDelta1.Y * uvDelta2.X - uvDelta1.X * uvDelta2.Y;
+            if (Math.Abs(det) < 1e-6f) return Vector3.Zero;
+                
+            // Solution for uv(j, k) == [1, 0]
+            var j = -uvDelta2.Y / det;
+            var k = uvDelta1.Y / det;
+
+            // pos(j, k) = edgeDelta1 * j + edgeDelta2 * k
+            return edgeDelta1 * j + edgeDelta2 * k;
+        }
+
+        public static Vector3 MakePerpendicular(Vector3 modify, Vector3 normal)
+        {
+            Vector3.Reject(ref modify, ref normal, out var result);
+            if (result.LengthSquared() < 1e-6)
+                normal.CalculatePerpendicularVector(out result);
+            return result;
         }
     }
 }

@@ -34,7 +34,6 @@ namespace Equinox76561198048419394.Core.Mesh
     public class EquiDecorativeLineTool : EquiDecorativeToolBase
     {
         private EquiDecorativeLineToolDefinition _definition;
-        private float _catenaryFactor;
 
         public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
         {
@@ -66,7 +65,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveLine(points[0].Anchor, points[1].Anchor);
                 else
-                    gridDecor.AddLine(points[0].Anchor, points[1].Anchor, _definition, _catenaryFactor, _color);
+                    gridDecor.AddLine(points[0].Anchor, points[1].Anchor, _definition, DecorativeToolSettings.LineCatenaryFactor, _color);
                 return;
             }
 
@@ -74,8 +73,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 x => PerformOp,
                 points[0].Grid.Entity.Id,
                 points[0].RpcAnchor,
-                points[1].RpcAnchor,
-                _catenaryFactor,
+                points[1].RpcAnchor, DecorativeToolSettings.LineCatenaryFactor,
                 _color,
                 remove);
         }
@@ -134,18 +132,18 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var catenaryDelta = Math.Sign(MyAPIGateway.Input.MouseScrollWheelValue())
                                 * (MyAPIGateway.Input.IsKeyDown(MyKeys.Shift) ? 4 : 1)
-                                * MathHelper.Lerp(1 / 1000f, 1 / 50f, _catenaryFactor);
-            _catenaryFactor = MathHelper.Clamp(_catenaryFactor + catenaryDelta, 0, 1);
+                                * MathHelper.Lerp(1 / 1000f, 1 / 50f, DecorativeToolSettings.LineCatenaryFactor);
+            DecorativeToolSettings.LineCatenaryFactor = MathHelper.Clamp(DecorativeToolSettings.LineCatenaryFactor + catenaryDelta, 0, 1);
 
             var gridPos = grid.Container.Get<MyPositionComponentBase>();
-            var line = EquiDecorativeMeshComponent.CreateLineData(_definition, positions[0], positions[1], _catenaryFactor);
+            var line = EquiDecorativeMeshComponent.CreateLineData(_definition, positions[0], positions[1], DecorativeToolSettings.LineCatenaryFactor);
             if (line.CatenaryLength > 0 && line.UseNaturalGravity)
                 line.Gravity = Vector3.TransformNormal(
                     MyGravityProviderSystem.CalculateNaturalGravityInPoint(Holder.GetPosition()),
                     gridPos.WorldMatrixNormalizedInv);
-            var length = Vector3.Distance(positions[0], positions[1]) * (1 + _catenaryFactor);
+            var length = Vector3.Distance(positions[0], positions[1]) * (1 + DecorativeToolSettings.LineCatenaryFactor);
             MyRenderProxy.DebugDrawText2D(new Vector2(-.45f, -.45f),
-                $"Length: {length:F2} m\nExtra Length: {_catenaryFactor * 100:F2} %", Color.White, 1f);
+                $"Length: {length:F2} m\nExtra Length: {DecorativeToolSettings.LineCatenaryFactor * 100:F2} %", Color.White, 1f);
             using (PoolManager.Get<List<Vector3>>(out var points))
             {
                 points.EnsureCapacity(line.Segments + 1);

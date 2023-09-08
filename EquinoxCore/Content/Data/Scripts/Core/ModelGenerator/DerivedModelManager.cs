@@ -702,7 +702,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         #endregion
     }
 
-    public readonly struct MaterialInModel
+    public readonly struct MaterialInModel : IEquatable<MaterialInModel>
     {
         public readonly string Name;
         public readonly MyMeshDrawTechnique Technique;
@@ -714,5 +714,11 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             Name = name;
             Technique = technique;
         }
+
+        public bool Equals(MaterialInModel other) => Name == other.Name && Technique == other.Technique;
+
+        public override bool Equals(object obj) => obj is MaterialInModel other && Equals(other);
+
+        public override int GetHashCode() => (Name.GetHashCode() * 397) ^ (int)Technique;
     }
 }
