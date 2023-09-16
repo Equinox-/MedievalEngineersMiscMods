@@ -1,9 +1,10 @@
 using System;
 using Sandbox.Definitions;
 using Sandbox.Game.Entities;
-using Sandbox.ModAPI;
+using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Entity;
+using VRage.Game.Models;
 using VRage.Session;
 using VRageMath;
 
@@ -12,6 +13,14 @@ namespace Equinox76561198048419394.Core.Util
     public class VoxelMiningBuffer
     {
         private readonly int[] _harvestVolumeBuffer = new int[byte.MaxValue];
+
+        public bool HasAnyItems(MyVoxelMiningDefinition def)
+        {
+            foreach (var entry in def.MiningEntries)
+                if (_harvestVolumeBuffer[entry.Key] >= entry.Value.Volume)
+                    return true;
+            return false;
+        }
 
         public void Add(byte materialId, int volume) => _harvestVolumeBuffer[materialId] += volume;
 
@@ -53,9 +62,21 @@ namespace Equinox76561198048419394.Core.Util
         {
             return ForEachItem(def, point, (pointCap, id, available) =>
             {
-                var pos = MyAPIGateway.Entities.FindFreePlace(pointCap, 1) ?? pointCap;
+                var item = MyInventoryItem.Create(id, available);
+                var definition = item.GetDefinition();
+                if (definition == null)
+                    return 0;
+                var model = MyModels.GetModelOnlyData(definition.Model);
+                if (model == null)
+                    return 0;
+                var up = -MyGravityProviderSystem.CalculateTotalGravityInPoint(pointCap);
+                if (up.Normalize() < 1e-6f)
+                    up = Vector3.Up;
+                var forward = Vector3.CalculatePerpendicularVector(up);
+                var orientation = Quaternion.CreateFromForwardUp(forward, up);
+                var pos = FindFreePlaceUtil.FindFreePlaceImproved(pointCap, orientation, model.BoundingBox.HalfExtents * 1.5f) ?? pointCap;
                 MySession.Static.Components.Get<MyFloatingObjects>()
-                    ?.Spawn(MyInventoryItem.Create(id, available), MatrixD.CreateTranslation(pos));
+                    ?.Spawn(item, MatrixD.CreateWorld(pos, forward, up));
                 return available;
             });
         }

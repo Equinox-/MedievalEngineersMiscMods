@@ -173,6 +173,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\TriangleBvhBad.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Extensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\FarmingExtensions.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\FindFreePlaceUtil.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\IdentifiableListMerger.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\InterningBag.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\HasFlagExtensions.cs" />
