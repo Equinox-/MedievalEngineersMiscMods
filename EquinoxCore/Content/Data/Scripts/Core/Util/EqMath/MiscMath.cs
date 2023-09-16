@@ -61,5 +61,10 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 result += modulus;
             return result;
         }
+
+        public static float SafeSign(float value) => value < 0 ? -1 : 1;
+        public static double SafeSign(double value) => value < 0 ? -1 : 1;
+
+        public static Vector3 SafeSign(in Vector3 vec) => new Vector3(SafeSign(vec.X), SafeSign(vec.Y), SafeSign(vec.Z));
     }
 }

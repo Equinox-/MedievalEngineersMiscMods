@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using Sandbox.ModAPI;
 using VRage.Components;
 using VRage.Components.Entity.CubeGrid;
@@ -485,7 +486,7 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             // Move back to original octant.
-            return Vector3.Sign(normal) * FirstQuadrantUvProjections[bestI];
+            return MiscMath.SafeSign(normal) * FirstQuadrantUvProjections[bestI];
         }
 
         /// <summary>

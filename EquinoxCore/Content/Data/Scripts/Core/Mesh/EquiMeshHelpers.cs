@@ -371,7 +371,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var upLeftUv = data.TopLeftUv.ToVector2();
             var downRightUv = data.BottomRightUv.ToVector2();
 
-            var tangent = Math.Sign(downRightUv.X - upLeftUv.X) * left;
+            var tangent = MiscMath.SafeSign(downRightUv.X - upLeftUv.X) * left;
             tangent.Normalize();
 
             var vertexOffset = mesh.Positions.Count;
