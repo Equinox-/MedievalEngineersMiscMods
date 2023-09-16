@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using VRage.Collections;
@@ -239,7 +238,8 @@ namespace Equinox76561198048419394.Core.Mesh
         public static void SortSurfacePositions(Vector3 alignment, ref Vector3 a, ref Vector3 b, ref Vector3 c, ref Vector3 d)
         {
             var center = (a + b + c + d) / 4;
-            var norm = AlignedNormal(alignment, a, b, c) + AlignedNormal(alignment, b, c, d);
+            var norm = AlignedNormal(alignment, a, b, c);
+            norm += AlignedNormal(norm, b, c, d);
             if (norm.Normalize() < 1e-3f)
             {
                 norm = alignment;
