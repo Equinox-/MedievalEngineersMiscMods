@@ -276,10 +276,7 @@ namespace Equinox76561198048419394.Core.Inventory
 
                         var resultPos = FindFreePlace(slotOutputPosition.Translation, 0.1f, .1f);
                         if (!resultPos.HasValue)
-                        {
-                            MyAPIGateway.Utilities?.ShowNotification("Blocked");
                             continue;
-                        }
 
                         slotOutputPosition.Translation = resultPos.Value;
                         _floatingObjects.Spawn(item, slotOutputPosition, inv.Container.Get<MyPhysicsComponentBase>() ??

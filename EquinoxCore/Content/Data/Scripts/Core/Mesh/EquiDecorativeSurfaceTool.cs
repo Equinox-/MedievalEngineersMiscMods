@@ -94,7 +94,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (remove)
                         gridDecor.RemoveSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3);
                     else
-                        gridDecor.AddSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3, _definition, _color,
+                        gridDecor.AddSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3, _definition, PackedHsvShift,
                             DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias);
                     return;
                 }
@@ -108,7 +108,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         Pt1 = unique[1].RpcAnchor,
                         Pt2 = unique[2].RpcAnchor,
                         Pt3 = anchor3,
-                        Color = _color,
+                        Color = PackedHsvShift,
                         UvProjection = DecorativeToolSettings.UvProjection,
                         UvBias = DecorativeToolSettings.UvBias,
                     },
@@ -214,7 +214,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Vector3D.Transform(average, gridPos.WorldMatrix));
             var localGravity = Vector3.TransformNormal(gravityWorld, gridPos.WorldMatrixNormalizedInv);
             return EquiDecorativeMeshComponent.CreateSurfaceData(_definition, gridLocalPos(values[0]), gridLocalPos(values[1]), gridLocalPos(values[2]),
-                values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null, -localGravity, _color, DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias);
+                values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null, -localGravity, PackedHsvShift, DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias);
         }
 
         protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
@@ -227,7 +227,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 surfData = CreateSurfaceData<Vector3>(gridPos, unique, pt => pt);
             }
 
-            var color = _color.ToRgb();
+            var color = PackedHsvShift.ToRgb();
             var isoColor = new Color(0xFF - color.R, 0xFF - color.G, 0xFF - color.B);
             var triangleMsg = MyRenderProxy.PrepareDebugDrawTriangles();
             var lineMsg = MyRenderProxy.DebugDrawLine3DOpenBatch(false);
@@ -312,7 +312,7 @@ namespace Equinox76561198048419394.Core.Mesh
         private void RenderControl(string areaInfo)
         {
             string SelectionIndicator(ValueToControl val) => _currentValueToChange == val ? " <" : "";
-            MyRenderProxy.DebugDrawText2D(new Vector2(-.45f, -.45f),
+            MyRenderProxy.DebugDrawText2D(DebugTextAnchor,
                 $"UV Projection: {DecorativeToolSettings.UvProjection} {SelectionIndicator(ValueToControl.UvProjection)}\n" +
                 $"UV Bias: {DecorativeToolSettings.UvBias} {SelectionIndicator(ValueToControl.UvBias)}\n" +
                 areaInfo, Color.White, 1f);

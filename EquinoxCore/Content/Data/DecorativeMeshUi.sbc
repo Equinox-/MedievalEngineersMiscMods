@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
+        <Id Type="MyObjectBuilder_ContextMenu" Subtype="DecorativeMeshMenu" />
+        <StyleName>ContextMenuDefault</StyleName>
+        <Position x="0.35" y="0.32" />
+        <MainController>
+            <TypeId>MyObjectBuilder_EquiAdvancedController</TypeId>
+            <SubtypeId>DecorativeMeshController</SubtypeId>
+        </MainController>
+        <ContextType>MyObjectBuilder_EquiDecorativeToolContext</ContextType>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiAdvancedControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiAdvancedController" Subtype="DecorativeMeshController" />
+        <Title>Decorative Mesh</Title>
+        <AutoCommit>true</AutoCommit>
+        <!-- Lines -->
+        <Slider DataId="LineCatenaryFactor">
+            <Text>Extra Length</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} %</TextFormat>
+            <Exponent>3</Exponent>
+            <Tooltip>Controls how much the line sags under gravity</Tooltip>
+        </Slider>
+        
+        <!-- Surfaces -->
+        <Dropdown DataId="SurfaceUvProjection">
+            <Text>UV Projection</Text>
+            <Tooltip>Controls what projection is used to convert world coordinates to texture coordinate</Tooltip>
+        </Dropdown>
+        <Dropdown DataId="SurfaceUvBias">
+            <Text>UV Bias</Text>
+            <Tooltip>Controls what direction the texture is best viewed from</Tooltip>
+        </Dropdown>
+        
+        <!-- Decals -->
+        <Slider DataId="DecalHeight">
+            <Text>Height</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} m</TextFormat>
+            <Exponent>2</Exponent>
+            <Tooltip>Controls the vertical size of the decal</Tooltip>
+        </Slider>
+        <Slider DataId="DecalRotationDeg">
+            <Text>Rotation</Text>
+            <TextFormat>{0}°</TextFormat>
+            <Tooltip>Controls the rotation of the decal</Tooltip>
+            <IsInteger>true</IsInteger>
+        </Slider>
+        <Embedded>
+            <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
+        </Embedded>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
+        <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
+        <Columns>2</Columns>
+        <Rows>1</Rows>
+        <ButtonStyleId>ButtonListDefault</ButtonStyleId>
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <Text />
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Color</Tooltip>
+                <Icon>ContextMenuColorFill</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="Color" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" Reason="Not supported" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text />
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Decal</Tooltip>
+                <Icon>ContextMenuPattern</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="DecalDef" Reason="Not supported" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiDecorativeDecalsController" Subtype="DecorativeMeshSelectDecal" />
+                </Action>
+            </Button>
+        </Buttons>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_SliderControllerDefinition">
+        <Id Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" />
+        <Title>ContextMenu_PickColor</Title>
+        <DataId>Color</DataId>
+        <AutoCommit>true</AutoCommit>
+        <SliderSize x="330" y="75" />
+        <Slider StyleName="ContextMenuHueSlider" MinValue="0" MaxValue="360" IsInteger="true">
+            <Text>ContextMenu_Hue</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}°</TextFormat>
+            <Tooltip>ContextMenu_Hue_Tooltip</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider" MinValue="-100" MaxValue="100" DefaultValue="0" IsInteger="true">
+            <Text>ContextMenu_Saturation</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}</TextFormat>
+            <Tooltip>ContextMenu_Saturation_Tooltip</Tooltip>
+        </Slider>
+        <Slider StyleName="ContextMenuSlider" MinValue="-100" MaxValue="100" DefaultValue="0" IsInteger="true">
+            <Text>ContextMenu_Value</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}</TextFormat>
+            <Tooltip>ContextMenu_Value_Tooltip</Tooltip>
+        </Slider>
+        <ButtonSize x="330" y="45" />
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <Text>ContextMenu_ResetColor</Text>
+                <Tooltip>ContextMenu_ResetColor_Tooltip</Tooltip>
+                <Action xsi:type="MyObjectBuilder_CMA_ContextMethod" Name="ResetColor" />
+            </Button>
+        </Buttons>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiDecorativeDecalsControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiDecorativeDecalsController" Subtype="DecorativeMeshSelectDecal" />
+        <Title>ContextMenu_SignpostSelectIcon</Title>
+        <DataId>DecalDef</DataId>
+        <GridSize x="320" y="400" />
+        <Grid StyleName="ContextMenuInventoryGrid" Columns="4" Rows="5" MaxItems="20" />
+        <PagingButtonSize x="32" y="32" />
+        <PagingButtonStyle>ContextButtonPage</PagingButtonStyle>
+        <LabelStyle>ContextMenuLabel</LabelStyle>
+    </Definition>
+</Definitions>

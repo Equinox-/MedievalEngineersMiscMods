@@ -2,14 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
-using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Modifiers.Storage;
 using Equinox76561198048419394.Core.Util;
 using Medieval.GameSystems;
+using Medieval.GUI.ContextMenu;
+using Medieval.GUI.Ingame.Common;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Inventory;
+using Sandbox.Graphics;
+using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components.Entity.CubeGrid;
@@ -19,6 +22,9 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
+using VRage.Game.Input;
+using VRage.Input;
+using VRage.Input.Input;
 using VRage.Library.Collections;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Equipment;
@@ -32,9 +38,12 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
     public abstract class EquiDecorativeToolBase : MyToolBehaviorBase
     {
-        protected PackedHsvShift _color;
+        private static readonly MyInputContext InputContext = new MyInputContext("Decorative Tools Menu");
+
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
         private EquiDecorativeToolBaseDefinition _definition;
+
+        protected Vector2 DebugTextAnchor => MyAPIGateway.Session?.CreativeMode ?? false ? new Vector2(-.45f, -.45f) : new Vector2(-.45f, 100);
 
         public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
         {
@@ -335,16 +344,47 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             base.Activate();
             if (IsLocallyControlled)
+            {
                 Scene.Scheduler.AddFixedUpdate(RenderHelper);
+                InputContext.RegisterAction(MyStringHash.GetOrCompute("CharacterUse"), MyInputStateFlags.Pressed,
+                    (ref MyInputContext.ActionEvent evt) =>
+                    {
+                        if (_openMenu?.Context != null)
+                            CloseConfiguration();
+                        else
+                            OpenConfiguration();
+                    });
+                InputContext.Push();
+            }
         }
 
         public override void Deactivate()
         {
+            if (IsLocallyControlled)
+                InputContext.Pop();
             Scene.Scheduler.RemoveFixedUpdate(RenderHelper);
             base.Deactivate();
         }
 
         private readonly List<DecorAnchor> _anchors = new List<DecorAnchor>();
+        private MyContextMenu _openMenu;
+
+        protected PackedHsvShift PackedHsvShift => _definition.AllowRecoloring && DecorativeToolSettings.HsvShift.HasValue
+            ? (PackedHsvShift)DecorativeToolSettings.HsvShift.Value
+            : default;
+
+        private void OpenConfiguration()
+        {
+            _openMenu?.Close();
+            if (Holder != null)
+                _openMenu = MyContextMenuScreen.OpenMenu(Holder, "DecorativeMeshMenu", Definition);
+        }
+
+        private void CloseConfiguration()
+        {
+            _openMenu?.Close();
+            _openMenu = null;
+        }
 
         protected override void Hit()
         {
@@ -352,24 +392,20 @@ namespace Equinox76561198048419394.Core.Mesh
             if (!TryGetAnchor(out var anchor))
             {
                 if (ActiveAction == MyHandItemActionEnum.Tertiary)
-                    _color = default;
+                    DecorativeToolSettings.HsvShift = default;
                 return;
             }
             if (ActiveAction == MyHandItemActionEnum.Tertiary)
             {
-                _color = default;
-                if (_definition.AllowRecoloring)
+                DecorativeToolSettings.HsvShift = default;
+                var modifierHolder = anchor.Grid.Container.Get<EquiGridModifierComponent>();
+                var modifierKey = new EquiGridModifierComponent.BlockModifierKey(anchor.Block.Id, MyStringHash.NullOrEmpty);
+                if (modifierHolder != null && modifierHolder.TryGetModifierOutput(in modifierKey, out var modifierOutput))
                 {
-                    var modifierHolder = anchor.Grid.Container.Get<EquiGridModifierComponent>();
-                    var modifierKey = new EquiGridModifierComponent.BlockModifierKey(anchor.Block.Id, MyStringHash.NullOrEmpty);
-                    if (modifierHolder != null && modifierHolder.TryGetModifierOutput(in modifierKey, out var modifierOutput))
-                    {
-                        if (modifierOutput.ColorMaskHsv.HasValue)
-                            _color = modifierOutput.ColorMaskHsv.Value;
-                        modifierOutput.Dispose();
-                    }
+                    if (modifierOutput.ColorMaskHsv.HasValue)
+                        DecorativeToolSettings.HsvShift = modifierOutput.ColorMaskHsv.Value;
+                    modifierOutput.Dispose();
                 }
-
                 return;
             }
             for (var i = 0; i < _anchors.Count; i++)

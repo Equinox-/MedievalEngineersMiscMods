@@ -1,6 +1,25 @@
 <?xml version="1.0"?>
 <Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition">
+        <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="Default" Merge="Append" Copy="Append" />
+
+        <Checkbox StyleName="ContextMenuCheckbox">
+            <IconSize x="32" y="20" />
+            <NormalChecked Texture="CheckboxNormalChecked" />
+            <NormalUnchecked Texture="CheckboxNormalUnchecked" />
+            <HighlightChecked Texture="CheckboxHighlightChecked" />
+            <HighlightUnchecked Texture="CheckboxHighlightUnchecked" />
+        </Checkbox>
+
+        <Combobox StyleName="ContextMenuCombobox" TextScale="0.9">
+            <Normal Font="VollkornRegularPlain" Texture="ComboboxNormal" TextColor="#3C2000" />
+            <Highlight Font="VollkornRegularPlain" Texture="ComboboxHiglight" TextColor="#FFFFFF" />
+            <ItemTextureHighlight>Textures\GUI\Controls\item_highlight_dark.dds</ItemTextureHighlight>
+            <DropDownTexture>WindowBackgroundGradient</DropDownTexture>
+        </Combobox>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition">
         <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="ModContributions" Merge="Append" />
 
         <GuiIcon StyleName="EquinoxPose">

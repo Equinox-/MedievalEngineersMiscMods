@@ -65,7 +65,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveLine(points[0].Anchor, points[1].Anchor);
                 else
-                    gridDecor.AddLine(points[0].Anchor, points[1].Anchor, _definition, DecorativeToolSettings.LineCatenaryFactor, _color);
+                    gridDecor.AddLine(points[0].Anchor, points[1].Anchor, _definition, DecorativeToolSettings.LineCatenaryFactor, PackedHsvShift);
                 return;
             }
 
@@ -74,7 +74,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 points[0].Grid.Entity.Id,
                 points[0].RpcAnchor,
                 points[1].RpcAnchor, DecorativeToolSettings.LineCatenaryFactor,
-                _color,
+                PackedHsvShift,
                 remove);
         }
 
@@ -142,7 +142,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     MyGravityProviderSystem.CalculateNaturalGravityInPoint(Holder.GetPosition()),
                     gridPos.WorldMatrixNormalizedInv);
             var length = Vector3.Distance(positions[0], positions[1]) * (1 + DecorativeToolSettings.LineCatenaryFactor);
-            MyRenderProxy.DebugDrawText2D(new Vector2(-.45f, -.45f),
+            MyRenderProxy.DebugDrawText2D(DebugTextAnchor,
                 $"Length: {length:F2} m\nExtra Length: {DecorativeToolSettings.LineCatenaryFactor * 100:F2} %", Color.White, 1f);
             using (PoolManager.Get<List<Vector3>>(out var points))
             {
@@ -153,7 +153,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 var msg = MyRenderProxy.DebugDrawLine3DOpenBatch(true);
                 msg.WorldMatrix = gridPos.WorldMatrix;
                 msg.Lines.EnsureCapacity((points.Count - 1) * 2);
-                var color = _color.ToRgb();
+                var color = PackedHsvShift.ToRgb();
                 for (var i = 0; i < points.Count; i++)
                 {
                     var pt = new MyFormatPositionColor { Position = points[i], Color = color };
