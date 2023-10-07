@@ -211,6 +211,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\SingletonEnumerator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\StackArray.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PackedBoundedVec.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\ToolWithMenu.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelMiningBuffer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelPlacementBuffer.cs" />
   </ItemGroup>

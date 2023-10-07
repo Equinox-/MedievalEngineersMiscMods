@@ -36,10 +36,8 @@ using MySession = VRage.Session.MySession;
 namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
-    public abstract class EquiDecorativeToolBase : MyToolBehaviorBase
+    public abstract class EquiDecorativeToolBase : MyToolBehaviorBase, IToolWithMenu
     {
-        private static readonly MyInputContext InputContext = new MyInputContext("Decorative Tools Menu");
-
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
         private EquiDecorativeToolBaseDefinition _definition;
 
@@ -343,25 +341,14 @@ namespace Equinox76561198048419394.Core.Mesh
         public override void Activate()
         {
             base.Activate();
+            this.OnActivateWithMenu();
             if (IsLocallyControlled)
-            {
                 Scene.Scheduler.AddFixedUpdate(RenderHelper);
-                InputContext.RegisterAction(MyStringHash.GetOrCompute("CharacterUse"), MyInputStateFlags.Pressed,
-                    (ref MyInputContext.ActionEvent evt) =>
-                    {
-                        if (_openMenu?.Context != null)
-                            CloseConfiguration();
-                        else
-                            OpenConfiguration();
-                    });
-                InputContext.Push();
-            }
         }
 
         public override void Deactivate()
         {
-            if (IsLocallyControlled)
-                InputContext.Pop();
+            this.OnDeactivateWithMenu();
             Scene.Scheduler.RemoveFixedUpdate(RenderHelper);
             base.Deactivate();
         }
@@ -373,18 +360,8 @@ namespace Equinox76561198048419394.Core.Mesh
             ? (PackedHsvShift)DecorativeToolSettings.HsvShift.Value
             : default;
 
-        private void OpenConfiguration()
-        {
-            _openMenu?.Close();
-            if (Holder != null)
-                _openMenu = MyContextMenuScreen.OpenMenu(Holder, "DecorativeMeshMenu", Definition);
-        }
-
-        private void CloseConfiguration()
-        {
-            _openMenu?.Close();
-            _openMenu = null;
-        }
+        public string ToolContextMenuId => "DecorativeMeshMenu";
+        public object[] ToolContextMenuArguments => new object[] { Definition };
 
         protected override void Hit()
         {

@@ -13,6 +13,12 @@ namespace Equinox76561198048419394.Core.UI
         {
         }
 
+        /// <summary>
+        /// Revision number of the items list.  UI elements may not update
+        /// if this version doesn't change.
+        /// </summary>
+        public virtual int ItemsVersion => Count;
+
         public abstract void GetItems(List<DropdownItem> output);
 
         public readonly struct DropdownItem

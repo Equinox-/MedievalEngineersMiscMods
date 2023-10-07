@@ -15,6 +15,7 @@ namespace Equinox76561198048419394.Core.UI
         public DataSourceAccessor<ContextMenuDropdownDataSource> DataSource;
         public MyGuiControlCombobox Dropdown;
         public MyGuiControlBase Root { get; set; }
+        private int _lastVersion;
 
         public void SyncToControl()
         {
@@ -27,17 +28,25 @@ namespace Equinox76561198048419394.Core.UI
             }
 
             Root.Enabled = true;
-            using (PoolManager.Get(out List<ContextMenuDropdownDataSource.DropdownItem> items))
+            var version = impl.ItemsVersion;
+            if (version != _lastVersion)
             {
-                impl.GetItems(items);
-                Dropdown.ClearItems();
-                for (var i = 0; i < items.Count; i++)
+                using (PoolManager.Get(out List<ContextMenuDropdownDataSource.DropdownItem> items))
                 {
-                    var item = items[i];
-                    Dropdown.AddItem(key: i, value: item.Text, toolTip: item.Tooltip);
+                    impl.GetItems(items);
+                    Dropdown.ClearItems();
+                    for (var i = 0; i < items.Count; i++)
+                    {
+                        var item = items[i];
+                        Dropdown.AddItem(key: i, value: item.Text, toolTip: item.Tooltip);
+                    }
                 }
+
+                _lastVersion = version;
             }
-            Dropdown.SelectItemByIndex(impl.Selected);
+
+            if (Dropdown.GetSelectedIndex() != impl.Selected)
+                Dropdown.SelectItemByIndex(impl.Selected);
             _commitPermitted = true;
         }
 

@@ -29,4 +29,13 @@
     <Primary Key="F12" Alt="true" />
     <Public>false</Public>
   </Definition>
+
+
+  <Definition xsi:type="MyObjectBuilder_ControlDefinition">
+    <Id Type="MyObjectBuilder_ControlDefinition" Subtype="ToolMenu" />
+    <DisplayName>Configuration Menu</DisplayName>
+    <Description>Configuration menu of the tool or weapon.</Description>
+    <Category>Tools</Category>
+    <Primary Key="F" />
+  </Definition>
 </Definitions>

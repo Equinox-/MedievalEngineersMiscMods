@@ -134,16 +134,15 @@ namespace Equinox76561198048419394.Core.Util
             return player != null && MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
         }
 
+        public static MyHandItemBehaviorBase GetHeldBehavior(this MyEntity entity)
+        {
+            return entity.Components.Get<MyCharacterHandItemsComponent>()?.GetBehavior<MyHandItemBehaviorBase>();
+        }
+
         public static bool TryGetSendersHeldBehavior<T>(this MyEventContext context, out T behavior) where T : MyHandItemBehaviorBase
         {
-            behavior = default;
             var player = MyPlayers.Static.GetPlayer(new MyPlayer.PlayerId(context.Sender.Value, 0));
-            var playerEntity = player?.ControlledEntity;
-            if (playerEntity == null)
-                return false;
-            if (!playerEntity.Components.TryGet(out MyCharacterHandItemsComponent handItems))
-                return false;
-            behavior = handItems.GetBehavior<T>();
+            behavior = player?.ControlledEntity?.GetHeldBehavior() as T;
             return behavior != null;
         }
 
