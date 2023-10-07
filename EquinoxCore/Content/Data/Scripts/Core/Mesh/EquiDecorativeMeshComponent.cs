@@ -332,7 +332,8 @@ namespace Equinox76561198048419394.Core.Mesh
         }
 
         public static EquiMeshHelpers.SurfaceData CreateSurfaceData(EquiDecorativeSurfaceToolDefinition def, Vector3 a, Vector3 b, Vector3 c, Vector3? d,
-            Vector3 alignNormal, PackedHsvShift color = default, UvProjectionMode uvProjection = UvProjectionMode.Bevel, UvBiasMode uvBias = UvBiasMode.XAxis)
+            Vector3 alignNormal, PackedHsvShift color = default, UvProjectionMode uvProjection = UvProjectionMode.Bevel, UvBiasMode uvBias = UvBiasMode.XAxis,
+            float? uvScale = null)
         {
             Vector3 norm;
             const float eps = 1e-6f;
@@ -360,7 +361,8 @@ namespace Equinox76561198048419394.Core.Mesh
 
             FindUvProjection(uvProjection, uvBias, norm, out var uvX, out var uvY);
 
-            Vector2 ComputeUv(in Vector3 pos) => new Vector2(uvX.Dot(pos), uvY.Dot(pos)) / def.TextureSize;
+            var trueUvScale = 1 / (uvScale ?? 1);
+            Vector2 ComputeUv(in Vector3 pos) => new Vector2(trueUvScale * uvX.Dot(pos), trueUvScale * uvY.Dot(pos)) / def.TextureSize;
 
             Vector3 IdealTriangleTangent(Vector3 pt0, Vector3 pt1, Vector3 pt2)
             {
@@ -532,7 +534,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Entity.GetPosition());
                 var localGravity = Vector3.TransformNormal(gravityWorld, Entity.PositionComp.WorldMatrixNormalizedInv);
                 newRenderable = _dynamicMesh.CreateSurface(CreateSurfaceData(surfDef, blockA, blockB, blockC, blockD, -localGravity,
-                    args.Color, args.UvProjection, args.UvBias));
+                    args.Color, args.UvProjection, args.UvBias, args.UvScale));
             }
 
             _features[triplet] = new RenderData(data.Def, data.Args, newRenderable);
@@ -569,6 +571,13 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 get => (UvBiasMode)DecalUp;
                 set => DecalUp = (uint)value;
+            }
+
+            [NoSerialize]
+            public float UvScale
+            {
+                get => CatenaryFactor;
+                set => CatenaryFactor = value;
             }
 
             [NoSerialize]
@@ -633,11 +642,12 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public void AddSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d,
             EquiDecorativeSurfaceToolDefinition def, PackedHsvShift color,
-            UvProjectionMode uvProjection = UvProjectionMode.Bevel, UvBiasMode uvBias = UvBiasMode.XAxis)
+            UvProjectionMode uvProjection = UvProjectionMode.Bevel, UvBiasMode uvBias = UvBiasMode.XAxis,
+            float uvScale = 1)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(a, b, c, d);
-            var args = new FeatureArgs { Color = color, UvProjection = uvProjection, UvBias = uvBias };
+            var args = new FeatureArgs { Color = color, UvProjection = uvProjection, UvBias = uvBias, UvScale = uvScale };
             if (TryAddFeatureInternal(in key, def, args))
                 RaiseAddFeature_Sync(key, def.Id, args);
         }
@@ -759,6 +769,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             D = triplet.D.Block.Value,
                             DOffset = triplet.D.PackedAnchor,
                             ColorRaw = args.Color,
+                            UvScale = args.UvScale,
                         });
                 }
 
@@ -861,6 +872,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                     Color = item.ColorRaw,
                                     UvProjection = uvProjection,
                                     UvBias = uvBias,
+                                    UvScale = item.UvScale,
                                 });
                 }
         }
@@ -966,6 +978,25 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
+
+            [XmlIgnore]
+            public float? UvScaleRaw;
+
+            [XmlAttribute("S")]
+            [NoSerialize]
+            public float UvScale
+            {
+                get => UvScaleRaw ?? 1;
+                set
+                {
+                    if (Math.Abs(value) < 1e-6 || Math.Abs(value - 1) < 1e-6)
+                        UvScaleRaw = null;
+                    else
+                        UvScaleRaw = value;
+                }
+            }
+
+            public bool ShouldSerializeUvScale() => UvScaleRaw.HasValue;
         }
 
         public class DecorativeSurfaces : IMyRemappable

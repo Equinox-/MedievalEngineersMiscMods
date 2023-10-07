@@ -114,9 +114,9 @@ namespace Equinox76561198048419394.Core.UI
                 switch (_ds.DataSource)
                 {
                     case IBoundedSingleValueDataSource<T> a:
-                        return a.Max;
+                        return a.Default;
                     case IBoundedArrayDataSource<T> b when _index < b.Length:
-                        return b.GetMax(_index);
+                        return b.GetDefault(_index);
                     default:
                         return null;
                 }

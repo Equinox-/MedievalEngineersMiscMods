@@ -3,10 +3,8 @@ using Medieval.GUI.ContextMenu;
 using Sandbox.Game.GUI.Dialogs;
 using Sandbox.Graphics.GUI;
 using Sandbox.Gui.Layouts;
-using Sandbox.Gui.Skins;
 using Sandbox.ModAPI;
 using VRage;
-using VRage.Utils;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.UI

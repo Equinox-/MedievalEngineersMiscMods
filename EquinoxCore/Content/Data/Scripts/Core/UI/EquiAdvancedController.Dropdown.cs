@@ -43,9 +43,8 @@ namespace Equinox76561198048419394.Core.UI
                 }
 
                 _lastVersion = version;
-            }
-
-            if (Dropdown.GetSelectedIndex() != impl.Selected)
+                Dropdown.SelectItemByIndex(impl.Selected);
+            } else if (Dropdown.GetSelectedIndex() != impl.Selected)
                 Dropdown.SelectItemByIndex(impl.Selected);
             _commitPermitted = true;
         }

@@ -6,6 +6,7 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         public static UvProjectionMode UvProjection = UvProjectionMode.Bevel;
         public static UvBiasMode UvBias = UvBiasMode.XAxis;
+        public static float UvScale = 1f;
 
         public static float LineCatenaryFactor;
 

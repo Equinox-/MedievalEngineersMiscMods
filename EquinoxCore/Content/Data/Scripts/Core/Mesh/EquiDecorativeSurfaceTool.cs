@@ -4,6 +4,7 @@ using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.Constants;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.EntityComponents.Character;
@@ -40,6 +41,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             UvProjection,
             UvBias,
+            UvScale,
             Count
         }
 
@@ -95,7 +97,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         gridDecor.RemoveSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3);
                     else
                         gridDecor.AddSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3, _definition, PackedHsvShift,
-                            DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias);
+                            DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias, DecorativeToolSettings.UvScale);
                     return;
                 }
 
@@ -111,6 +113,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         Color = PackedHsvShift,
                         UvProjection = DecorativeToolSettings.UvProjection,
                         UvBias = DecorativeToolSettings.UvBias,
+                        UvScale = DecorativeToolSettings.UvScale,
                     },
                     ActiveAction == MyHandItemActionEnum.Secondary);
             }
@@ -126,6 +129,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public PackedHsvShift Color;
             public UvProjectionMode UvProjection;
             public UvBiasMode UvBias;
+            public float UvScale;
         }
 
         [Event, Reliable, Server]
@@ -202,7 +206,7 @@ namespace Equinox76561198048419394.Core.Mesh
             if (remove)
                 gridDecor.RemoveSurface(pt0, pt1, pt2, pt3);
             else
-                gridDecor.AddSurface(pt0, pt1, pt2, pt3, behavior._definition, args.Color, args.UvProjection, args.UvBias);
+                gridDecor.AddSurface(pt0, pt1, pt2, pt3, behavior._definition, args.Color, args.UvProjection, args.UvBias, args.UvScale);
         }
 
         private EquiMeshHelpers.SurfaceData CreateSurfaceData<T>(MyPositionComponentBase gridPos, ListReader<T> values, Func<T, Vector3> gridLocalPos)
@@ -214,7 +218,8 @@ namespace Equinox76561198048419394.Core.Mesh
             var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Vector3D.Transform(average, gridPos.WorldMatrix));
             var localGravity = Vector3.TransformNormal(gravityWorld, gridPos.WorldMatrixNormalizedInv);
             return EquiDecorativeMeshComponent.CreateSurfaceData(_definition, gridLocalPos(values[0]), gridLocalPos(values[1]), gridLocalPos(values[2]),
-                values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null, -localGravity, PackedHsvShift, DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias);
+                values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null, -localGravity, PackedHsvShift,
+                DecorativeToolSettings.UvProjection, DecorativeToolSettings.UvBias, _definition.TextureScale.Clamp(DecorativeToolSettings.UvScale));
         }
 
         protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
@@ -315,6 +320,7 @@ namespace Equinox76561198048419394.Core.Mesh
             MyRenderProxy.DebugDrawText2D(DebugTextAnchor,
                 $"UV Projection: {DecorativeToolSettings.UvProjection} {SelectionIndicator(ValueToControl.UvProjection)}\n" +
                 $"UV Bias: {DecorativeToolSettings.UvBias} {SelectionIndicator(ValueToControl.UvBias)}\n" +
+                $"UV Scale: {DecorativeToolSettings.UvScale} {SelectionIndicator(ValueToControl.UvScale)}\n" +
                 areaInfo, Color.White, 1f);
 
             var scrollDelta = Math.Sign(MyAPIGateway.Input.MouseScrollWheelValue());
@@ -337,6 +343,11 @@ namespace Equinox76561198048419394.Core.Mesh
                     DecorativeToolSettings.UvBias =
                         (UvBiasMode)(((int)DecorativeToolSettings.UvBias + (int)UvBiasMode.Count + scrollDelta) % (int)UvBiasMode.Count);
                     break;
+                case ValueToControl.UvScale:
+                    DecorativeToolSettings.UvScale = _definition.TextureScale.FromRatio(
+                        _definition.TextureScale.ToRatio(DecorativeToolSettings.UvScale) + 0.01f * scrollDelta,
+                        true);
+                    break;
                 case ValueToControl.Count:
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -351,6 +362,7 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         public MaterialDescriptor Material { get; private set; }
         public Vector2 TextureSize { get; private set; }
+        public ImmutableRange<float> TextureScale { get; private set; }
         public bool FlipRearNormals { get; private set; }
         public Vector2 UvGuidePerpendicular { get; private set; }
 
@@ -363,6 +375,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var ob = (MyObjectBuilder_EquiDecorativeSurfaceToolDefinition)builder;
             Material = ob.Material.Build();
             TextureSize = ob.TextureSize ?? Vector2.One;
+            TextureScale = ob.TextureScale?.Immutable() ?? new ImmutableRange<float>(1, 1);
             FlipRearNormals = ob.FlipRearNormals ?? true;
             var uvGuideTangent = ob.UvGuide ?? Vector2.UnitX;
             UvGuidePerpendicular = new Vector2(-uvGuideTangent.Y, uvGuideTangent.X);
@@ -378,6 +391,9 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         public MaterialSpec Material;
         public SerializableVector2? TextureSize;
+
+        public MutableRange<float>? TextureScale;
+
         public bool? FlipRearNormals;
 
         public float? DurabilityBase;

@@ -33,7 +33,14 @@
             <Text>UV Bias</Text>
             <Tooltip>Controls what direction the texture is best viewed from</Tooltip>
         </Dropdown>
-        
+        <Slider DataId="SurfaceUvScale">
+            <Text>Texture Scale</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} x</TextFormat>
+            <Exponent>3</Exponent>
+            <Tooltip>Controls the size of the texture</Tooltip>
+        </Slider>
+
         <!-- Decals -->
         <Slider DataId="DecalHeight">
             <Text>Height</Text>
