@@ -209,6 +209,34 @@ namespace Equinox76561198048419394.Core.Inventory
                 _items.Add(item.Clone(item.Amount));
         }
 
+        /// <summary>
+        /// Transfers all items in
+        /// </summary>
+        /// <param name="other"></param>
+        public void TransferAllTo(MyInventoryBase other, NewItemParams newItemParams = NewItemParams.None)
+        {
+            var force = (newItemParams & NewItemParams.ForcedInsertion) != 0;
+            for (var i = 0; i < _items.Count; i++)
+            {
+                var item = _items[i];
+                if (item == null || item.Amount == 0) continue;
+                var fits = force ? item.Amount : Math.Min(item.Amount, other.ComputeAmountThatFits(item.DefinitionId));
+                if (fits == 0) continue;
+
+                if (fits == item.Amount)
+                {
+                    if (!other.Add(item, newItemParams)) continue;
+                    _items.RemoveAtFast(i);
+                    --i;
+                    continue;
+                }
+
+                var cloned = item.Clone(fits);
+                if (!other.Add(cloned, newItemParams)) continue;
+                item.Amount -= fits;
+            }
+        }
+
         public override int MaxItemCount => int.MaxValue;
 
         public override MyFixedPoint CurrentMass

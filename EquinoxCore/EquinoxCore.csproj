@@ -63,6 +63,7 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\EquiOpenInventoryComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryAction.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryActionApplier.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryDropper.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\ItemCollection.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeDecalsController.cs" />

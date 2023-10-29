@@ -11,6 +11,7 @@ using Sandbox.Game.Entities.Character;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Inventory;
 using Sandbox.ModAPI;
+using VRage.Components.Physics;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
@@ -69,30 +70,22 @@ namespace Equinox76561198048419394.Core.Harvest
             if (data.LootTable == null)
                 return;
 
-            var lootBag = MyEntities.CreateEntity(_definition.LootBag);
-            var inv = lootBag.Get<MyInventoryBase>();
-            if (inv == null)
-                return;
-            inv.GenerateLuckyContent(data.LootTable, new LuckyLoot.LootContext(_definition.LuckMultiplier, _definition.LuckAddition));
-
-            if (_definition.OutputInventory != MyStringHash.NullOrEmpty)
+            using (ItemCollection.Borrow(out var inv))
             {
-                var myInventory = Holder.Get<MyInventoryBase>(_definition.OutputInventory);
-                if (myInventory != null)
-                    for (var index = 0; index < inv.Items.Count; index++)
-                    {
-                        var item = inv.Items[index];
-                        var fits = Math.Min(item.Amount, myInventory.ComputeAmountThatFits(item.DefinitionId));
-                        if (fits <= 0 || !myInventory.AddItems(item.DefinitionId, fits)) continue;
-                        item.Amount -= fits;
-                        if (item.Amount > 0) continue;
-                        index--;
-                        inv.Remove(item);
-                    }
-            }
+                inv.GenerateLuckyContent(data.LootTable, new LuckyLoot.LootContext(_definition.LuckMultiplier, _definition.LuckAddition));
 
-            if (inv.Items.Count > 0)
-                MyEntities.Add(lootBag);
+                if (_definition.OutputInventory != MyStringHash.NullOrEmpty)
+                {
+                    var myInventory = Holder.Get<MyInventoryBase>(_definition.OutputInventory);
+                    if (myInventory != null)
+                        inv.TransferAllTo(myInventory);
+                }
+
+                InventoryDropper.DropItems(inv.Items,
+                    Target.Entity.PositionComp.WorldVolume.Center,
+                    _definition.LootBag,
+                    Target.Entity.Get<MyPhysicsComponentBase>());
+            }
         }
 
         private bool HasPermission(MyStringId id)

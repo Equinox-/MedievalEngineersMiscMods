@@ -16,7 +16,6 @@ using VRage.Game.Models;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Logging;
 using VRage.Models;
-using VRage.ObjectBuilder.Merging;
 using VRage.ObjectBuilders;
 using VRage.Utils;
 using VRageMath;
@@ -386,19 +385,23 @@ namespace Equinox76561198048419394.Core.Misc
             [XmlIgnore]
             public abstract float RadiusOrDefault { get; }
 
+
+            [XmlIgnore]
+            public float IntensityOrDefault => Intensity ?? DefaultIntensity;
+
             [XmlIgnore]
             public MyLightLayout LightLayout => new MyLightLayout
             {
                 // Position doesn't matter here -- renderer overrides it
                 Range = RadiusOrDefault,
-                Color = ((Vector3) (ColorRgb ?? DefaultColor)).ToLinearRGB() * (Intensity ?? DefaultIntensity),
+                Color = ((Vector3) (ColorRgb ?? DefaultColor)).ToLinearRGB() * IntensityOrDefault,
                 Falloff = Falloff ?? DefaultFalloff,
                 GlossFactor = GlossFactor ?? DefaultGlossFactor,
                 DiffuseFactor = DiffuseFactor ?? DefaultDiffuseFactor
             };
 
             [XmlIgnore]
-            public virtual bool IsEnabled => !("false".Equals(Enabled, StringComparison.OrdinalIgnoreCase)) && Radius > 0 && Intensity > 0;
+            public virtual bool IsEnabled => !("false".Equals(Enabled, StringComparison.OrdinalIgnoreCase)) && RadiusOrDefault > 0 && IntensityOrDefault > 0;
         }
 
         public class PointLightData : LightDataShared
