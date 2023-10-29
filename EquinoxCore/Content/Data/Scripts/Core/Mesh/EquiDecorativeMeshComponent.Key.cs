@@ -11,7 +11,9 @@ namespace Equinox76561198048419394.Core.Mesh
     public partial class EquiDecorativeMeshComponent
     {
         // Changing this breaks serialization.  Do not modify.
-        public static readonly PackedBoundedVec AnchorPacking = new PackedBoundedVec(-0.5f, 1.5f, 10);
+        public static readonly PackedBoundedVec LegacyAnchorPacking = new PackedBoundedVec(-0.5f, 1.5f, 10);
+        public static readonly PackedBoundedVec NewAnchorPacking = new PackedBoundedVec(-1, 1, 10);
+        public const uint NewAnchorPackingMask = 1u << 31;
 
         public readonly struct BlockAndAnchor : IEquatable<BlockAndAnchor>
         {
@@ -28,7 +30,9 @@ namespace Equinox76561198048419394.Core.Mesh
 
             public bool IsNull => Block == BlockId.Null;
 
-            public Vector3 NormalizedAnchor => AnchorPacking.Unpack(PackedAnchor);
+            private Vector3 NormalizedAnchor => (PackedAnchor & NewAnchorPackingMask) != 0
+                ? NewAnchorPacking.Unpack(PackedAnchor)
+                : LegacyAnchorPacking.Unpack(PackedAnchor);
 
             [Pure]
             public Vector3 GetBlockLocalAnchor(MyGridDataComponent gridData, MyBlock block) => NormalizedAnchor * block.Definition.Size * gridData.Size;

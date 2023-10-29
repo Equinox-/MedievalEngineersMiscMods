@@ -15,5 +15,12 @@ namespace Equinox76561198048419394.Core.Mesh
         public static int DecalIndex = 0;
 
         public static Vector3? HsvShift = null;
+
+        /// <summary>
+        /// How many divisions a small block is divided into for snapping.
+        /// </summary>
+        public static int SnapDivisions = 16;
+
+        public static float SnapSize => 0.25f / SnapDivisions;
     }
 }

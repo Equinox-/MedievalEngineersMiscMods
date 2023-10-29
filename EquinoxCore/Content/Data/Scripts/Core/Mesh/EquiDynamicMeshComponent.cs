@@ -315,15 +315,16 @@ namespace Equinox76561198048419394.Core.Mesh
                 model.Name = _modelName = $"{_modelPrefix}_{_meshGeneration++}";
                 model.ReplacedModel = null;
                 model.Persistent = false;
-#if VRAGE_VERSION_0
-// TODO           Disable until 0.7.4 (https://communityedition.medievalengineers.com/mantis/view.php?id=416)
-//                model.Dynamic = true;
+#if VRAGE_API_1
+                model.Dynamic = true;
 #endif
                 BuildMesh(model.ModelData);
                 if (model.ModelData.Positions.Count == 0)
                 {
                     model.Close();
-                    // MyRenderProxy.MessagePool.Return(model);
+#if VRAGE_API_1
+                    MyRenderProxy.MessagePool.Return(model);
+#endif
                     return false;
                 }
                 MyRenderProxy.AddRuntimeModel(model.Name, model);

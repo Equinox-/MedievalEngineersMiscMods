@@ -6,13 +6,10 @@ using Equinox76561198048419394.Core.Modifiers.Storage;
 using Equinox76561198048419394.Core.Util;
 using Medieval.GameSystems;
 using Medieval.GUI.ContextMenu;
-using Medieval.GUI.Ingame.Common;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Inventory;
-using Sandbox.Graphics;
-using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components.Entity.CubeGrid;
@@ -22,9 +19,6 @@ using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
-using VRage.Game.Input;
-using VRage.Input;
-using VRage.Input.Input;
 using VRage.Library.Collections;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Equipment;
@@ -239,8 +233,10 @@ namespace Equinox76561198048419394.Core.Mesh
                     var pos = localRay.Position + localRay.Direction * dist;
                     if (snapToGrid)
                     {
-                        const float snapSize = 0.25f / 16;
-                        pos = Vector3.Round(pos / snapSize) * snapSize;
+                        var snapSize = DecorativeToolSettings.SnapSize;
+                        // Snapping is performed on the grid's coordinate system, but anchors are relative to the block's coordinate system.
+                        var snapOffset = ((BoundingBox) tmpCandidate.Block.Definition.BoundingBox).Center * tmpCandidate.Grid.Size;
+                        pos = Vector3.Round((pos - snapOffset) / snapSize) * snapSize + snapOffset;
                     }
 
                     var gridLocalNormal = Vector3.TransformNormal(bvh.GetTriangle(triangleId).RawNormal, ref blockLocalMatrix);

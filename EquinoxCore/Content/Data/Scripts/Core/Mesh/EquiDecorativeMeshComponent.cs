@@ -278,7 +278,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var size = block.Definition.Size * grid.Size;
             var norm = blockLocalPosition / size;
-            return new BlockAndAnchor(block.Id, AnchorPacking.Pack(norm));
+            return new BlockAndAnchor(block.Id, NewAnchorPacking.Pack(norm) | NewAnchorPackingMask);
         }
 
         public static EquiMeshHelpers.DecalData CreateDecalData(

@@ -55,6 +55,14 @@
             <Tooltip>Controls the rotation of the decal</Tooltip>
             <IsInteger>true</IsInteger>
         </Slider>
+
+        <Slider DataId="SnapDivisions" IsInteger="true">
+            <Text>Snap Divisions</Text>
+            <LabelDecimalPlaces>0</LabelDecimalPlaces>
+            <TextFormat>{0}</TextFormat>
+            <Tooltip>How many snap points per small block (0.25m)</Tooltip>
+        </Slider>
+
         <Embedded>
             <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
         </Embedded>

@@ -1,3 +1,4 @@
+using System;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.UI;
 using Medieval.GUI.ContextMenu;
@@ -12,6 +13,7 @@ namespace Equinox76561198048419394.Core.Mesh
     public class EquiDecorativeToolContext : MyContextMenuContext
     {
         public static readonly MyStringId Color = MyStringId.GetOrCompute("Color");
+        public static readonly MyStringId SnapDivisions = MyStringId.GetOrCompute("SnapDivisions");
 
         public static readonly MyStringId LineCatenaryFactor = MyStringId.GetOrCompute("LineCatenaryFactor");
 
@@ -38,6 +40,14 @@ namespace Equinox76561198048419394.Core.Mesh
                     new Vector3(360, 100, 100),
                     () => (DecorativeToolSettings.HsvShift ?? default) * HsvUiScale,
                     val => DecorativeToolSettings.HsvShift = val == default ? null : (Vector3?)(val / HsvUiScale)));
+
+            m_dataSources.Add(SnapDivisions, new SimpleBoundedDataSource<float>(
+                1,
+                16,
+                16,
+                () => DecorativeToolSettings.SnapDivisions,
+                val => DecorativeToolSettings.SnapDivisions = (int) Math.Round(val)
+                ));
 
             if (_definition is EquiDecorativeLineToolDefinition line)
             {
