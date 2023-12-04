@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<BlockVariantGeneratorConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <VariantName>Concrete</VariantName>
+    <OutputDirectory>C:\Users\westin\Programming\MedievalEngineers\MiscMods\EquinoxCoreCli\Content\</OutputDirectory>
+
+    <!--    <ContentRoot>Content folder of additional mods to translate</ContentRoot>-->
+
+    
+    <MaterialTranslations>
+        <Change Name="FloorCobblestone_V1">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V1">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V1_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V2">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V2_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V3">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V3_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V4">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="Cobblestone_V4_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="DamagedCobblestones_V1">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="DamagedCobblestones_V1_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="StoneFlat_V1">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="StoneFlat_V1_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="StonePillar_V1">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="StonePillar_V2">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+
+        <Change Name="StonePillar_V2_LOD">
+            <Parameter Name="ColorMetalTexture">Textures\DamagedConcrete\DamagedConcrete_CM.DDS</Parameter>
+            <Parameter Name="NormalGlossTexture">Textures\DamagedConcrete\DamagedConcrete_NG.DDS</Parameter>
+            <Parameter Name="AddMapsTexture">Textures\DamagedConcrete\DamagedConcrete_ADD.DDS</Parameter>
+        </Change>
+    </MaterialTranslations>
+
+    <DefinitionTranslations>
+        <Translation>
+            <From Type="InventoryItem" Subtype="StoneSmall" />
+            <To Type="InventoryItem" Subtype="StoneLarge" />
+        </Translation>
+        <Translation>
+            <From Type="ItemTagDefinition" Subtype="StoneSmall" /> <!-- you must use this syntax to specify tags, not the Tag= syntax -->
+            <To Type="ItemTagDefinition" Subtype="StoneLarge" />
+        </Translation>
+    </DefinitionTranslations>
+
+    <DefinitionToTranslate Type="Block" Subtype="**any_translated_model**" /> <!-- this syntax will change any block definition with a model that would get changed by the material overloads -->
+</BlockVariantGeneratorConfig>

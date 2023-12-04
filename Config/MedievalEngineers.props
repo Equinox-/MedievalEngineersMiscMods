@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <Reference Include="MedievalEngineers.Game">
+            <HintPath>$(SolutionDir)\GameBinaries\MedievalEngineers.Game.dll</HintPath>
+        </Reference>
+        <Reference Include="MedievalEngineers.ObjectBuilders">
+            <HintPath>$(SolutionDir)\GameBinaries\MedievalEngineers.ObjectBuilders.dll</HintPath>
+        </Reference>
+        <Reference Include="HavokWrapper">
+            <HintPath>$(SolutionDir)\GameBinaries\HavokWrapper.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage.Input">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.Input.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage.Library">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.Library.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage.Game">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.Game.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage.Math">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.Math.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage.Steam">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.Steam.dll</HintPath>
+        </Reference>
+        <Reference Include="VRage.Render">
+            <HintPath>$(SolutionDir)\GameBinaries\VRage.Render.dll</HintPath>
+        </Reference>
+        <Reference Include="Sandbox.Game">
+            <HintPath>$(SolutionDir)\GameBinaries\Sandbox.Game.dll</HintPath>
+        </Reference>
+        <Reference Include="Sandbox.Graphics">
+            <HintPath>$(SolutionDir)\GameBinaries\Sandbox.Graphics.dll</HintPath>
+        </Reference>
+        <Reference Include="System.ValueTuple">
+            <HintPath>$(SolutionDir)\GameBinaries\System.ValueTuple.dll</HintPath>
+        </Reference>
+        <Reference Include="System.Numerics.Vectors">
+            <HintPath>$(SolutionDir)\GameBinaries\System.Numerics.Vectors.dll</HintPath>
+        </Reference>
+        <Reference Include="System.Memory">
+            <HintPath>$(SolutionDir)\GameBinaries\System.Memory.dll</HintPath>
+        </Reference>
+        <Reference Include="SharpDX">
+            <HintPath>$(SolutionDir)\GameBinaries\SharpDX.dll</HintPath>
+        </Reference>
+        <Reference Include="SharpDX.Direct3D11">
+            <HintPath>$(SolutionDir)\GameBinaries\SharpDX.Direct3D11.dll</HintPath>
+        </Reference>
+        <Reference Include="SharpDX.DXGI">
+            <HintPath>$(SolutionDir)\GameBinaries\SharpDX.DXGI.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+</Project>

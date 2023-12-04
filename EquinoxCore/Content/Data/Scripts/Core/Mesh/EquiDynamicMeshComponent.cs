@@ -322,9 +322,9 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (model.ModelData.Positions.Count == 0)
                 {
                     model.Close();
-#if VRAGE_API_1
-                    MyRenderProxy.MessagePool.Return(model);
-#endif
+// #if VRAGE_API_1
+//                     MyRenderProxy.MessagePool.Return(model);
+// #endif
                     return false;
                 }
                 MyRenderProxy.AddRuntimeModel(model.Name, model);

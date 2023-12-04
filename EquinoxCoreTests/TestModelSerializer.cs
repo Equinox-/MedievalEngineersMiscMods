@@ -2,16 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.ModelGenerator.ModelIO;
 using NUnit.Framework;
-using NUnit.Framework.Internal;
-using SharpDX.Win32;
-using VRageMath;
-using VRageRender.Import;
 
 namespace EquinoxCoreTests
 {

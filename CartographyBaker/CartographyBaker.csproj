@@ -5,22 +5,23 @@
     <PropertyGroup>
         <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
         <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-        <ProjectGuid>{82A54A44-B13C-4195-B48E-40144C707511}</ProjectGuid>
-        <ProjectTypeGuids>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-        <OutputType>Library</OutputType>
+        <ProjectGuid>{676225E5-6967-4C5D-A976-3F6FBA6396E6}</ProjectGuid>
+        <OutputType>Exe</OutputType>
         <AppDesignerFolder>Properties</AppDesignerFolder>
-        <RootNamespace>EquinoxCoreTests</RootNamespace>
-        <AssemblyName>EquinoxCoreTests</AssemblyName>
-        <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+        <RootNamespace>CartographyBaker</RootNamespace>
+        <AssemblyName>CartographyBaker</AssemblyName>
+        <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
         <FileAlignment>512</FileAlignment>
-        <LangVersion>7.2</LangVersion>
+        <LangVersion>latest</LangVersion>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <PlatformTarget>x64</PlatformTarget>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>full</DebugType>
         <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
+        <OutputPath>bin\Debug\x64\</OutputPath>
         <DefineConstants>DEBUG;TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
@@ -29,7 +30,7 @@
         <PlatformTarget>x64</PlatformTarget>
         <DebugType>pdbonly</DebugType>
         <Optimize>true</Optimize>
-        <OutputPath>bin\Release\</OutputPath>
+        <OutputPath>bin\Release\x64\</OutputPath>
         <DefineConstants>TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
@@ -41,23 +42,16 @@
         <Reference Include="System.Xml" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="CondensedGraphTest.cs" />
-        <Compile Include="OptimalShapesTest.cs" />
-        <Compile Include="TestArrayPool.cs" />
-        <Compile Include="TestBoundedVec30.cs" />
-        <Compile Include="TestBubbleSorter.cs" />
-        <Compile Include="TestIdBag.cs" />
-        <Compile Include="TestMaterialBvh.cs" />
-        <Compile Include="TestModelSerializer.cs" />
-        <Compile Include="TestModifierDataSerialization.cs" />
-        <Compile Include="Tests.cs" />
+        <Compile Include="BendyBaker.cs" />
+        <Compile Include="SaveFileAccessor.cs" />
+        <Compile Include="ItemGeneratorSymbolBaker.cs" />
+        <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="TestUtils.cs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\EquinoxCoreCli\EquinoxCoreCli.csproj">
-        <Project>{cbeebf84-49e1-4ac4-952b-5c144684bd74}</Project>
-        <Name>EquinoxCoreCli</Name>
+      <ProjectReference Include="..\Cartography\Cartography.csproj">
+        <Project>{50ff4e1a-040f-4733-9b89-1a55f800e5d3}</Project>
+        <Name>Cartography</Name>
       </ProjectReference>
       <ProjectReference Include="..\EquinoxCore\EquinoxCore.csproj">
         <Project>{50ff4e1a-040f-4733-9b89-1a55f800e5d3}</Project>
@@ -65,15 +59,7 @@
       </ProjectReference>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="NUnit" Version="3.14.0" />
+      <None Include="App.config" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-         Other similar extension points exist, see Microsoft.Common.targets.
-    <Target Name="BeforeBuild">
-    </Target>
-    <Target Name="AfterBuild">
-    </Target>
-    -->
-
 </Project>

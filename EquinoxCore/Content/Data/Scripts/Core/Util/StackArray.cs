@@ -1,7 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using VRage.Library.Collections;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util
@@ -20,78 +17,49 @@ namespace Equinox76561198048419394.Core.Util
         {
             _vExtra = null;
         }
+
+        public static ref T RefInternal(ref StackArray<T> array, int idx, bool allocate = false)
+        {
+            switch (idx)
+            {
+                case 0:
+                    return ref array._v0;
+                case 1:
+                    return ref array._v1;
+                case 2:
+                    return ref array._v2;
+                case 3:
+                    return ref array._v3;
+                case 4:
+                    return ref array._v4;
+                case 5:
+                    return ref array._v5;
+                case 6:
+                    return ref array._v6;
+                case 7:
+                    return ref array._v7;
+                default:
+                    var extIdx = idx - MaxStackSize;
+                    if (allocate && (array._vExtra == null || extIdx >= array._vExtra.Length))
+                    {
+                        var capacity = Math.Max(8, MathHelper.GetNearestBiggerPowerOfTwo(extIdx + 1));
+                        Array.Resize(ref array._vExtra, capacity);
+                    }
+
+                    return ref array._vExtra[extIdx];
+            }
+        }
         
         public T this[int idx]
         {
-            get
-            {
-                switch (idx)
-                {
-                    case 0:
-                        return _v0;
-                    case 1:
-                        return _v1;
-                    case 2:
-                        return _v2;
-                    case 3:
-                        return _v3;
-                    case 4:
-                        return _v4;
-                    case 5:
-                        return _v5;
-                    case 6:
-                        return _v6;
-                    case 7:
-                        return _v7;
-                    default:
-                        return _vExtra[idx - MaxStackSize];
-                }
-            }
-            set
-            {
-                switch (idx)
-                {
-                    case 0:
-                        _v0 = value;
-                        return;
-                    case 1:
-                        _v1 = value;
-                        return;
-                    case 2:
-                        _v2 = value;
-                        return;
-                    case 3:
-                        _v3 = value;
-                        return;
-                    case 4:
-                        _v4 = value;
-                        return;
-                    case 5:
-                        _v5 = value;
-                        return;
-                    case 6:
-                        _v6 = value;
-                        return;
-                    case 7:
-                        _v7 = value;
-                        return;
-                    default:
-                    {
-                        var extIdx = idx - MaxStackSize;
-                        if (_vExtra == null || extIdx >= _vExtra.Length)
-                        {
-                            var capacity = Math.Max(8, MathHelper.GetNearestBiggerPowerOfTwo(extIdx + 1));
-                            if (_vExtra != null)
-                                Array.Resize(ref _vExtra, capacity);
-                            else
-                                _vExtra = new T[capacity];
-                        }
-
-                        _vExtra[extIdx] = value;
-                        return;
-                    }
-                }
-            }
+            get => this.Ref(idx);
+            set => this.Ref(idx, true) = value;
         }
+    }
+
+    public static class StackArrayExt
+    {
+        public static ref T Ref<T>(this ref StackArray<T> array, int idx, bool allocate = false) => ref StackArray<T>.RefInternal(ref array, idx, allocate);
+        public static ref T Ref<T>(this ref StackArray<T> array, uint idx, bool allocate = false) => ref StackArray<T>.RefInternal(ref array, (int) idx, allocate);
     }
 }

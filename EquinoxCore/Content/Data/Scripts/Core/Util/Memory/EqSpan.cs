@@ -17,6 +17,13 @@ namespace Equinox76561198048419394.Core.Util.Memory
             Length = length;
         }
 
+        public static ArrayPool<T>.ReturnHandle AllocateTemp(int count, out EqSpan<T> span)
+        {
+            var handle = ArrayPool<T>.Get(count, out var array);
+            span = new EqSpan<T>(array, 0, count);
+            return handle;
+        }
+
         public static implicit operator EqReadOnlySpan<T>(EqSpan<T> span) => new EqReadOnlySpan<T>(span._array, span._offset, span.Length);
 
         public ref T this[int index] => ref _array[index + _offset];
@@ -49,11 +56,13 @@ namespace Equinox76561198048419394.Core.Util.Memory
                 _currentIndex = -1;
             }
 
-            public T Current => _array[_currentIndex];
+            public ref T Current => ref _array[_currentIndex];
 
             public void Dispose()
             {
             }
+
+            T IEnumerator<T>.Current => Current;
 
             object IEnumerator.Current => Current;
 
