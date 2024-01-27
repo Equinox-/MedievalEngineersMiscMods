@@ -27,8 +27,8 @@
     <!-- Small Diameter -->
     <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
         <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Small" />
-        <DisplayName>Small Decorative Rope</DisplayName>
-        <Description>A basic rope used for decoration with a small diameter.</Description>
+        <DisplayName>Decorative Rope</DisplayName>
+        <Description>A basic rope used for decoration.</Description>
         <Icon>Textures\GUI\Icons\cubes\BasicRope.dds</Icon>
         <Category>Weaving</Category>
         <Prerequisites>
@@ -43,8 +43,8 @@
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
         <Id Type="HandItem" Subtype="Equi_DecorativeRope_Small"/>
         <CopyFrom Type="HandItem" Subtype="Equi_DecorativeRope_Base" />
-        <DisplayName>Small Decorative Rope</DisplayName>
-        <Description>A basic rope used for decoration with a small diameter.</Description>
+        <DisplayName>Decorative Rope</DisplayName>
+        <Description>A basic rope used for decoration.</Description>
         <MaxDurability>100</MaxDurability>
         <StanceToBehavior>
             <StanceName>NormalMode</StanceName>
