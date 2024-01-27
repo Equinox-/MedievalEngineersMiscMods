@@ -249,7 +249,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 _modelPrefix = $"dyn_mesh_{_owner.Entity.Id}_{_key.Position}_{_key.Color}";
             }
 
-            private Vector3 Origin => _key.Position * CellSize;
+            private Vector3 Origin => (_key.Position + 1) * CellSize;
 
             private void BuildMesh(MyModelData mesh)
             {
