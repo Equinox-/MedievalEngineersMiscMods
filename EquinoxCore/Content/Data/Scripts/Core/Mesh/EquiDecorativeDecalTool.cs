@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
@@ -25,7 +24,6 @@ using VRage.Game.Components;
 using VRage.Game.Definitions;
 using VRage.Game.Entity;
 using VRage.Import;
-using VRage.Input.Devices.Keyboard;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Scene;
@@ -45,15 +43,6 @@ namespace Equinox76561198048419394.Core.Mesh
         internal const float MaxDecalHeight = 5f;
 
         private EquiDecorativeDecalToolDefinition _definition;
-        private ValueToControl _currentValueToChange = ValueToControl.Decal;
-
-        private enum ValueToControl
-        {
-            Decal,
-            Rotation,
-            Height,
-            Count
-        }
 
         public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
         {
@@ -61,7 +50,8 @@ namespace Equinox76561198048419394.Core.Mesh
             _definition = (EquiDecorativeDecalToolDefinition)definition;
         }
 
-        private EquiDecorativeDecalToolDefinition.DecalDef DecalDef => _definition.SortedDecals[DecorativeToolSettings.DecalIndex % _definition.SortedDecals.Count];
+        private EquiDecorativeDecalToolDefinition.DecalDef DecalDef =>
+            _definition.SortedDecals[DecorativeToolSettings.DecalIndex % _definition.SortedDecals.Count];
 
         protected override bool ValidateTarget() => HasPermission(MyPermissionsConstants.Build);
 
@@ -123,8 +113,14 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveDecal(points[0].Anchor);
                 else
-                    gridDecor.AddDecal(points[0].Anchor, decalDef, normal, ComputeDecalUp(points[0].Grid, normal), DecorativeToolSettings.DecalHeight,
-                        PackedHsvShift);
+                    gridDecor.AddDecal(decalDef, new EquiDecorativeMeshComponent.DecalArgs<EquiDecorativeMeshComponent.BlockAndAnchor>()
+                    {
+                        Position = points[0].Anchor,
+                        Normal = normal,
+                        Up = ComputeDecalUp(points[0].Grid, normal),
+                        Height = DecorativeToolSettings.DecalHeight,
+                        Color = PackedHsvShift
+                    });
                 return;
             }
 
@@ -200,11 +196,16 @@ namespace Equinox76561198048419394.Core.Mesh
             if (remove)
                 gridDecor.RemoveDecal(pt0);
             else
-                gridDecor.AddDecal(pt0, decalDef,
-                    VF_Packer.UnpackNormal(decal.PackedNormal),
-                    VF_Packer.UnpackNormal(decal.PackedUp),
-                    decal.Height,
-                    decal.Color);
+                gridDecor.AddDecal(
+                    decalDef,
+                    new EquiDecorativeMeshComponent.DecalArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                    {
+                        Position = pt0,
+                        Normal = VF_Packer.UnpackNormal(decal.PackedNormal),
+                        Up = VF_Packer.UnpackNormal(decal.PackedUp),
+                        Height = decal.Height,
+                        Color = decal.Color,
+                    });
         }
 
         private string _currentRenderObjectModel = null;
@@ -264,7 +265,16 @@ namespace Equinox76561198048419394.Core.Mesh
                 localUp.Normalize();
             }
 
-            var prepared = EquiDecorativeMeshComponent.CreateDecalData(def, localPos, localNormal, localUp, DecorativeToolSettings.DecalHeight);
+            var prepared = EquiDecorativeMeshComponent.CreateDecalData(
+                def,
+                new EquiDecorativeMeshComponent.DecalArgs<Vector3>
+                {
+                    Position = localPos,
+                    Normal = localNormal,
+                    Up = localUp,
+                    Height = DecorativeToolSettings.DecalHeight,
+                    Color = PackedHsvShift,
+                });
 
             var renderMatrix = MatrixD.Identity;
             renderMatrix.Translation = prepared.Position;
@@ -294,59 +304,6 @@ namespace Equinox76561198048419394.Core.Mesh
                 MyRenderProxy.UpdateRenderObject(_currentRenderObject, renderMatrix);
 
             MyRenderProxy.UpdateRenderEntity(_currentRenderObject, null, PackedHsvShift);
-
-
-            string SelectionIndicator(ValueToControl val) => _currentValueToChange == val ? " <" : "";
-
-            var totalDecals = _definition.SortedDecals.Count;
-            string fmt;
-            if (totalDecals < 10)
-                fmt = "0";
-            else if (totalDecals < 100)
-                fmt = "00";
-            else if (totalDecals < 1000)
-                fmt = "000";
-            else
-                fmt = "0000";
-            ref var decalIndex = ref DecorativeToolSettings.DecalIndex;
-            MyRenderProxy.DebugDrawText2D(DebugTextAnchor,
-                $"Decal: {DecalDef.Name} ({(decalIndex + 1).ToString(fmt)}/{totalDecals}) {SelectionIndicator(ValueToControl.Decal)}\n" +
-                $"Height: {DecorativeToolSettings.DecalHeight:F3} m {SelectionIndicator(ValueToControl.Height)}\n" +
-                $"Rotation: {DecorativeToolSettings.DecalRotationDeg}° {SelectionIndicator(ValueToControl.Rotation)}",
-                Color.White, 1f);
-
-            var scrollDelta = Math.Sign(MyAPIGateway.Input.MouseScrollWheelValue());
-            if (MyAPIGateway.Input.IsKeyDown(MyKeys.Control))
-            {
-                _currentValueToChange = (ValueToControl)(((int)_currentValueToChange + scrollDelta + (int)ValueToControl.Count) % (int)ValueToControl.Count);
-                return;
-            }
-
-            if (scrollDelta == 0)
-                return;
-
-            var fast = MyAPIGateway.Input.IsKeyDown(MyKeys.Shift);
-            switch (_currentValueToChange)
-            {
-                case ValueToControl.Decal:
-                    decalIndex += scrollDelta * (fast ? 4 : 1);
-                    decalIndex = (decalIndex + _definition.SortedDecals.Count * 4) % _definition.SortedDecals.Count;
-                    break;
-                case ValueToControl.Rotation:
-                    const int fastSnapIncrement = 45;
-                    DecorativeToolSettings.DecalRotationDeg += scrollDelta * (fast ? fastSnapIncrement : 5);
-                    DecorativeToolSettings.DecalRotationDeg = (DecorativeToolSettings.DecalRotationDeg + 360) % 360;
-                    if (fast) DecorativeToolSettings.DecalRotationDeg = DecorativeToolSettings.DecalRotationDeg / fastSnapIncrement * fastSnapIncrement;
-                    break;
-                case ValueToControl.Height:
-                    const float increment = .125f / 4;
-                    const float fastIncrement = .125f;
-                    var step = fast ? fastIncrement : increment;
-                    DecorativeToolSettings.DecalHeight += scrollDelta * step;
-                    DecorativeToolSettings.DecalHeight = (float)Math.Round(DecorativeToolSettings.DecalHeight / step) * step;
-                    DecorativeToolSettings.DecalHeight = MathHelper.Clamp(DecorativeToolSettings.DecalHeight, MinDecalHeight, MaxDecalHeight);
-                    break;
-            }
         }
 
         protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
@@ -365,11 +322,11 @@ namespace Equinox76561198048419394.Core.Mesh
         public ListReader<DecalDef> SortedDecals { get; private set; }
         public DictionaryReader<MyStringHash, DecalDef> Decals { get; private set; }
 
-        public class DecalDef : IMyObject
+        public class DecalDef : IMyObject, IDecorativeMaterial
         {
             public readonly EquiDecorativeDecalToolDefinition Owner;
             public readonly MyStringHash Id;
-            public readonly string Name;
+            public string Name { get; }
             public readonly HalfVector2 TopLeftUv;
             public readonly HalfVector2 BottomRightUv;
             public readonly float AspectRatio;
@@ -378,7 +335,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public readonly string Material;
 
             // Used for icon rendering.
-            public readonly string[] UiIcons;
+            public string[] UiIcons { get; }
 
             internal DecalDef(EquiDecorativeDecalToolDefinition owner, MyStringHash id, MyObjectBuilder_EquiDecorativeDecalToolDefinition.DecalDef ob)
             {
@@ -386,33 +343,14 @@ namespace Equinox76561198048419394.Core.Mesh
                 Id = id;
                 Name = ob.Name;
                 if (string.IsNullOrEmpty(ob.Name))
-                {
-                    var idStr = Id.String;
-                    var sb = new StringBuilder(idStr.Length + 4);
-                    var space = false;
-                    foreach (var ch in idStr)
-                    {
-                        if (char.IsUpper(ch) && space)
-                        {
-                            sb.Append(' ');
-                            space = false;
-                        }
-
-                        if (char.IsLower(ch))
-                            space = true;
-                        sb.Append(ch);
-                    }
-
-                    Name = sb.ToString();
-                }
-
+                    Name = EquiDecorativeMaterialController.NameFromId(id);
                 if (ob.UiIcons != null && ob.UiIcons.Length > 0)
                     UiIcons = ob.UiIcons;
                 else if (ob.Material.Icons != null && ob.Material.Icons.Count > 0)
                     UiIcons = ob.Material.Icons.ToArray();
                 else
                 {
-                    Log.Warning($"Decal {Name} has no UI icon.  Add <UiIcon> tag to the decals.");
+                    Log.Warning($"Decal {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the decal.");
                     UiIcons = null;
                 }
 
@@ -507,9 +445,7 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             Decals = dict;
-            var decalList = new List<DecalDef>(dict.Values);
-            decalList.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
-            SortedDecals = decalList;
+            SortedDecals = dict.Values.OrderBy(x => x.Name).ToList();
         }
     }
 
@@ -548,10 +484,10 @@ namespace Equinox76561198048419394.Core.Mesh
         }
 
         [XmlElement("Decal")]
-        public List<DecalDef> Decals;
+        public DecalDef[] Decals;
 
         [XmlElement("ItemDecals")]
-        public List<ItemDecalsDef> ItemDecals;
+        public ItemDecalsDef[] ItemDecals;
 
         public class ItemDecalsDef
         {

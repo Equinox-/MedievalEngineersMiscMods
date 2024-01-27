@@ -249,8 +249,11 @@ namespace Equinox76561198048419394.Core.Mesh
                 _modelPrefix = $"dyn_mesh_{_owner.Entity.Id}_{_key.Position}_{_key.Color}";
             }
 
+            private Vector3 Origin => _key.Position * CellSize;
+
             private void BuildMesh(MyModelData mesh)
             {
+                var origin = Origin;
                 mesh.AABB = BoundingBox.CreateInvalid();
                 foreach (var kv in MaterialToObject)
                 {
@@ -269,16 +272,29 @@ namespace Equinox76561198048419394.Core.Mesh
                                 line.Gravity = Vector3.TransformNormal(worldGravity, _owner.Entity.PositionComp.WorldMatrixNormalizedInv);
                             }
 
+                            line.Pt0 -= origin;
+                            line.Pt1 -= origin;
+
                             EquiMeshHelpers.BuildLine(in line, mesh);
                         }
 
                         if (Surfaces.TryGetValue(obj, out var surface))
                         {
+                            surface.Pt0.Position -= origin;
+                            surface.Pt1.Position -= origin;
+                            surface.Pt2.Position -= origin;
+                            if (surface.Pt3.HasValue)
+                            {
+                                var pt3 = surface.Pt3.Value;
+                                pt3.Position -= origin;
+                                surface.Pt3 = pt3;
+                            }
                             EquiMeshHelpers.BuildSurface(in surface, mesh);
                         }
 
                         if (Decals.TryGetValue(obj, out var decal))
                         {
+                            decal.Position -= origin;
                             EquiMeshHelpers.BuildDecal(in decal, mesh);
                         }
                     }
@@ -329,7 +345,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
                 MyRenderProxy.AddRuntimeModel(model.Name, model);
                 _renderObject = MyRenderProxy.CreateRenderEntity(_modelName, _modelName,
-                    MatrixD.Identity, MyMeshDrawTechnique.MESH,
+                    MatrixD.CreateTranslation(Origin), MyMeshDrawTechnique.MESH,
                     parent.GetRenderFlags() | RenderFlags.ForceOldPipeline,
                     parent.GetRenderCullingOptions(),
                     parent.GetDiffuseColor(),
@@ -343,7 +359,7 @@ namespace Equinox76561198048419394.Core.Mesh
             internal void SetCullObject(uint parent)
             {
                 if (_renderObject == MyRenderProxy.RENDER_ID_UNASSIGNED) return;
-                MyRenderProxy.SetParentCullObject(_renderObject, parent, Matrix.Identity);
+                MyRenderProxy.SetParentCullObject(_renderObject, parent, Matrix.CreateTranslation(Origin));
             }
         }
     }

@@ -85,5 +85,7 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 ratio = MathHelper.Clamp(ratio, 0, 1);
             return range.Min + ratio * (range.Max - range.Min);
         }
+
+        public static bool IsZeroWidth(this in ImmutableRange<float> range) => Math.Abs(range.Max - range.Min) <= 1e-30f;
     }
 }

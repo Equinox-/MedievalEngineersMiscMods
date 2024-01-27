@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using Equinox76561198048419394.Core.ModelGenerator;
 using VRage.Import;
-using VRage.Session;
 using VRageMath;
 using VRageMath.PackedVector;
 using VRageRender;
-using VRageRender.Import;
 using VRageRender.Messages;
 
 namespace Equinox76561198048419394.Core.Mesh

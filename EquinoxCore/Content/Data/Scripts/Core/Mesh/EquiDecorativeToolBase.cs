@@ -4,6 +4,7 @@ using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Storage;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.GameSystems;
 using Medieval.GUI.ContextMenu;
 using Sandbox.Definitions.Equipment;
@@ -72,6 +73,7 @@ namespace Equinox76561198048419394.Core.Mesh
         protected enum AnchorSource
         {
             Mesh,
+            MeshVertex,
             Dummy,
             Existing,
         }
@@ -86,7 +88,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
             public EquiDecorativeMeshComponent.RpcBlockAndAnchor RpcAnchor => Anchor;
 
-            public DecorAnchor(MyGridDataComponent grid, MyBlock block, 
+            public DecorAnchor(MyGridDataComponent grid, MyBlock block,
                 EquiDecorativeMeshComponent.BlockAndAnchor anchor, AnchorSource source,
                 Vector3 gridLocalNormal)
             {
@@ -134,6 +136,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     {
                         case AnchorSource.Mesh:
                             return Color.White;
+                        case AnchorSource.MeshVertex:
                         case AnchorSource.Dummy:
                             return Color.BlueViolet;
                         default:
@@ -183,7 +186,6 @@ namespace Equinox76561198048419394.Core.Mesh
 
             var caster = Holder.Get<MyCharacterDetectorComponent>();
             var bestDistance = caster.GetDetectionDistance();
-            if (Target.HitDistance >= bestDistance || Target.Block == null) return false;
             var worldLine = new LineD(caster.StartPosition, caster.StartPosition + caster.Direction * bestDistance);
             var found = false;
             using (PoolManager.Get(out List<MyLineSegmentOverlapResult<DecorCandidate>> candidates))
@@ -213,6 +215,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     }
                 }
 
+                var source = AnchorSource.Mesh;
                 candidates.Sort(MyLineSegmentOverlapResult<DecorCandidate>.DistanceComparer);
                 foreach (var overlap in candidates)
                 {
@@ -231,21 +234,39 @@ namespace Equinox76561198048419394.Core.Mesh
                         continue;
                     bestDistance = dist;
                     var pos = localRay.Position + localRay.Direction * dist;
+                    ref readonly var tri = ref bvh.GetTriangle(triangleId);
                     if (snapToGrid)
                     {
                         var snapSize = DecorativeToolSettings.SnapSize;
-                        // Snapping is performed on the grid's coordinate system, but anchors are relative to the block's coordinate system.
-                        var snapOffset = ((BoundingBox) tmpCandidate.Block.Definition.BoundingBox).Center * tmpCandidate.Grid.Size;
-                        pos = Vector3.Round((pos - snapOffset) / snapSize) * snapSize + snapOffset;
+                        var snappedToMesh = false;
+                        if (DecorativeToolSettings.SnapToVertices)
+                        {
+                            ref readonly var nearest = ref tri.NearestVertex(in pos, out var nearestDistance);
+                            if (nearestDistance < snapSize * 4)
+                            {
+                                pos = nearest;
+                                source = AnchorSource.MeshVertex;
+                                snappedToMesh = true;
+                            }
+                        }
+
+                        if (!snappedToMesh)
+                        {
+                            // Snapping is performed on the grid's coordinate system, but anchors are relative to the block's coordinate system.
+                            var snapOffset = ((BoundingBox)tmpCandidate.Block.Definition.BoundingBox).Center * tmpCandidate.Grid.Size;
+                            pos = Vector3.Round((pos - snapOffset) / snapSize) * snapSize + snapOffset;
+                        }
                     }
 
-                    var gridLocalNormal = Vector3.TransformNormal(bvh.GetTriangle(triangleId).RawNormal, ref blockLocalMatrix);
+                    var gridLocalNormal = Vector3.TransformNormal(tri.RawNormal, ref blockLocalMatrix);
                     gridLocalNormal.Normalize();
-                    anchor = new DecorAnchor(tmpCandidate.Grid, tmpCandidate.Block,
+                    anchor = new DecorAnchor(
+                        tmpCandidate.Grid, 
+                        tmpCandidate.Block,
                         EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
                             tmpCandidate.Block,
                             pos),
-                        AnchorSource.Mesh,
+                        source,
                         gridLocalNormal);
                     found = true;
                 }
@@ -280,7 +301,7 @@ namespace Equinox76561198048419394.Core.Mesh
             snappedBlockNormal = Vector3.DominantAxisProjection(snappedBlockNormal);
             var snappedGridNormal = Vector3.TransformNormal(snappedBlockNormal, ref snapTo);
             snappedGridNormal.Normalize();
-            
+
             snapped = new DecorAnchor(anchor.Grid, anchor.Block,
                 EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(anchor.Grid, anchor.Block, snapTo.Translation),
                 AnchorSource.Dummy,
@@ -368,6 +389,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     DecorativeToolSettings.HsvShift = default;
                 return;
             }
+
             if (ActiveAction == MyHandItemActionEnum.Tertiary)
             {
                 DecorativeToolSettings.HsvShift = default;
@@ -379,8 +401,10 @@ namespace Equinox76561198048419394.Core.Mesh
                         DecorativeToolSettings.HsvShift = modifierOutput.ColorMaskHsv.Value;
                     modifierOutput.Dispose();
                 }
+
                 return;
             }
+
             for (var i = 0; i < _anchors.Count; i++)
             {
                 if (_anchors[i].Grid == anchor.Grid) continue;
@@ -398,8 +422,6 @@ namespace Equinox76561198048419394.Core.Mesh
 
         protected virtual void RenderHelper()
         {
-            SetTarget();
-
             var renderedShape = false;
             foreach (var anchor in _anchors)
                 anchor.Draw();

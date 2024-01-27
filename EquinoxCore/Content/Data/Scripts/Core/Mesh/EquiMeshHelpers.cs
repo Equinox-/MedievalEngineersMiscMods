@@ -19,7 +19,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public string Material;
             public Vector3 Pt0, Pt1;
             public Vector2 UvOffset, UvTangent, UvNormal;
-            public float Width;
+            public float Width0, Width1;
             public int Segments;
             public int HalfSideSegments;
 
@@ -101,7 +101,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     var fraction = i / (float)line.Segments;
                     var uv = line.UvOffset + fraction * line.UvTangent;
 
-                    var halfWidth = line.Width / 2;
+                    var halfWidth = MathHelper.Lerp(line.Width0, line.Width1, fraction) / 2;
                     for (var j = 0; j < verticesPerRing; j++)
                     {
                         var theta = MathHelper.TwoPi * j / sideSegments;

@@ -66,8 +66,8 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryDropper.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\ItemCollection.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeDecalsController.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Mesh\DecorativeDecalsDataSource.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMaterialController.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\DecorativeMaterialsDataSource.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeToolContext.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\DecorativeToolSettings.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecalPreviewModels.cs" />

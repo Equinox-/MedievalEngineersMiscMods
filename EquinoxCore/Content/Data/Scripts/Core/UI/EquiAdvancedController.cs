@@ -64,7 +64,10 @@ namespace Equinox76561198048419394.Core.UI
                 _container.Controls.Clear();
                 foreach (var control in _controls)
                     if (control.Root.Enabled)
+                    {
+                        control.Root.LayoutStyle = MyGuiControlLayoutStyle.DynamicX;
                         _container.Controls.Add(control.Root);
+                    }
             }
 
             _container.Size = _container.Layout.ComputedSize + new Vector2(0, Margin.Y);

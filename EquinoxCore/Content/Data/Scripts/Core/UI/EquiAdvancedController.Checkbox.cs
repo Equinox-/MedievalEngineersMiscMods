@@ -1,3 +1,4 @@
+using System;
 using Medieval.GUI.ContextMenu;
 using Sandbox.Graphics.GUI;
 using Sandbox.Gui.Layouts;
@@ -46,6 +47,8 @@ namespace Equinox76561198048419394.Core.UI
             var label = new MyGuiControlLabel(text: MyTexts.GetString(_checkDef.TextId));
             label.SetToolTip(_checkDef.Tooltip);
             label.ApplyStyle(ContextMenuStyles.LabelStyle());
+            label.LayoutStyle = MyGuiControlLayoutStyle.DynamicX;
+
             var checkbox = new MyGuiControlCheckbox(toolTip: MyTexts.GetString(_checkDef.TooltipId));
             checkbox.ApplyStyle(ContextMenuStyles.CheckboxStyle(_checkDef.StyleNameId));
             checkbox.OnCheckedChanged += _ =>
@@ -53,11 +56,14 @@ namespace Equinox76561198048419394.Core.UI
                 if (_owner.AutoCommit)
                     ds.SetValue(checkbox.IsChecked);
             };
-            var labeledCheckbox = new MyGuiControlParent(size: checkbox.Size + new Vector2(0.0f, label.Size.Y));
-#pragma warning disable CS0618 // Type or member is obsolete
-            var layout = new MyLayoutVertical(labeledCheckbox, ctl.MarginPx.X);
-#pragma warning restore CS0618 // Type or member is obsolete
-            layout.Add(label, checkbox);
+            checkbox.LayoutStyle = MyGuiControlLayoutStyle.Fixed;
+
+            var containerSize = new Vector2(checkbox.Size.X + ctl.Margin.X + label.Size.X, Math.Max(checkbox.Size.Y, label.Size.Y));
+            var labeledCheckbox = new MyGuiControlParent(size: containerSize);
+            labeledCheckbox.Layout = new MyHorizontalLayoutBehavior(spacing: ctl.Margin.X);
+            labeledCheckbox.Controls.Add(checkbox);
+            labeledCheckbox.Controls.Add(label);
+
             return new CheckboxData
             {
                 DataSource = ds,

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Xml.Serialization;
 using Medieval.Definitions.GUI.Controllers;
 using Medieval.GUI.ContextMenu.Attributes;
@@ -10,11 +11,12 @@ using VRage;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.ObjectBuilders;
+using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Mesh
 {
-    [MyContextMenuControllerType(typeof(MyObjectBuilder_EquiDecorativeDecalsController))]
-    public class EquiDecorativeDecalsController : MyGridController<EquiDecorativeDecalToolDefinition.DecalDef>
+    [MyContextMenuControllerType(typeof(MyObjectBuilder_EquiDecorativeMaterialsController))]
+    public class EquiDecorativeMaterialController : MyGridController<IDecorativeMaterial>
     {
         private int _appliedIndex;
 
@@ -53,20 +55,49 @@ namespace Equinox76561198048419394.Core.Mesh
                 UserData = item,
             };
         }
+
+        public static string NameFromId(MyStringHash id)
+        {
+            if (id == MyStringHash.NullOrEmpty)
+                return "Default";
+            var idStr = id.String;
+            var sb = new StringBuilder(idStr.Length + 4);
+            var space = false;
+            foreach (var ch in idStr)
+            {
+                if ((char.IsUpper(ch) || char.IsDigit(ch)) && space)
+                {
+                    sb.Append(' ');
+                    space = false;
+                }
+
+                if (char.IsLower(ch))
+                    space = true;
+                sb.Append(ch);
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    public interface IDecorativeMaterial
+    {
+        string Name { get; }
+        string[] UiIcons { get; }
     }
 
     [MyObjectBuilderDefinition]
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-    public class MyObjectBuilder_EquiDecorativeDecalsController : MyObjectBuilder_GridController
+    public class MyObjectBuilder_EquiDecorativeMaterialsController : MyObjectBuilder_GridController
     {
     }
 
-    [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeDecalsControllerDefinition))]
-    public class EquiDecorativeDecalsControllerDefinition : MyGridControllerDefinition
+    [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeMaterialsControllerDefinition))]
+    public class EquiDecorativeMaterialsControllerDefinition : MyGridControllerDefinition
     {
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
-            var ob = (MyObjectBuilder_EquiDecorativeDecalsControllerDefinition)builder;
+            var ob = (MyObjectBuilder_EquiDecorativeMaterialsControllerDefinition)builder;
             base.Init(new MyObjectBuilder_GridControllerDefinition
             {
                 Id = ob.Id,
@@ -86,7 +117,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
     [MyObjectBuilderDefinition]
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-    public class MyObjectBuilder_EquiDecorativeDecalsControllerDefinition : MyObjectBuilder_ContextMenuControllerDefinition
+    public class MyObjectBuilder_EquiDecorativeMaterialsControllerDefinition : MyObjectBuilder_ContextMenuControllerDefinition
     {
         public string DataId;
         public GridDefinition Grid;

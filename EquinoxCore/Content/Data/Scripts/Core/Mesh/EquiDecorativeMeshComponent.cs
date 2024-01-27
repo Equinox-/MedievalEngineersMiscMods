@@ -281,62 +281,102 @@ namespace Equinox76561198048419394.Core.Mesh
             return new BlockAndAnchor(block.Id, NewAnchorPacking.Pack(norm) | NewAnchorPackingMask);
         }
 
-        public static EquiMeshHelpers.DecalData CreateDecalData(
-            EquiDecorativeDecalToolDefinition.DecalDef def,
-            Vector3 pos,
-            Vector3 decalNormal,
-            Vector3 decalUp,
-            float height,
-            PackedHsvShift color = default)
+        public struct DecalArgs<TPos> where TPos : struct
         {
-            var left = Vector3.Cross(decalNormal, decalUp);
-            left *= height * def.AspectRatio / left.Length() / 2;
+            public TPos Position;
+            public Vector3 Normal;
+            public Vector3 Up;
+            public float Height;
+            public PackedHsvShift Color;
+        }
+
+        public static EquiMeshHelpers.DecalData CreateDecalData(
+            EquiDecorativeDecalToolDefinition.DecalDef decal,
+            in DecalArgs<Vector3> args)
+        {
+            var left = Vector3.Cross(args.Normal, args.Up);
+            left *= args.Height * decal.AspectRatio / left.Length() / 2;
             return new EquiMeshHelpers.DecalData
             {
-                Material = def.Material,
-                Position = pos + decalNormal * 0.005f,
-                TopLeftUv = def.TopLeftUv,
-                BottomRightUv = def.BottomRightUv,
-                Normal = VF_Packer.PackNormal(decalNormal),
-                Up = new HalfVector3(decalUp * height / 2),
+                Material = decal.Material,
+                Position = args.Position + args.Normal * 0.005f,
+                TopLeftUv = decal.TopLeftUv,
+                BottomRightUv = decal.BottomRightUv,
+                Normal = VF_Packer.PackNormal(args.Normal),
+                Up = new HalfVector3(args.Up * args.Height / 2),
                 Left = new HalfVector3(left),
-                ColorMask = color
+                ColorMask = args.Color
             };
         }
 
-        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition def, Vector3 a, Vector3 b, float catenaryFactor,
-            PackedHsvShift color = default)
+        public struct LineArgs<TPos> where TPos : struct
         {
-            var length = Vector3.Distance(a, b);
+            public TPos A, B;
+            public float CatenaryFactor;
+            public PackedHsvShift Color;
+
+            public float? WidthA;
+            public float? WidthB;
+        }
+
+        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition.LineMaterialDef material, in LineArgs<Vector3> args)
+        {
+            var def = material.Owner;
+            var length = Vector3.Distance(args.A, args.B);
             var defaultSegmentsPerMeterSqrt = 0f;
-            if (catenaryFactor > 0)
-                defaultSegmentsPerMeterSqrt = MathHelper.Lerp(4, 8, MathHelper.Clamp(catenaryFactor, 0, 1));
+            var cf = args.CatenaryFactor;
+            if (cf > 0)
+                defaultSegmentsPerMeterSqrt = MathHelper.Lerp(4, 8, MathHelper.Clamp(cf, 0, 1));
             var segmentsPerMeterSqrt = def.SegmentsPerMeterSqrt ?? defaultSegmentsPerMeterSqrt;
             var segmentCount = Math.Max(1, (int)Math.Ceiling(length * def.SegmentsPerMeter + Math.Sqrt(length) * segmentsPerMeterSqrt));
-            var catenaryLength = catenaryFactor > 0 ? length * (1 + catenaryFactor) : 0;
+            var catenaryLength = cf > 0 ? length * (1 + cf) : 0;
+
+            var width0 = args.WidthA >= 0 ? args.WidthA.Value : def.DefaultWidth;
+            var width1 = args.WidthB >= 0 ? args.WidthB.Value : width0;
             return new EquiMeshHelpers.LineData
             {
-                Material = def.Material.MaterialName,
-                Pt0 = a,
-                Pt1 = b,
-                Width = def.Width,
-                UvOffset = def.UvOffset,
-                UvTangent = def.UvTangentPerMeter * Math.Max(catenaryLength, length),
-                UvNormal = def.UvNormal,
+                Material = material.Material.MaterialName,
+                Pt0 = args.A,
+                Pt1 = args.B,
+                Width0 = width0,
+                Width1 = width1,
+                UvOffset = material.UvOffset,
+                UvTangent = material.UvTangentPerMeter * Math.Max(catenaryLength, length),
+                UvNormal = material.UvNormal,
                 Segments = segmentCount,
-                HalfSideSegments = def.HalfSideSegments,
+                HalfSideSegments = def.HalfSideSegments(Math.Max(width0, width1)),
                 CatenaryLength = catenaryLength,
                 UseNaturalGravity = true,
-                ColorMask = color
+                ColorMask = args.Color
             };
         }
 
-        public static EquiMeshHelpers.SurfaceData CreateSurfaceData(EquiDecorativeSurfaceToolDefinition def, Vector3 a, Vector3 b, Vector3 c, Vector3? d,
-            Vector3 alignNormal, PackedHsvShift color = default, UvProjectionMode uvProjection = UvProjectionMode.Bevel, UvBiasMode uvBias = UvBiasMode.XAxis,
-            float? uvScale = null)
+        public struct SurfaceArgs<TPos> where TPos : struct
+        {
+            public TPos A, B, C;
+            public TPos? D;
+
+            public PackedHsvShift Color;
+            public UvProjectionMode? UvProjection;
+            public UvBiasMode? UvBias;
+            public float? UvScale;
+        }
+
+        private const UvProjectionMode DefaultUvProjection = UvProjectionMode.Bevel;
+        private const UvBiasMode DefaultUvBias = UvBiasMode.XAxis;
+        private const float DefaultUvScale = 1;
+
+        public static EquiMeshHelpers.SurfaceData CreateSurfaceData(
+            EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef materialDef,
+            in SurfaceArgs<Vector3> args,
+            Vector3 alignNormal)
         {
             Vector3 norm;
             const float eps = 1e-6f;
+            var a = args.A;
+            var b = args.B;
+            var c = args.C;
+            var d = args.D;
             if (d.HasValue
                 && !a.Equals(b, eps) && !a.Equals(c, eps) && !a.Equals(d.Value, eps)
                 && !b.Equals(c, eps) && !b.Equals(d.Value, eps)
@@ -359,18 +399,9 @@ namespace Equinox76561198048419394.Core.Mesh
                 norm.Normalize();
             }
 
-            FindUvProjection(uvProjection, uvBias, norm, out var uvX, out var uvY);
+            FindUvProjection(args.UvProjection ?? DefaultUvProjection, args.UvBias ?? DefaultUvBias, norm, out var uvX, out var uvY);
 
-            var trueUvScale = 1 / (uvScale ?? 1);
-            Vector2 ComputeUv(in Vector3 pos) => new Vector2(trueUvScale * uvX.Dot(pos), trueUvScale * uvY.Dot(pos)) / def.TextureSize;
-
-            Vector3 IdealTriangleTangent(Vector3 pt0, Vector3 pt1, Vector3 pt2)
-            {
-                var uv0 = ComputeUv(pt0);
-                var duv1 = ComputeUv(pt1) - uv0;
-                var duv2 = ComputeUv(pt2) - uv0;
-                return EquiMeshHelpers.ComputeTriangleTangent(pt1 - pt0, duv1, pt2 - pt0, duv2);
-            }
+            var trueUvScale = 1 / (args.UvScale ?? DefaultUvScale);
 
             var tangent = IdealTriangleTangent(a, b, c);
             if (d.HasValue)
@@ -383,23 +414,33 @@ namespace Equinox76561198048419394.Core.Mesh
             if (snappedTangent.Normalize() <= 1e-6)
                 norm.CalculatePerpendicularVector(out snappedTangent);
 
+            return new EquiMeshHelpers.SurfaceData
+            {
+                Material = materialDef.Material.MaterialName,
+                Pt0 = CreateVertex(a),
+                Pt1 = CreateVertex(b),
+                Pt2 = CreateVertex(c),
+                Pt3 = d.HasValue ? (EquiMeshHelpers.VertexData?)CreateVertex(d.Value) : null,
+                FlipRearNormals = materialDef.FlipRearNormals,
+                ColorMask = args.Color
+            };
+
+            Vector2 ComputeUv(in Vector3 pos) => new Vector2(trueUvScale * uvX.Dot(pos), trueUvScale * uvY.Dot(pos)) / materialDef.TextureSize;
+
+            Vector3 IdealTriangleTangent(Vector3 pt0, Vector3 pt1, Vector3 pt2)
+            {
+                var uv0 = ComputeUv(pt0);
+                var duv1 = ComputeUv(pt1) - uv0;
+                var duv2 = ComputeUv(pt2) - uv0;
+                return EquiMeshHelpers.ComputeTriangleTangent(pt1 - pt0, duv1, pt2 - pt0, duv2);
+            }
+
             EquiMeshHelpers.VertexData CreateVertex(Vector3 pos) => new EquiMeshHelpers.VertexData
             {
                 Position = pos,
                 Uv = new HalfVector2(ComputeUv(in pos)),
                 Normal = VF_Packer.PackNormal(norm),
                 Tangent = VF_Packer.PackNormal(snappedTangent),
-            };
-
-            return new EquiMeshHelpers.SurfaceData
-            {
-                Material = def.Material.MaterialName,
-                Pt0 = CreateVertex(a),
-                Pt1 = CreateVertex(b),
-                Pt2 = CreateVertex(c),
-                Pt3 = d.HasValue ? (EquiMeshHelpers.VertexData?)CreateVertex(d.Value) : null,
-                FlipRearNormals = def.FlipRearNormals,
-                ColorMask = color
             };
         }
 
@@ -428,7 +469,7 @@ namespace Equinox76561198048419394.Core.Mesh
             if (yLength <= 1e-6f)
                 uvPlaneNormal.CalculatePerpendicularVector(out uvY);
             else
-                uvY /= (float) Math.Sqrt(yLength);
+                uvY /= (float)Math.Sqrt(yLength);
 
             Vector3.Cross(ref uvPlaneNormal, ref uvY, out uvX);
         }
@@ -504,22 +545,36 @@ namespace Equinox76561198048419394.Core.Mesh
             ulong newRenderable;
             if (triplet.IsDecal)
             {
-                if (!(data.Def is EquiDecorativeDecalToolDefinition decalsDef) || !decalsDef.Decals.TryGetValue(args.DecalId, out var decalDef)) return true;
-                newRenderable = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, blockA,
-                    VF_Packer.UnpackNormal(args.DecalNormal),
-                    VF_Packer.UnpackNormal(args.DecalUp),
-                    args.DecalHeight,
-                    args.Color));
+                if (!(data.Def is EquiDecorativeDecalToolDefinition decalsDef)) return true;
+                if (!decalsDef.Decals.TryGetValue(args.MaterialId, out var decalDef)) return true;
+                newRenderable = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, new DecalArgs<Vector3>
+                {
+                    Position = blockA,
+                    Normal = VF_Packer.UnpackNormal(args.DecalNormal),
+                    Up = VF_Packer.UnpackNormal(args.DecalUp),
+                    Height = args.DecalHeight,
+                    Color = args.Color
+                }));
             }
             else if (triplet.IsLine)
             {
                 if (!(data.Def is EquiDecorativeLineToolDefinition lineDef)) return true;
+                if (!lineDef.Materials.TryGetValue(args.MaterialId, out var materialDef)) return true;
                 if (!triplet.B.TryGetGridLocalAnchor(_gridData, out var blockB)) return true;
-                newRenderable = _dynamicMesh.CreateLine(CreateLineData(lineDef, blockA, blockB, args.CatenaryFactor, args.Color));
+                newRenderable = _dynamicMesh.CreateLine(CreateLineData(materialDef, new LineArgs<Vector3>
+                {
+                    A = blockA,
+                    B = blockB,
+                    WidthA = args.WidthA,
+                    WidthB = args.WidthB,
+                    CatenaryFactor = args.CatenaryFactor,
+                    Color = args.Color
+                }));
             }
             else
             {
                 if (!(data.Def is EquiDecorativeSurfaceToolDefinition surfDef)) return true;
+                if (!surfDef.Materials.TryGetValue(args.MaterialId, out var materialDef)) return true;
                 if (!triplet.B.TryGetGridLocalAnchor(_gridData, out var blockB)) return true;
                 if (!triplet.C.TryGetGridLocalAnchor(_gridData, out var blockC)) return true;
                 Vector3? blockD;
@@ -533,8 +588,17 @@ namespace Equinox76561198048419394.Core.Mesh
 
                 var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Entity.GetPosition());
                 var localGravity = Vector3.TransformNormal(gravityWorld, Entity.PositionComp.WorldMatrixNormalizedInv);
-                newRenderable = _dynamicMesh.CreateSurface(CreateSurfaceData(surfDef, blockA, blockB, blockC, blockD, -localGravity,
-                    args.Color, args.UvProjection, args.UvBias, args.UvScale));
+                newRenderable = _dynamicMesh.CreateSurface(CreateSurfaceData(materialDef, new SurfaceArgs<Vector3>
+                {
+                    A = blockA,
+                    B = blockB,
+                    C = blockC,
+                    D = blockD,
+                    Color = args.Color,
+                    UvProjection = args.UvProjection,
+                    UvBias = args.UvBias,
+                    UvScale = args.UvScale,
+                }, -localGravity));
             }
 
             _features[triplet] = new RenderData(data.Def, data.Args, newRenderable);
@@ -551,41 +615,96 @@ namespace Equinox76561198048419394.Core.Mesh
         [RpcSerializable]
         private struct FeatureArgs
         {
-            public float CatenaryFactor;
+            [Serialize]
+            private float _float0;
 
-            public MyStringHash DecalId;
-            public uint DecalNormal;
-            public uint DecalUp;
+            [Serialize]
+            private uint _uint0;
 
+            [Serialize]
+            private uint _uint1;
+
+            [Serialize]
+            public MyStringHash MaterialId;
+
+            [Serialize]
             public PackedHsvShift Color;
+
+            #region Surfaces
 
             [NoSerialize]
             public UvProjectionMode UvProjection
             {
-                get => (UvProjectionMode)DecalNormal;
-                set => DecalNormal = (uint)value;
+                get => (UvProjectionMode)_uint0;
+                set => _uint0 = (uint)value;
             }
 
             [NoSerialize]
             public UvBiasMode UvBias
             {
-                get => (UvBiasMode)DecalUp;
-                set => DecalUp = (uint)value;
+                get => (UvBiasMode)_uint1;
+                set => _uint1 = (uint)value;
             }
 
             [NoSerialize]
             public float UvScale
             {
-                get => CatenaryFactor;
-                set => CatenaryFactor = value;
+                get => _float0;
+                set => _float0 = value;
             }
+
+            #endregion
+
+            #region Lines
+
+
+            [NoSerialize]
+            public float CatenaryFactor
+            {
+                get => _float0;
+                set => _float0 = value;
+            }
+
+            [NoSerialize]
+            public float WidthA
+            {
+                get => HalfUtils.Unpack((ushort)_uint0);
+                set => _uint0 = HalfUtils.Pack(value);
+            }
+
+            [NoSerialize]
+            public float WidthB
+            {
+                get => HalfUtils.Unpack((ushort)_uint1);
+                set => _uint1 = HalfUtils.Pack(value);
+            }
+
+            #endregion
+
+            #region Decals
 
             [NoSerialize]
             public float DecalHeight
             {
-                get => CatenaryFactor;
-                set => CatenaryFactor = value;
+                get => _float0;
+                set => _float0 = value;
             }
+
+            [NoSerialize]
+            public uint DecalNormal
+            {
+                get => _uint0;
+                set => _uint0 = value;
+            }
+
+            [NoSerialize]
+            public uint DecalUp
+            {
+                get => _uint1;
+                set => _uint1 = value;
+            }
+
+            #endregion
         }
 
         private bool TryAddFeatureInternal(in FeatureKey key, EquiDecorativeToolBaseDefinition def, in FeatureArgs args)
@@ -615,41 +734,52 @@ namespace Equinox76561198048419394.Core.Mesh
                 (RpcFeatureKey)key, (SerializableDefinitionId)id, args);
         }
 
-        public void AddDecal(BlockAndAnchor pos, EquiDecorativeDecalToolDefinition.DecalDef def, Vector3 normal, Vector3 up, float height, PackedHsvShift color)
+        public void AddDecal(EquiDecorativeDecalToolDefinition.DecalDef def, DecalArgs<BlockAndAnchor> args)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
-            var key = new FeatureKey(pos, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var args = new FeatureArgs
+            var key = new FeatureKey(args.Position, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
+            var rpcArgs = new FeatureArgs
             {
-                DecalId = def.Id,
-                DecalNormal = VF_Packer.PackNormal(normal),
-                DecalUp = VF_Packer.PackNormal(up),
-                DecalHeight = height,
-                Color = color
+                MaterialId = def.Id,
+                DecalNormal = VF_Packer.PackNormal(args.Normal),
+                DecalUp = VF_Packer.PackNormal(args.Up),
+                DecalHeight = args.Height,
+                Color = args.Color
             };
-            if (TryAddFeatureInternal(in key, def.Owner, args))
-                RaiseAddFeature_Sync(key, def.Owner.Id, args);
+            if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
+                RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
         }
 
-        public void AddLine(BlockAndAnchor a, BlockAndAnchor b, EquiDecorativeLineToolDefinition def, float catenaryFactor, PackedHsvShift color)
+        public void AddLine(EquiDecorativeLineToolDefinition.LineMaterialDef def, LineArgs<BlockAndAnchor> args)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
-            var key = new FeatureKey(a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var args = new FeatureArgs { CatenaryFactor = catenaryFactor, Color = color };
-            if (TryAddFeatureInternal(in key, def, args))
-                RaiseAddFeature_Sync(key, def.Id, args);
+            var key = new FeatureKey(args.A, args.B, BlockAndAnchor.Null, BlockAndAnchor.Null);
+            var rpcArgs = new FeatureArgs
+            {
+                MaterialId = def.Id,
+                CatenaryFactor = args.CatenaryFactor,
+                Color = args.Color,
+                WidthA = args.WidthA >= 0 ? args.WidthA.Value : -1,
+                WidthB = args.WidthB >= 0 ? args.WidthB.Value : -1,
+            };
+            if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
+                RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
         }
 
-        public void AddSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d,
-            EquiDecorativeSurfaceToolDefinition def, PackedHsvShift color,
-            UvProjectionMode uvProjection = UvProjectionMode.Bevel, UvBiasMode uvBias = UvBiasMode.XAxis,
-            float uvScale = 1)
+        public void AddSurface(EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef def, SurfaceArgs<BlockAndAnchor> args)
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
-            var key = new FeatureKey(a, b, c, d);
-            var args = new FeatureArgs { Color = color, UvProjection = uvProjection, UvBias = uvBias, UvScale = uvScale };
-            if (TryAddFeatureInternal(in key, def, args))
-                RaiseAddFeature_Sync(key, def.Id, args);
+            var key = new FeatureKey(args.A, args.B, args.C, args.D ?? BlockAndAnchor.Null);
+            var rpcArgs = new FeatureArgs
+            {
+                MaterialId = def.Id,
+                Color = args.Color,
+                UvProjection = args.UvProjection ?? DefaultUvProjection,
+                UvBias = args.UvBias ?? DefaultUvBias,
+                UvScale = args.UvScale ?? DefaultUvScale
+            };
+            if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
+                RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
         }
 
         public void RemoveDecal(BlockAndAnchor a)
@@ -684,52 +814,59 @@ namespace Equinox76561198048419394.Core.Mesh
         private readonly struct SurfaceGroupKey : IEquatable<SurfaceGroupKey>
         {
             public readonly MyDefinitionId Definition;
+            public readonly MyStringHash MaterialId;
             public readonly UvProjectionMode UvProjection;
             public readonly UvBiasMode UvBias;
 
-            public SurfaceGroupKey(MyDefinitionId definition, UvProjectionMode uvProjection, UvBiasMode uvBias)
+            public SurfaceGroupKey(MyDefinitionId definition, MyStringHash materialId, UvProjectionMode uvProjection, UvBiasMode uvBias)
             {
                 Definition = definition;
+                MaterialId = materialId;
                 UvProjection = uvProjection;
                 UvBias = uvBias;
             }
 
-            public bool Equals(SurfaceGroupKey other) => Definition.Equals(other.Definition) && UvProjection == other.UvProjection && UvBias == other.UvBias;
+            public bool Equals(SurfaceGroupKey other)
+            {
+                return Definition.Equals(other.Definition) && MaterialId.Equals(other.MaterialId) && UvProjection == other.UvProjection &&
+                       UvBias == other.UvBias;
+            }
 
             public override bool Equals(object obj) => obj is SurfaceGroupKey other && Equals(other);
 
             public override int GetHashCode()
             {
                 var hashCode = Definition.GetHashCode();
+                hashCode = (hashCode * 397) ^ MaterialId.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)UvProjection;
                 hashCode = (hashCode * 397) ^ (int)UvBias;
                 return hashCode;
             }
         }
 
-        private readonly struct DecalGroupKey : IEquatable<DecalGroupKey>
+        private readonly struct MaterialGroupKey : IEquatable<MaterialGroupKey>
         {
             public readonly MyDefinitionId Definition;
-            public readonly MyStringHash DecalId;
+            public readonly MyStringHash MaterialId;
 
-            public DecalGroupKey(MyDefinitionId definition, MyStringHash decalId)
+            public MaterialGroupKey(MyDefinitionId definition, MyStringHash materialId)
             {
                 Definition = definition;
-                DecalId = decalId;
+                MaterialId = materialId;
             }
 
-            public bool Equals(DecalGroupKey other) => Definition.Equals(other.Definition) && DecalId.Equals(other.DecalId);
+            public bool Equals(MaterialGroupKey other) => Definition.Equals(other.Definition) && MaterialId.Equals(other.MaterialId);
 
-            public override bool Equals(object obj) => obj is DecalGroupKey other && Equals(other);
+            public override bool Equals(object obj) => obj is MaterialGroupKey other && Equals(other);
 
-            public override int GetHashCode() => (Definition.GetHashCode() * 397) ^ DecalId.GetHashCode();
+            public override int GetHashCode() => (Definition.GetHashCode() * 397) ^ MaterialId.GetHashCode();
         }
 
         public override MyObjectBuilder_EntityComponent Serialize(bool copy = false)
         {
             var ob = (MyObjectBuilder_EquiDecorativeMeshComponent)base.Serialize(copy);
-            using (PoolManager.Get<Dictionary<DecalGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder>>>(out var decals))
-            using (PoolManager.Get<Dictionary<MyDefinitionId, List<MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder>>>(out var lines))
+            using (PoolManager.Get<Dictionary<MaterialGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder>>>(out var decals))
+            using (PoolManager.Get<Dictionary<MaterialGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder>>>(out var lines))
             using (PoolManager.Get<Dictionary<SurfaceGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder>>>(out var triangles))
             {
                 foreach (var kv in _features)
@@ -738,7 +875,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     var def = kv.Value.Def.Id;
                     var args = kv.Value.Args;
                     if (triplet.IsDecal)
-                        GetOrCreate(decals, new DecalGroupKey(def, args.DecalId)).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder
+                        GetOrCreate(decals, new MaterialGroupKey(def, args.MaterialId)).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder
                         {
                             A = triplet.A.Block.Value,
                             AOffset = triplet.A.PackedAnchor,
@@ -748,7 +885,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             ColorRaw = args.Color,
                         });
                     else if (triplet.IsLine)
-                        GetOrCreate(lines, def).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder
+                        GetOrCreate(lines, new MaterialGroupKey(def, args.MaterialId)).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder
                         {
                             A = triplet.A.Block.Value,
                             AOffset = triplet.A.PackedAnchor,
@@ -756,21 +893,24 @@ namespace Equinox76561198048419394.Core.Mesh
                             BOffset = triplet.B.PackedAnchor,
                             CatenaryFactor = args.CatenaryFactor,
                             ColorRaw = args.Color,
+                            WidthA = args.WidthA,
+                            WidthB = Math.Abs(args.WidthA - args.WidthB) < 1e-6f ? -1 : args.WidthB,
                         });
                     else
-                        GetOrCreate(triangles, new SurfaceGroupKey(def, args.UvProjection, args.UvBias)).Add(new MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder
-                        {
-                            A = triplet.A.Block.Value,
-                            AOffset = triplet.A.PackedAnchor,
-                            B = triplet.B.Block.Value,
-                            BOffset = triplet.B.PackedAnchor,
-                            C = triplet.C.Block.Value,
-                            COffset = triplet.C.PackedAnchor,
-                            D = triplet.D.Block.Value,
-                            DOffset = triplet.D.PackedAnchor,
-                            ColorRaw = args.Color,
-                            UvScale = args.UvScale,
-                        });
+                        GetOrCreate(triangles, new SurfaceGroupKey(def, args.MaterialId, args.UvProjection, args.UvBias)).Add(
+                            new MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder
+                            {
+                                A = triplet.A.Block.Value,
+                                AOffset = triplet.A.PackedAnchor,
+                                B = triplet.B.Block.Value,
+                                BOffset = triplet.B.PackedAnchor,
+                                C = triplet.C.Block.Value,
+                                COffset = triplet.C.PackedAnchor,
+                                D = triplet.D.Block.Value,
+                                DOffset = triplet.D.PackedAnchor,
+                                ColorRaw = args.Color,
+                                UvScale = args.UvScale,
+                            });
                 }
 
                 ob.Decals = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeDecals>(decals.Count);
@@ -778,14 +918,15 @@ namespace Equinox76561198048419394.Core.Mesh
                     ob.Decals.Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeDecals
                     {
                         Definition = entry.Key.Definition,
-                        DecalId = entry.Key.DecalId.String,
+                        DecalId = entry.Key.MaterialId.String,
                         Decals = entry.Value,
                     });
                 ob.Lines = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeLines>(lines.Count);
                 foreach (var entry in lines)
                     ob.Lines.Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeLines
                     {
-                        Definition = entry.Key,
+                        Definition = entry.Key.Definition,
+                        MaterialId = entry.Key.MaterialId.String,
                         Lines = entry.Value,
                     });
                 ob.Surfaces = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeSurfaces>(triangles.Count);
@@ -793,6 +934,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     ob.Surfaces.Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeSurfaces
                     {
                         Definition = entry.Key.Definition,
+                        MaterialId = entry.Key.MaterialId.String,
                         UvProjection = entry.Key.UvProjection,
                         UvBias = entry.Key.UvBias,
                         Surfaces = entry.Value,
@@ -823,11 +965,11 @@ namespace Equinox76561198048419394.Core.Mesh
                             AddFeatureInternal(new FeatureKey(new BlockAndAnchor(item.A, item.AOffset),
                                 BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null), def, new FeatureArgs
                             {
-                                DecalId = decalId,
+                                MaterialId = decalId,
                                 DecalNormal = item.Normal,
                                 DecalUp = item.Up,
                                 DecalHeight = item.Height,
-                                Color = item.ColorRaw
+                                Color = item.ColorRaw,
                             });
                 }
 
@@ -837,6 +979,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (line.Lines == null) continue;
                     var def = MyDefinitionManager.Get<EquiDecorativeLineToolDefinition>(line.Definition);
                     if (def == null) continue;
+                    var materialId = MyStringHash.GetOrCompute(line.MaterialId);
+                    if (!def.Materials.ContainsKey(materialId)) continue;
                     foreach (var item in line.Lines)
                         if (item.A != 0 && item.B != 0)
                             AddFeatureInternal(new FeatureKey(
@@ -847,8 +991,11 @@ namespace Equinox76561198048419394.Core.Mesh
                                 def,
                                 new FeatureArgs
                                 {
+                                    MaterialId = materialId,
                                     CatenaryFactor = item.CatenaryFactor,
-                                    Color = item.ColorRaw
+                                    Color = item.ColorRaw,
+                                    WidthA = item.WidthA,
+                                    WidthB = item.WidthB,
                                 });
                 }
 
@@ -858,6 +1005,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (triangles.Surfaces == null) continue;
                     var def = MyDefinitionManager.Get<EquiDecorativeSurfaceToolDefinition>(triangles.Definition);
                     if (def == null) continue;
+                    var materialId = MyStringHash.GetOrCompute(triangles.MaterialId);
+                    if (!def.Materials.ContainsKey(materialId)) continue;
                     var uvProjection = triangles.UvProjection ?? UvProjectionMode.Bevel;
                     var uvBias = triangles.UvBias ?? UvBiasMode.XAxis;
                     foreach (var item in triangles.Surfaces)
@@ -869,6 +1018,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                     item.ShouldSerializeD() ? new BlockAndAnchor(item.D, item.DOffset) : BlockAndAnchor.Null), def,
                                 new FeatureArgs
                                 {
+                                    MaterialId = materialId,
                                     Color = item.ColorRaw,
                                     UvProjection = uvProjection,
                                     UvBias = uvBias,
@@ -899,6 +1049,23 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlAttribute("CF")]
             public float CatenaryFactor;
 
+            private float? _wa;
+            private float? _wb;
+
+            [XmlAttribute("AW")]
+            public float WidthA
+            {
+                get => _wa ?? -1;
+                set => _wa = value < 0 ? null : (float?) value;
+            }
+
+            [XmlAttribute("BW")]
+            public float WidthB
+            {
+                get => _wb ?? -1;
+                set => _wb = value < 0 ? null : (float?) value;
+            }
+
             [XmlIgnore]
             public PackedHsvShift ColorRaw;
 
@@ -911,12 +1078,18 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
+
+            public bool ShouldSerializeWidthA() => WidthA >= 0;
+            public bool ShouldSerializeWidthB() => WidthB >= 0;
         }
 
         public class DecorativeLines : IMyRemappable
         {
             [XmlElement("Definition")]
             public SerializableDefinitionId Definition;
+
+            [XmlElement("MaterialId")]
+            public string MaterialId;
 
             [XmlElement("Line")]
             public List<LineBuilder> Lines;
@@ -1004,9 +1177,12 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlElement("Definition")]
             public SerializableDefinitionId Definition;
 
+            [XmlElement("MaterialId")]
+            public string MaterialId;
+
             [XmlElement("UvProjection")]
             public UvProjectionMode? UvProjection;
-            
+
             [XmlElement("UvBias")]
             public UvBiasMode? UvBias;
 

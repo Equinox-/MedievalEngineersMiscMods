@@ -15,6 +15,7 @@
         <Id Type="MyObjectBuilder_EquiAdvancedController" Subtype="DecorativeMeshController" />
         <Title>Decorative Mesh</Title>
         <AutoCommit>true</AutoCommit>
+
         <!-- Lines -->
         <Slider DataId="LineCatenaryFactor">
             <Text>Extra Length</Text>
@@ -23,7 +24,21 @@
             <Exponent>3</Exponent>
             <Tooltip>Controls how much the line sags under gravity</Tooltip>
         </Slider>
-        
+        <Slider DataId="LineWidthA">
+            <Text>Starting Width</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} m</TextFormat>
+            <Exponent>2</Exponent>
+            <Tooltip>Controls the width at the starting point</Tooltip>
+        </Slider>
+        <Slider DataId="LineWidthB">
+            <Text>Ending Width</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0} m</TextFormat>
+            <Exponent>2</Exponent>
+            <Tooltip>Controls the width at the ending point</Tooltip>
+        </Slider>
+
         <!-- Surfaces -->
         <Dropdown DataId="SurfaceUvProjection">
             <Text>UV Projection</Text>
@@ -56,12 +71,18 @@
             <IsInteger>true</IsInteger>
         </Slider>
 
+        <!-- Snapping -->
         <Slider DataId="SnapDivisions" IsInteger="true">
             <Text>Snap Divisions</Text>
             <LabelDecimalPlaces>0</LabelDecimalPlaces>
             <TextFormat>{0}</TextFormat>
             <Tooltip>How many snap points per small block (0.25m)</Tooltip>
         </Slider>
+
+        <Checkbox DataId="SnapToVertices" IsInteger="true">
+            <Text>Snap to Vertices</Text>
+            <Tooltip>Will positions snap to nearby block vertices</Tooltip>
+        </Checkbox>
 
         <Embedded>
             <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
@@ -79,19 +100,19 @@
                 <ButtonGroup>1</ButtonGroup>
                 <Tooltip>Change Color</Tooltip>
                 <Icon>ContextMenuColorFill</Icon>
-                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="Color" />
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="Color" Reason="Not supported" />
                 <Action xsi:type="MyObjectBuilder_CMA_AddController">
-                    <Controller Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" Reason="Not supported" />
+                    <Controller Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" />
                 </Action>
             </Button>
             <Button StyleName="ContextButtonSliced">
                 <Text />
                 <ButtonGroup>1</ButtonGroup>
-                <Tooltip>Change Decal</Tooltip>
+                <Tooltip>Change Material</Tooltip>
                 <Icon>ContextMenuPattern</Icon>
-                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="DecalDef" Reason="Not supported" />
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="MaterialDef" Reason="Not supported" />
                 <Action xsi:type="MyObjectBuilder_CMA_AddController">
-                    <Controller Type="MyObjectBuilder_EquiDecorativeDecalsController" Subtype="DecorativeMeshSelectDecal" />
+                    <Controller Type="MyObjectBuilder_EquiDecorativeMaterialsController" Subtype="DecorativeMeshSelectMaterial" />
                 </Action>
             </Button>
         </Buttons>
@@ -131,10 +152,10 @@
         </Buttons>
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_EquiDecorativeDecalsControllerDefinition">
-        <Id Type="MyObjectBuilder_EquiDecorativeDecalsController" Subtype="DecorativeMeshSelectDecal" />
-        <Title>ContextMenu_SignpostSelectIcon</Title>
-        <DataId>DecalDef</DataId>
+    <Definition xsi:type="MyObjectBuilder_EquiDecorativeMaterialsControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiDecorativeMaterialsController" Subtype="DecorativeMeshSelectMaterial" />
+        <Title>Select material</Title>
+        <DataId>MaterialDef</DataId>
         <GridSize x="320" y="400" />
         <Grid StyleName="ContextMenuInventoryGrid" Columns="4" Rows="5" MaxItems="20" />
         <PagingButtonSize x="32" y="32" />

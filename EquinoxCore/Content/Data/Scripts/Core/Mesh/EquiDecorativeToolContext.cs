@@ -14,8 +14,11 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         public static readonly MyStringId Color = MyStringId.GetOrCompute("Color");
         public static readonly MyStringId SnapDivisions = MyStringId.GetOrCompute("SnapDivisions");
+        public static readonly MyStringId SnapToVertices = MyStringId.GetOrCompute("SnapToVertices");
 
         public static readonly MyStringId LineCatenaryFactor = MyStringId.GetOrCompute("LineCatenaryFactor");
+        public static readonly MyStringId LineWidthA = MyStringId.GetOrCompute("LineWidthA");
+        public static readonly MyStringId LineWidthB = MyStringId.GetOrCompute("LineWidthB");
 
         public static readonly MyStringId SurfaceUvBias = MyStringId.GetOrCompute("SurfaceUvBias");
         public static readonly MyStringId SurfaceUvProjection = MyStringId.GetOrCompute("SurfaceUvProjection");
@@ -23,7 +26,8 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public static readonly MyStringId DecalRotationDeg = MyStringId.GetOrCompute("DecalRotationDeg");
         public static readonly MyStringId DecalHeight = MyStringId.GetOrCompute("DecalHeight");
-        public static readonly MyStringId DecalDef = MyStringId.GetOrCompute("DecalDef");
+
+        public static readonly MyStringId MaterialDef = MyStringId.GetOrCompute("MaterialDef");
 
         private EquiDecorativeToolBaseDefinition _definition;
 
@@ -46,52 +50,82 @@ namespace Equinox76561198048419394.Core.Mesh
                 16,
                 16,
                 () => DecorativeToolSettings.SnapDivisions,
-                val => DecorativeToolSettings.SnapDivisions = (int) Math.Round(val)
-                ));
+                val => DecorativeToolSettings.SnapDivisions = (int)Math.Round(val)
+            ));
 
-            if (_definition is EquiDecorativeLineToolDefinition line)
-            {
-                m_dataSources.Add(LineCatenaryFactor, new SimpleBoundedDataSource<float>(
-                    0,
-                    0,
-                    100,
-                    () => DecorativeToolSettings.LineCatenaryFactor * 100,
-                    val => DecorativeToolSettings.LineCatenaryFactor = val / 100));
-            }
+            m_dataSources.Add(SnapToVertices, new SimpleDataSource<bool>(
+                () => DecorativeToolSettings.SnapToVertices,
+                val => DecorativeToolSettings.SnapToVertices = val
+            ));
 
-            if (_definition is EquiDecorativeSurfaceToolDefinition surf)
+            switch (_definition)
             {
-                m_dataSources.Add(SurfaceUvBias, new EnumDataSource<UvBiasMode>(
-                    () => DecorativeToolSettings.UvBias,
-                    val => DecorativeToolSettings.UvBias = val,
-                    true));
-                m_dataSources.Add(SurfaceUvProjection, new EnumDataSource<UvProjectionMode>(
-                    () => DecorativeToolSettings.UvProjection,
-                    val => DecorativeToolSettings.UvProjection = val,
-                    true));
-                m_dataSources.Add(SurfaceUvScale, new SimpleBoundedDataSource<float>(
-                    surf.TextureScale.Min,
-                    surf.TextureScale.Clamp(1),
-                    surf.TextureScale.Max,
-                    () => DecorativeToolSettings.UvScale,
-                    val => DecorativeToolSettings.UvScale = val));
-            }
+                case EquiDecorativeLineToolDefinition line:
+                    m_dataSources.Add(LineCatenaryFactor, new SimpleBoundedDataSource<float>(
+                        0,
+                        0,
+                        100,
+                        () => DecorativeToolSettings.LineCatenaryFactor * 100,
+                        val => DecorativeToolSettings.LineCatenaryFactor = val / 100));
+                    m_dataSources.Add(LineWidthA, new SimpleBoundedDataSource<float>(
+                        line.WidthRange.Min,
+                        line.DefaultWidth,
+                        line.WidthRange.Max,
+                        () => DecorativeToolSettings.LineWidthA,
+                        val => DecorativeToolSettings.LineWidthA = val));
+                    m_dataSources.Add(LineWidthB, new SimpleBoundedDataSource<float>(
+                        line.WidthRange.Min,
+                        line.DefaultWidth,
+                        line.WidthRange.Max,
+                        () => DecorativeToolSettings.LineWidthB,
+                        val => DecorativeToolSettings.LineWidthB = val));
 
-            if (_definition is EquiDecorativeDecalToolDefinition decal)
-            {
-                m_dataSources.Add(DecalRotationDeg, new SimpleBoundedDataSource<int>(
-                    0,
-                    0,
-                    360,
-                    () => DecorativeToolSettings.DecalRotationDeg,
-                    val => DecorativeToolSettings.DecalRotationDeg = val));
-                m_dataSources.Add(DecalHeight, new SimpleBoundedDataSource<float>(
-                    EquiDecorativeDecalTool.MinDecalHeight,
-                    0.125f,
-                    EquiDecorativeDecalTool.MaxDecalHeight,
-                    () => DecorativeToolSettings.DecalHeight,
-                    val => DecorativeToolSettings.DecalHeight = val));
-                m_dataSources.Add(DecalDef, new DecorativeDecalsDataSource(decal));
+                    if (line.SortedMaterials.Count > 1)
+                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeLineToolDefinition.LineMaterialDef>(
+                            line.SortedMaterials,
+                            () => DecorativeToolSettings.LineMaterialIndex,
+                            val => DecorativeToolSettings.LineMaterialIndex = val));
+                    break;
+                case EquiDecorativeSurfaceToolDefinition surf:
+                    m_dataSources.Add(SurfaceUvBias, new EnumDataSource<UvBiasMode>(
+                        () => DecorativeToolSettings.UvBias,
+                        val => DecorativeToolSettings.UvBias = val,
+                        true));
+                    m_dataSources.Add(SurfaceUvProjection, new EnumDataSource<UvProjectionMode>(
+                        () => DecorativeToolSettings.UvProjection,
+                        val => DecorativeToolSettings.UvProjection = val,
+                        true));
+                    m_dataSources.Add(SurfaceUvScale, new SimpleBoundedDataSource<float>(
+                        surf.TextureScale.Min,
+                        surf.TextureScale.Clamp(1),
+                        surf.TextureScale.Max,
+                        () => DecorativeToolSettings.UvScale,
+                        val => DecorativeToolSettings.UvScale = val));
+                    if (surf.SortedMaterials.Count > 1)
+                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef>(
+                            surf.SortedMaterials,
+                            () => DecorativeToolSettings.SurfaceMaterialIndex,
+                            val => DecorativeToolSettings.SurfaceMaterialIndex = val));
+                    break;
+                case EquiDecorativeDecalToolDefinition decal:
+                    m_dataSources.Add(DecalRotationDeg, new SimpleBoundedDataSource<int>(
+                        0,
+                        0,
+                        360,
+                        () => DecorativeToolSettings.DecalRotationDeg,
+                        val => DecorativeToolSettings.DecalRotationDeg = val));
+                    m_dataSources.Add(DecalHeight, new SimpleBoundedDataSource<float>(
+                        EquiDecorativeDecalTool.MinDecalHeight,
+                        0.125f,
+                        EquiDecorativeDecalTool.MaxDecalHeight,
+                        () => DecorativeToolSettings.DecalHeight,
+                        val => DecorativeToolSettings.DecalHeight = val));
+                    if (decal.SortedDecals.Count > 1)
+                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeDecalToolDefinition.DecalDef>(
+                            decal.SortedDecals,
+                            () => DecorativeToolSettings.DecalIndex,
+                            val => DecorativeToolSettings.DecalIndex = val));
+                    break;
             }
         }
 

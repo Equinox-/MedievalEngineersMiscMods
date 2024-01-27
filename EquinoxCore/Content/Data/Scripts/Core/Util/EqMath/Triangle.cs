@@ -60,4 +60,34 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             return t > epsilon;
         }
     }
+
+    public static class TriangleExtension
+    {
+        public static ref readonly Vector3 NearestVertex(this in Triangle tri, in Vector3 pos, out float nearestDistanceSquared)
+        {
+            var tda = Vector3.DistanceSquared(tri.A, pos);
+            var tdb = Vector3.DistanceSquared(tri.B, pos);
+            var tdc = Vector3.DistanceSquared(tri.C, pos);
+            if (tda < tdb)
+            {
+                if (tda < tdc)
+                {
+                    nearestDistanceSquared = tda;
+                    return ref tri.A;
+                }
+
+                nearestDistanceSquared = tdc;
+                return ref tri.C;
+            }
+
+            if (tdb < tdc)
+            {
+                nearestDistanceSquared = tdb;
+                return ref tri.B;
+            }
+
+            nearestDistanceSquared = tdc;
+            return ref tri.C;
+        }
+    }
 }
