@@ -52,7 +52,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
         protected override int RequiredPoints => 2;
 
-        private float CorrectWidth(float width) => width < 0 ? -1 : _definition.WidthRange.Clamp(width); 
+        private float CorrectWidth(float width) => width < 0 ? -1 : _definition.WidthRange.Clamp(width);
 
         private float WidthA => CorrectWidth(DecorativeToolSettings.LineWidthA);
         private float WidthB => CorrectWidth(DecorativeToolSettings.LineWidthB);
@@ -189,7 +189,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var length = Vector3.Distance(positions[0], positions[1]) * (1 + DecorativeToolSettings.LineCatenaryFactor);
             MyRenderProxy.DebugDrawText2D(DebugTextAnchor, $"Length: {length:F2} m", Color.White, 1f);
 
-            
+
             var triangleMsg = MyRenderProxy.PrepareDebugDrawTriangles();
             var color = PackedHsvShift.ToRgb();
             using (PoolManager.Get(out MyModelData modelData))
@@ -234,13 +234,18 @@ namespace Equinox76561198048419394.Core.Mesh
                 return MaxHalfSideSegments;
             return Math.Max(_minHalfSideSegments, (int)Math.Round(Math.PI / 2 / Math.Acos(cos)));
         }
-        
+
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
             base.Init(builder);
             var ob = (MyObjectBuilder_EquiDecorativeLineToolDefinition)builder;
 
-            WidthRange = ob.WidthRange?.Immutable() ?? new ImmutableRange<float>(0.05f, 0.05f);
+            if (ob.WidthRange.HasValue)
+                WidthRange = ob.WidthRange.Value.Immutable();
+            else if (ob.Width.HasValue)
+                WidthRange = new ImmutableRange<float>(ob.Width.Value, ob.Width.Value);
+            else
+                WidthRange = new ImmutableRange<float>(0.05f, 0.05f);
             DefaultWidth = ob.DefaultWidth.HasValue ? WidthRange.Clamp(ob.DefaultWidth.Value) : WidthRange.FromRatio(0.5f);
 
             SegmentsPerMeter = Math.Max(0, ob.SegmentsPerMeter ?? 0);
@@ -320,14 +325,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public MaterialSpec Material;
 
         [XmlElement]
-        public float? Width
-        {
-            set
-            {
-                if (value.HasValue)
-                    WidthRange = new MutableRange<float>(value.Value, value.Value);
-            }
-        }
+        public float? Width;
 
         [XmlElement]
         public float? DefaultWidth;
