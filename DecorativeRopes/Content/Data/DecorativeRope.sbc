@@ -4,14 +4,18 @@
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition" Abstract="true">
         <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base"/>
 
-        <Material>
-            <Parameter Name="Technique">MESH</Parameter>
-            <Parameter Name="ColorMetalTexture">Textures\Miscellaneous\Rope_cm.dds</Parameter>
-            <Parameter Name="NormalGlossTexture">Textures\Miscellaneous\Rope_ng.dds</Parameter>
-            <Parameter Name="AddMapsTexture">Textures\Miscellaneous\Rope_add.dds</Parameter>
-        </Material>
-        <DurabilityBase>1</DurabilityBase>
-        <DurabilityPerMeter>1</DurabilityPerMeter>
+        <Variant Id="">
+            <Name>Default</Name>
+            <UiIcon>Textures/GUI/Icons/buttons/Other.png</UiIcon>
+            <Material>
+                <Parameter Name="Technique">MESH</Parameter>
+                <Parameter Name="ColorMetalTexture">Textures\Miscellaneous\Rope_cm.dds</Parameter>
+                <Parameter Name="NormalGlossTexture">Textures\Miscellaneous\Rope_ng.dds</Parameter>
+                <Parameter Name="AddMapsTexture">Textures\Miscellaneous\Rope_add.dds</Parameter>
+            </Material>
+            <DurabilityBase>1</DurabilityBase>
+            <DurabilityPerMeter>1</DurabilityPerMeter>
+        </Variant>
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition" Abstract="true">
@@ -51,44 +55,15 @@
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition">
         <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small"/>
         <CopyFrom Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base" />
-        <CatenaryFactor>0.05</CatenaryFactor>
-        <Width>0.05</Width>
+        <DefaultWidth>0.05</DefaultWidth>
+        <WidthRange Min="0.05" Max="0.25" />
     </Definition>
 
-    <!-- Large Diameter -->
-    <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
-        <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeRope_Large" />
-        <DisplayName>Large Decorative Rope</DisplayName>
-        <Description>A basic rope used for decoration with a large diameter.</Description>
-        <Icon>Textures\GUI\Icons\cubes\BasicRope.dds</Icon>
-        <Category>Weaving</Category>
-        <Prerequisites>
-            <Item Type="InventoryItem" Subtype="StringLinen" Amount="6" />
-        </Prerequisites>
-        <Results>
-            <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeRope_Large" />
-        </Results>
-        <CraftingTime Seconds="5" />
-    </Definition>
-
-    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
-        <Id Type="HandItem" Subtype="Equi_DecorativeRope_Large"/>
-        <CopyFrom Type="HandItem" Subtype="Equi_DecorativeRope_Base" />
-        <DisplayName>Large Decorative Rope</DisplayName>
-        <Description>A basic rope used for decoration with a large diameter.</Description>
-        <MaxDurability>100</MaxDurability>
-        <StanceToBehavior>
-            <StanceName>NormalMode</StanceName>
-            <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large" />
-        </StanceToBehavior>
-    </Definition>
-
+    <!-- Backwards compatibility for standalone large rope, obsolete now. -->
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition">
         <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Large"/>
         <CopyFrom Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base" />
-        <CatenaryFactor>0.05</CatenaryFactor>
         <Width>0.15</Width>
         <UvTangentPerMeter x="3.5" y="0" />
-        <HalfSideSegments>4</HalfSideSegments>
     </Definition>
 </Definitions>

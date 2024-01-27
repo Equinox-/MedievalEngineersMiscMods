@@ -44,16 +44,20 @@
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeSurfaceToolDefinition">
         <Id Type="EquiDecorativeSurfaceToolDefinition" Subtype="Equi_DecorativeCanvas" />
 
-        <TextureSize x="3" y="3" />
-        <Material>
-            <Parameter Name="Technique">MESH</Parameter>
-            <Parameter Name="ColorMetalTexture">Textures\Models\Cubes\ClothFlag_cm.dds</Parameter>
-            <Parameter Name="NormalGlossTexture">Textures\Models\Cubes\ClothFlag_ng.dds</Parameter>
-            <Parameter Name="AddMapsTexture">Textures\PaintTools\Wood\Universal_add.dds</Parameter>
-            <Parameter Name="Flags">HUE_KEYCOLOR</Parameter>
-        </Material>
+        <Variant Id="">
+            <Name>Default</Name>
+            <UiIcon>Textures/GUI/Icons/buttons/Other.png</UiIcon>
+            <Material>
+                <Parameter Name="Technique">MESH</Parameter>
+                <Parameter Name="ColorMetalTexture">Textures\Models\Cubes\ClothFlag_cm.dds</Parameter>
+                <Parameter Name="NormalGlossTexture">Textures\Models\Cubes\ClothFlag_ng.dds</Parameter>
+                <Parameter Name="AddMapsTexture">Textures\PaintTools\Wood\Universal_add.dds</Parameter>
+                <Parameter Name="Flags">HUE_KEYCOLOR</Parameter>
+            </Material>
+            <TextureSize x="3" y="3" />
+            <DurabilityBase>1</DurabilityBase>
+            <DurabilityPerSquareMeter>1</DurabilityPerSquareMeter>
+        </Variant>
         <AllowRecoloring>true</AllowRecoloring>
-        <DurabilityBase>1</DurabilityBase>
-        <DurabilityPerSquareMeter>1</DurabilityPerSquareMeter>
     </Definition>
 </Definitions>

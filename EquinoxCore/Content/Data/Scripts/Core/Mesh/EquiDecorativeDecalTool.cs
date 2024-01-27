@@ -341,9 +341,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 Owner = owner;
                 Id = id;
-                Name = ob.Name;
-                if (string.IsNullOrEmpty(ob.Name))
-                    Name = EquiDecorativeMaterialController.NameFromId(id);
+                Name = ob.Name ?? EquiDecorativeMaterialController.NameFromId(id);
                 if (ob.UiIcons != null && ob.UiIcons.Length > 0)
                     UiIcons = ob.UiIcons;
                 else if (ob.Material.Icons != null && ob.Material.Icons.Count > 0)
