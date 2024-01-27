@@ -1049,10 +1049,14 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlAttribute("CF")]
             public float CatenaryFactor;
 
+            [Nullable]
             private float? _wa;
+
+            [Nullable]
             private float? _wb;
 
             [XmlAttribute("AW")]
+            [NoSerialize]
             public float WidthA
             {
                 get => _wa ?? -1;
@@ -1060,6 +1064,7 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             [XmlAttribute("BW")]
+            [NoSerialize]
             public float WidthB
             {
                 get => _wb ?? -1;
@@ -1089,6 +1094,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public SerializableDefinitionId Definition;
 
             [XmlElement("MaterialId")]
+            [Nullable]
             public string MaterialId;
 
             [XmlElement("Line")]
@@ -1153,6 +1159,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
 
             [XmlIgnore]
+            [Nullable]
             public float? UvScaleRaw;
 
             [XmlAttribute("S")]
@@ -1178,12 +1185,15 @@ namespace Equinox76561198048419394.Core.Mesh
             public SerializableDefinitionId Definition;
 
             [XmlElement("MaterialId")]
+            [Nullable]
             public string MaterialId;
 
             [XmlElement("UvProjection")]
+            [Nullable]
             public UvProjectionMode? UvProjection;
 
             [XmlElement("UvBias")]
+            [Nullable]
             public UvBiasMode? UvBias;
 
             [XmlElement("Surf")]
@@ -1245,6 +1255,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public SerializableDefinitionId Definition;
 
             [XmlElement("DecalId")]
+            [Nullable]
             public string DecalId;
 
             [XmlElement("Decal")]
