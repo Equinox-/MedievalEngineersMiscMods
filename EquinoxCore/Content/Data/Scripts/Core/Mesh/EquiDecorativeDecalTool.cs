@@ -384,63 +384,65 @@ namespace Equinox76561198048419394.Core.Mesh
             if (ob.Decals == null) return;
             var dict = new Dictionary<MyStringHash, DecalDef>();
             // Item decals
-            foreach (var itemDecal in ob.ItemDecals)
-            {
-                void Create(MyInventoryItemDefinition item)
+            if (ob.ItemDecals != null)
+                foreach (var itemDecal in ob.ItemDecals)
                 {
-                    if (item?.Icons == null || item.Icons.Length == 0) return;
-                    var decal = new MyObjectBuilder_EquiDecorativeDecalToolDefinition.DecalDef
+                    void Create(MyInventoryItemDefinition item)
                     {
-                        Id = item.Id.SubtypeName,
-                        Name = item.DisplayNameText,
-                        Material = new MaterialSpec
+                        if (item?.Icons == null || item.Icons.Length == 0) return;
+                        var decal = new MyObjectBuilder_EquiDecorativeDecalToolDefinition.DecalDef
                         {
-                            Parameters = itemDecal.Material?.Parameters ?? ItemDecalParameters,
-                            IconResolution = itemDecal.Material?.IconResolution,
-                            Icons = new List<string>(item.Icons)
-                        },
-                        DurabilityBase = itemDecal.DurabilityBase,
-                        DurabilityPerSquareMeter = itemDecal.DurabilityPerSquareMeter,
-                    };
-                    if (itemDecal.Material?.Icons != null)
-                        decal.Material.Icons.AddRange(itemDecal.Material.Icons);
+                            Id = item.Id.SubtypeName,
+                            Name = item.DisplayNameText,
+                            Material = new MaterialSpec
+                            {
+                                Parameters = itemDecal.Material?.Parameters ?? ItemDecalParameters,
+                                IconResolution = itemDecal.Material?.IconResolution,
+                                Icons = new List<string>(item.Icons)
+                            },
+                            DurabilityBase = itemDecal.DurabilityBase,
+                            DurabilityPerSquareMeter = itemDecal.DurabilityPerSquareMeter,
+                        };
+                        if (itemDecal.Material?.Icons != null)
+                            decal.Material.Icons.AddRange(itemDecal.Material.Icons);
+                        var id = MyStringHash.GetOrCompute(decal.Id);
+                        dict[id] = new DecalDef(this, id, decal);
+                    }
+
+                    void CreateMany(IEnumerable<MyInventoryItemDefinition> items, bool includeHidden = false)
+                    {
+                        foreach (var item in items)
+                            if ((includeHidden || item.Public) && item.Enabled)
+                                Create(item);
+                    }
+
+                    if (itemDecal.All)
+                        CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>());
+                    if (itemDecal.AllWithoutSchematics)
+                        CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>().Where(x => !(x is MySchematicItemDefinition)));
+
+                    if (itemDecal.ItemSubtypes != null)
+                        foreach (var subtype in itemDecal.ItemSubtypes)
+                            Create(MyDefinitionManager.Get<MyInventoryItemDefinition>(subtype));
+                    if (itemDecal.Tags != null)
+                        foreach (var tag in itemDecal.Tags)
+                            if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
+                                CreateMany(tagDef.Items);
+                    if (itemDecal.TagsNonPublic != null)
+                        foreach (var tag in itemDecal.TagsNonPublic)
+                            if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
+                                CreateMany(tagDef.Items, true);
+                }
+
+            // Custom decals
+            if (ob.Decals != null)
+                foreach (var decal in ob.Decals)
+                {
+                    if (string.IsNullOrEmpty(decal.Id) || decal.Material == null)
+                        continue;
                     var id = MyStringHash.GetOrCompute(decal.Id);
                     dict[id] = new DecalDef(this, id, decal);
                 }
-
-                void CreateMany(IEnumerable<MyInventoryItemDefinition> items, bool includeHidden = false)
-                {
-                    foreach (var item in items)
-                        if ((includeHidden || item.Public) && item.Enabled)
-                            Create(item);
-                }
-
-                if (itemDecal.All)
-                    CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>());
-                if (itemDecal.AllWithoutSchematics)
-                    CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>().Where(x => !(x is MySchematicItemDefinition)));
-
-                if (itemDecal.ItemSubtypes != null)
-                    foreach (var subtype in itemDecal.ItemSubtypes)
-                        Create(MyDefinitionManager.Get<MyInventoryItemDefinition>(subtype));
-                if (itemDecal.Tags != null)
-                    foreach (var tag in itemDecal.Tags)
-                        if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
-                            CreateMany(tagDef.Items);
-                if (itemDecal.TagsNonPublic != null)
-                    foreach (var tag in itemDecal.TagsNonPublic)
-                        if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
-                            CreateMany(tagDef.Items, true);
-            }
-
-            // Custom decals
-            foreach (var decal in ob.Decals)
-            {
-                if (string.IsNullOrEmpty(decal.Id) || decal.Material == null)
-                    continue;
-                var id = MyStringHash.GetOrCompute(decal.Id);
-                dict[id] = new DecalDef(this, id, decal);
-            }
 
             Decals = dict;
             SortedDecals = dict.Values.OrderBy(x => x.Name).ToList();
