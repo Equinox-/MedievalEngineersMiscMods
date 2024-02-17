@@ -754,6 +754,9 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             if (!MyMultiplayerModApi.Static.IsServer) return;
             var key = new FeatureKey(args.A, args.B, BlockAndAnchor.Null, BlockAndAnchor.Null);
+            // Sorting re-ordered the keys, so reorder the widths too.
+            if (!args.A.Equals(key.A))
+                MyUtils.Swap(ref args.WidthA, ref args.WidthB);
             var rpcArgs = new FeatureArgs
             {
                 MaterialId = def.Id,

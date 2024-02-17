@@ -6,6 +6,7 @@ using Equinox76561198048419394.Core.Util;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
+using VRage.Components.Entity.Camera;
 using VRage.Components.Entity.CubeGrid;
 using VRage.Entities.Gravity;
 using VRage.Entity.Block;
@@ -23,7 +24,7 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     [MyComponent(typeof(MyObjectBuilder_EquiDynamicMeshComponent), AllowAutomaticCreation = true)]
     [MyDependency(typeof(MyRenderComponentGrid), Critical = true)]
-    public class EquiDynamicMeshComponent : MyEntityComponent
+    public class EquiDynamicMeshComponent : MyEntityComponent, IComponentDebugDraw
     {
 #pragma warning disable CS0649
         [Automatic]
@@ -31,7 +32,7 @@ namespace Equinox76561198048419394.Core.Mesh
 #pragma warning restore CS0649
 
         public const ulong NullId = 0;
-        private const float CellSize = 32;
+        private const float CellSize = 8;
         private bool _scheduled;
         private readonly HashSet<CellKey> _dirtyCells = new HashSet<CellKey>();
         private readonly Dictionary<CellKey, RenderCell> _renderCells = new Dictionary<CellKey, RenderCell>();
@@ -210,7 +211,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 cell.MaterialToObject.Remove(triangleData.Material, obj);
                 cell.Surfaces.Remove(obj);
-            } 
+            }
 
             MarkCellDirty(cellKey);
             return true;
@@ -241,6 +242,10 @@ namespace Equinox76561198048419394.Core.Mesh
             private string _modelName;
             private uint _meshGeneration;
             private uint _renderObject = MyRenderProxy.RENDER_ID_UNASSIGNED;
+
+            public BoundingBox LocalBounds;
+            public int Triangles;
+            public int Materials;
 
             public RenderCell(EquiDynamicMeshComponent owner, CellKey key)
             {
@@ -289,6 +294,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                 pt3.Position -= origin;
                                 surface.Pt3 = pt3;
                             }
+
                             EquiMeshHelpers.BuildSurface(in surface, mesh);
                         }
 
@@ -308,8 +314,14 @@ namespace Equinox76561198048419394.Core.Mesh
                         MaterialName = mtl.MaterialName,
                     });
                 }
+
                 for (var i = 0; i < mesh.Positions.Count; i++)
                     mesh.AABB.Include(mesh.Positions[i]);
+
+                LocalBounds = mesh.AABB;
+                LocalBounds = LocalBounds.Translate(Origin);
+                Triangles = mesh.Indices.Count / 3;
+                Materials = mesh.Sections.Count;
             }
 
             internal void RemoveRenderObject()
@@ -323,6 +335,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 RemoveRenderObject();
                 if (MaterialToObject.KeyCount == 0)
                 {
+                    Materials = 0;
+                    Triangles = 0;
                     return true;
                 }
 
@@ -343,6 +357,7 @@ namespace Equinox76561198048419394.Core.Mesh
 // #endif
                     return false;
                 }
+
                 MyRenderProxy.AddRuntimeModel(model.Name, model);
                 _renderObject = MyRenderProxy.CreateRenderEntity(_modelName, _modelName,
                     MatrixD.CreateTranslation(Origin), MyMeshDrawTechnique.MESH,
@@ -352,7 +367,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     Vector3.One,
                     depthBias: 255
                 );
-                MyRenderProxy.UpdateRenderEntity(_renderObject, null, (Vector3) _key.Color);
+                MyRenderProxy.UpdateRenderEntity(_renderObject, null, (Vector3)_key.Color);
                 return false;
             }
 
@@ -361,6 +376,65 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (_renderObject == MyRenderProxy.RENDER_ID_UNASSIGNED) return;
                 MyRenderProxy.SetParentCullObject(_renderObject, parent, Matrix.CreateTranslation(Origin));
             }
+        }
+
+        public void DebugDraw()
+        {
+            if (_renderCells.Count == 0)
+                return;
+            var cam = MyCameraComponent.ActiveCamera;
+            var center = Entity.PositionComp.WorldAABB.Center;
+            if (!cam.GetCameraFrustum().Intersects(new BoundingBoxD(center - 1, center + 1)))
+                return;
+
+            var localFrustum = new BoundingFrustum(Entity.WorldMatrix * cam.GetViewProjMatrix());
+
+            var renderables = default(DebugCount);
+            var materials = default(DebugCount);
+            var triangles = default(DebugCount);
+
+            var surfaces = default(DebugCount);
+            var lines = default(DebugCount);
+            var decals = default(DebugCount);
+
+
+            foreach (var cell in _renderCells.Values)
+            {
+                if (cell.Triangles == 0 || cell.Materials == 0) continue;
+                var visible = localFrustum.Intersects(cell.LocalBounds);
+
+                renderables.Add(1, visible);
+                materials.Add(cell.Materials, visible);
+                triangles.Add(cell.Triangles, visible);
+
+                surfaces.Add(cell.Surfaces.Count, visible);
+                lines.Add(cell.Lines.Count, visible);
+                decals.Add(cell.Decals.Count, visible);
+            }
+
+            if (renderables.Total == 0)
+                return;
+
+            MyRenderProxy.DebugDrawText3D(
+                center,
+                $"T: {triangles}\nR: {renderables}\nM: {materials}\nS: {surfaces}\nL: {lines}\nD: {decals}",
+                Color.Cyan,
+                0.5f);
+        }
+
+        private struct DebugCount
+        {
+            public int Visible;
+            public int Total;
+
+            public void Add(int count, bool visible)
+            {
+                Total += count;
+                if (visible)
+                    Visible += count;
+            }
+
+            public override string ToString() => $"{Visible}/{Total}";
         }
     }
 

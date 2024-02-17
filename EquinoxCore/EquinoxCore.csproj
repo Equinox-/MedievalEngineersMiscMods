@@ -52,6 +52,7 @@
     <Compile Include="Content\Data\Scripts\Core\Controller\IndexedAnimationController.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\PlayerAttachmentSlotContext.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\SerializableControlledId.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Debug\EquiCoreDebugDraw.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiDebugDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\GuiScreenDebugMods.cs" />

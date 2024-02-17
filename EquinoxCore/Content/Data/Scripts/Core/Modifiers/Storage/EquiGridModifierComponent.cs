@@ -11,6 +11,7 @@ using VRage.Collections;
 using VRage.Components;
 using VRage.Components.Block;
 using VRage.Components.Entity;
+using VRage.Components.Entity.Camera;
 using VRage.Components.Entity.CubeGrid;
 using VRage.Definitions.Components;
 using VRage.Entity.Block;
@@ -25,6 +26,7 @@ using VRage.ObjectBuilders;
 using VRage.Serialization;
 using VRage.Utils;
 using VRageMath;
+using VRageRender;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
@@ -36,7 +38,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
     // Forward dependency on the physics shape to avoid creating the physics shape before all the models get changed by modifiers.
     [MyForwardDependency(typeof(MyGridPhysicsShapeComponent), Critical = false)]
     public class EquiGridModifierComponent : EquiModifierStorageComponent<EquiGridModifierComponent.BlockModifierKey,
-        MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
+        MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>, IComponentDebugDraw
     {
         public readonly struct BlockModifierKey : IEquatable<BlockModifierKey>, IModifierRtKey<MyObjectBuilder_EquiGridModifierComponent.BlockModifierKey>
         {
@@ -413,6 +415,20 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             if (attachmentPoint == MyStringHash.NullOrEmpty)
                 return;
             ApplyModifiers(new BlockModifierKey(blockId.Value, attachmentPoint));
+        }
+
+        public void DebugDraw()
+        {
+            var cam = MyCameraComponent.ActiveCamera;
+            var center = Entity.PositionComp.WorldAABB.Center;
+            if (!cam.GetCameraFrustum().Intersects(new BoundingBoxD(center - 1, center + 1)))
+                return;
+
+            MyRenderProxy.DebugDrawText3D(
+                center,
+                $"M: {Modifiers.Count}\nMD: {ModifierData.Count}",
+                Color.Cyan,
+                0.5f);
         }
     }
 
