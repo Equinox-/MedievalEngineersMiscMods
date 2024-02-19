@@ -1,30 +1,25 @@
 using System;
-using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Medieval.GUI.ContextMenu;
 using Sandbox.Engine.Physics;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
-using Sandbox.Game.Entities.Planet;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Components;
-using VRage.Components.Entity.Camera;
 using VRage.Components.Session;
 using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Entity;
 using VRage.Game.ObjectBuilders.ComponentSystem;
-using VRage.Library.Collections;
 using VRage.Library.Utils;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Session;
 using VRage.Utils;
-using VRage.Voxels;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Controller
@@ -43,7 +38,10 @@ namespace Equinox76561198048419394.Core.Controller
         private MyContextMenu _openMenu;
 
         [Automatic]
-        private readonly MyCharacterMovementComponent _characterMovement;
+        private readonly MyCharacterMovementComponent _characterMovement = null;
+
+        [Automatic]
+        private readonly MyAnimationControllerComponent _animation = null;
 
         public int AnimationId => _saveData.AnimationId;
 
@@ -121,8 +119,7 @@ namespace Equinox76561198048419394.Core.Controller
             if (!adata.HasValue)
                 return;
             this.GetLogger().Debug($"Delayed animation start for {adata.Value.Start}");
-            var animController = Entity.Components.Get<MyAnimationControllerComponent>();
-            animController?.Controller?.TriggerAction(adata.Value.Start);
+            _animation?.Controller?.TriggerAction(adata.Value.Start);
         }
 
         internal void ChangeSlotInternal(EquiPlayerAttachmentComponent.Slot slot, float randSeed, bool andConfigure)
@@ -150,11 +147,7 @@ namespace Equinox76561198048419394.Core.Controller
                 newAnimData = slot?.Definition.SelectAnimation(Entity.DefinitionId ?? default(MyDefinitionId), randSeed, out _saveData.AnimationId);
 
             // Handles animation controller switching
-            var animController = Entity.Components.Get<MyAnimationControllerComponent>();
-            if (animController != null)
-            {
-                PerformAnimationTransition(animController, oldAnimData, newAnimData);
-            }
+            PerformAnimationTransition(oldAnimData, newAnimData);
 
             // Handle restoring character's position
             if (slot == null && old?.Controllable?.Entity != null && old.Controllable.Entity.InScene)
@@ -262,22 +255,25 @@ namespace Equinox76561198048419394.Core.Controller
                 OpenConfiguration();
         }
 
-        private void PerformAnimationTransition(MyAnimationControllerComponent controller,
+        private void PerformAnimationTransition(
             EquiPlayerAttachmentComponentDefinition.AnimationDesc? from,
             EquiPlayerAttachmentComponentDefinition.AnimationDesc? to)
         {
-            if (from.HasValue && to.HasValue && _tracker.TryGetAnimationControllerIndex(controller, out var index)
+            if (_animation == null)
+                return;
+
+            if (from.HasValue && to.HasValue && _tracker.TryGetAnimationControllerIndex(_animation, out var index)
                 && index.HasDirectTransition(from.Value.Start, to.Value.Start))
             {
                 this.GetLogger().Debug($"Using direct transition from {from.Value.Start} to {to.Value.Start}");
-                controller.Controller?.TriggerAction(to.Value.Start);
+                _animation.Controller?.TriggerAction(to.Value.Start);
                 return;
             }
 
             if (from.HasValue)
             {
                 this.GetLogger().Debug($"Stopping animation for {from.Value.Start} using {from.Value.Stop}");
-                controller.Controller?.TriggerAction(from.Value.Stop);
+                _animation.Controller?.TriggerAction(from.Value.Stop);
             }
 
             if (to.HasValue)
@@ -454,9 +450,7 @@ namespace Equinox76561198048419394.Core.Controller
             var newAnimData = controlled.Definition.ByIndex(nextPose);
             this.GetLogger().Debug($"Updating pose to {nextPose}.  (From {oldAnimData?.Stop} to {newAnimData?.Start})");
             _saveData.AnimationId = nextPose;
-            var animController = Entity.Components.Get<MyAnimationControllerComponent>();
-            if (animController != null)
-                PerformAnimationTransition(animController, oldAnimData, newAnimData);
+            PerformAnimationTransition(oldAnimData, newAnimData);
             return true;
         }
 

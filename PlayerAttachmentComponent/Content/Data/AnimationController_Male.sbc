@@ -12,6 +12,13 @@
         <BoneMask>FirstCameraDummy HeadDummy LHand ME_main_root ME_RigAprone_L_01 ME_RigAprone_L_02 ME_RigAprone_L_03 ME_RigAprone_M_01 ME_RigAprone_M_02 ME_RigAprone_M_03 ME_RigAprone_R_01 ME_RigAprone_R_02 ME_RigAprone_R_03 ME_RigBag_bone ME_RigL_Cap_bone_1 ME_RigL_Cap_bone_2 ME_RigL_Index_1 ME_RigL_Index_2 ME_RigL_Index_3 ME_RigL_Little_1 ME_RigL_Little_2 ME_RigL_Little_3 ME_RigL_Middle_1 ME_RigL_Middle_2 ME_RigL_Middle_3 ME_RigL_Ring_1 ME_RigL_Ring_2 ME_RigL_Ring_3 ME_RigL_Thumb_1 ME_RigL_Thumb_2 ME_RigL_Thumb_3 ME_RigL_Weapon_pin ME_RigLCalf ME_RigLCollarbone ME_RigLFoot ME_RigLForearm1 ME_RigLForearm2 ME_RigLForearm3 ME_RigLPalm ME_RigLR_Foot_tip1 ME_RigLThigh ME_RigLUpperarm1 ME_RigLUpperarm2 ME_RigNeck1 ME_RigNeck2 ME_RigNose_L ME_RigNose_R ME_RigPelvis ME_RigR_Index_1 ME_RigR_Index_2 ME_RigR_Index_3 ME_RigR_Little_1 ME_RigR_Little_2 ME_RigR_Little_3 ME_RigR_Middle_1 ME_RigR_Middle_2 ME_RigR_Middle_3 ME_RigR_Ring_1 ME_RigR_Ring_2 ME_RigR_Ring_3 ME_RigR_Thumb_1 ME_RigR_Thumb_2 ME_RigR_Thumb_3 ME_RigR_Weapon_pin ME_RigRCalf ME_RigRCollarbone ME_RigRFoot ME_RigRForearm1 ME_RigRForearm2 ME_RigRForearm3 ME_RigRibcage ME_RigRibcageBone001 ME_RigRPalm ME_RigRR_Foot_tip1 ME_RigRThigh ME_RigRUpperarm1 ME_RigRUpperarm2 ME_RigSpine1 ME_RigSpine2 ME_RigSpine3 ME_RigSpine4 ME_RigSpine5 RootNode ThirdCameraDummy ToolOffset WeaponDummy HeadDummy</BoneMask>
       </Layer>
       <Layer>
+        <Name>EquiWeaponPin</Name>
+        <Mode>Replace</Mode>
+        <StateMachine>EquiSMWeaponPin</StateMachine>
+        <InitialSMNode>Nothing</InitialSMNode>
+        <BoneMask>WeaponDummy</BoneMask>
+      </Layer>
+      <Layer>
         <Name>EquiIKLeftArm</Name>
         <Mode>Replace</Mode>
         <StateMachine>IKLeftArm</StateMachine>
@@ -419,6 +426,94 @@
             <Curve>Smooth</Curve>
           </Transition>
           <Transition Name="equi_attach_end" From="LayStandard" To="Nothing" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+        </Transitions>
+      </StateMachine>
+
+      <StateMachine>
+        <Name>EquiSMWeaponPin</Name>
+        <Nodes>
+          <Node>
+            <Name>Nothing</Name>
+            <EdPos>
+              <X>896</X>
+              <Y>188</Y>
+            </EdPos>
+            <Type>AnyExceptTarget</Type>
+          </Node>
+          <Node>
+            <Name>Seated</Name>
+            <AnimationTree>
+              <EdPos>
+                <X>-678</X>
+                <Y>6</Y>
+              </EdPos>
+              <Child xsi:type="MyObjectBuilder_AnimationTreeNodeIkTarget">
+                <EdPos>
+                  <X>347</X>
+                  <Y>296</Y>
+                </EdPos>
+                <BoneChain>
+                  <Bone>WeaponDummy</Bone>
+                </BoneChain>
+                <TargetBoneName />
+                <TargetPoint>#fpsweapon_WeaponDummy</TargetPoint>
+                <SolverSettings>
+                  <AllowStretching>false</AllowStretching>
+                  <MaxIterationCount>15</MaxIterationCount>
+                </SolverSettings>
+              </Child>
+            </AnimationTree>
+            <EdPos>
+              <X>-174</X>
+              <Y>-88</Y>
+            </EdPos>
+            <Type>Normal</Type>
+          </Node>
+        </Nodes>
+        <Transitions>
+          <!-- Sitting -->
+          <Transition Name="equi_sit_standard" From="Nothing" To="Seated" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_anklecross" From="Nothing" To="Seated" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_flat" From="Nothing" To="Seated" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_sit_feetup_low" From="Nothing" To="Seated" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_floorsit_crossed" From="Nothing" To="Seated" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+
+          <!-- Sleeping -->
+          <Transition Name="equi_lay_side_left" From="Nothing" To="Nothing" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+          <Transition Name="equi_lay_standard" From="Nothing" To="Nothing" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+
+          <!-- Standing -->
+          <Transition Name="equi_stand_idle1" From="Nothing" To="Nothing" TimeInSec="0" Sync="Restart">
+            <Priority xsi:nil="true" />
+            <Curve>Smooth</Curve>
+          </Transition>
+
+          <!-- End -->
+          <Transition Name="equi_attach_end" From="Seated" To="Nothing" TimeInSec="0" Sync="Restart">
             <Priority xsi:nil="true" />
             <Curve>Smooth</Curve>
           </Transition>
