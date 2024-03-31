@@ -167,40 +167,10 @@ namespace Equinox76561198048419394.Core.Controller
                 var originalHalfExtents = Entity.PositionComp.LocalAABB.HalfExtents;
                 var halfExtents = new Vector3(originalHalfExtents.X * 0.8f, originalHalfExtents.Y, originalHalfExtents.Z * 0.8f);
 
-                const int maxUpwardShifts = 4;
-                var shiftDistance = 0f;
-                for (var i = 0; i <= maxUpwardShifts; i++)
-                {
-                    shiftDistance = (float)Math.Pow(i, 1.5f);
-                    var outPosCenter = outPos.Translation + transformedCenter - gravity * shiftDistance;
-                    if (i < maxUpwardShifts)
-                    {
-                        var translate = FindFreePlaceUtil.FindFreePlaceImproved(outPosCenter, orientation, halfExtents, -gravity);
-                        if (!translate.HasValue) continue;
-                        outPos.Translation = translate.Value - transformedCenter;
-                        break;
-                    }
-                    else
-                    {
-                        var translate = MyEntities.FindFreePlace(outPosCenter, orientation, halfExtents,
-                            1000, 50, 0.1f,
-                            /* on the last try push to the surface */ true);
-                        if (translate.HasValue)
-                            outPos.Translation = translate.Value - transformedCenter;
-                        else
-                            outPos.Translation = old.AttachMatrix.Translation;
-                        break;
-                    }
-                }
+                outPos.Translation = FindFreePlaceUtil.FindFreePlaceImprovedShiftingAndFixup(
+                    outPos.Translation + transformedCenter, orientation,
+                    halfExtents, originalHalfExtents, gravity) - transformedCenter;
 
-                // Final clean up with minor shift to get out of overlapping any surfaces
-                var finalShift = MyEntities.FindFreePlace(outPos.Translation + transformedCenter, orientation,
-                    originalHalfExtents * 1.05f, 250, 50, 0.025f, false);
-                if (finalShift.HasValue)
-                    outPos.Translation = finalShift.Value - transformedCenter;
-
-                if (MyAPIGateway.Physics != null && MyAPIGateway.Physics.CastRay(outPos.Translation - gravity, outPos.Translation + (1 + shiftDistance) * gravity, out var hit))
-                    outPos.Translation = hit.Position;
                 Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
 
                 // Give the player 5 seconds of health immunity when they leave a chair to prevent collisions from killing them if we couldn't

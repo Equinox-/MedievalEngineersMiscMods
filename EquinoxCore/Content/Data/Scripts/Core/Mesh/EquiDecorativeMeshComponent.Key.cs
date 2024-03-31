@@ -69,13 +69,17 @@ namespace Equinox76561198048419394.Core.Mesh
             public override int GetHashCode() => (Block.GetHashCode() * 397) ^ PackedAnchor.GetHashCode();
         }
 
+        private enum FeatureType
+        {
+            Decal,
+            Line,
+            Surface,
+        }
+
         private readonly struct FeatureKey : IEquatable<FeatureKey>
         {
+            public readonly FeatureType Type;
             public readonly BlockAndAnchor A, B, C, D;
-
-            public bool IsDecal => B.IsNull;
-            
-            public bool IsLine => !B.IsNull && C.IsNull;
 
             private struct BlockAndAnchorSorter : BubbleSort.IBubbleSorter<BlockAndAnchor>
             {
@@ -87,22 +91,24 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
             }
 
-            public FeatureKey(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
+            public FeatureKey(FeatureType? type, BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
             {
                 BubbleSort.Sort(ref a, ref b, ref c, ref d, default(BlockAndAnchorSorter));
                 A = a;
                 B = b;
                 C = c;
                 D = d;
+                Type = type ?? (B.IsNull ? FeatureType.Decal : C.IsNull ? FeatureType.Line : FeatureType.Surface);
             }
 
-            public bool Equals(FeatureKey other) => A.Equals(other.A) && B.Equals(other.B) && C.Equals(other.C) && D.Equals(other.D);
+            public bool Equals(FeatureKey other) => Type.Equals(other.Type) && A.Equals(other.A) && B.Equals(other.B) && C.Equals(other.C) && D.Equals(other.D);
 
             public override bool Equals(object obj) => obj is FeatureKey other && Equals(other);
 
             public override int GetHashCode()
             {
-                var hashCode = A.GetHashCode();
+                var hashCode = Type.GetHashCode();
+                hashCode = (hashCode * 397) ^ A.GetHashCode();
                 hashCode = (hashCode * 397) ^ B.GetHashCode();
                 hashCode = (hashCode * 397) ^ C.GetHashCode();
                 hashCode = (hashCode * 397) ^ D.GetHashCode();
@@ -131,18 +137,20 @@ namespace Equinox76561198048419394.Core.Mesh
         private struct RpcFeatureKey
         {
             // ReSharper disable MemberCanBePrivate.Local
+            public FeatureType Type;
             public RpcBlockAndAnchor A, B, C, D;
             // ReSharper restore MemberCanBePrivate.Local
 
             public static implicit operator RpcFeatureKey(in FeatureKey other) => new RpcFeatureKey
             {
+                Type = other.Type,
                 A = other.A,
                 B = other.B,
                 C = other.C,
                 D = other.D
             };
 
-            public static implicit operator FeatureKey(in RpcFeatureKey other) => new FeatureKey(other.A, other.B, other.C, other.D);
+            public static implicit operator FeatureKey(in RpcFeatureKey other) => new FeatureKey(other.Type, other.A, other.B, other.C, other.D);
         }
     }
 }

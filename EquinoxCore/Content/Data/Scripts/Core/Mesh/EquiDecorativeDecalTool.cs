@@ -348,7 +348,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     UiIcons = ob.Material.Icons.ToArray();
                 else
                 {
-                    Log.Warning($"Decal {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the decal.");
+                    // Log.Warning($"Decal {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the decal.");
                     UiIcons = null;
                 }
 

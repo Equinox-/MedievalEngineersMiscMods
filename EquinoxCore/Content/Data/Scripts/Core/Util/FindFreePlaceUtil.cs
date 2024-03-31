@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
+using Sandbox.ModAPI;
 using VRage.Components.Session;
-using VRage.Entities.Gravity;
 using VRage.Game.Entity;
 using VRage.Library.Collections;
 using VRage.Utils;
@@ -13,9 +14,72 @@ namespace Equinox76561198048419394.Core.Util
 {
     public static class FindFreePlaceUtil
     {
-        public static Vector3D? FindFreePlaceImproved(Vector3D pos, Quaternion orientation, Vector3 halfExtents, Vector3? onlyInHemisphere = null)
+        public static Vector3D FindFreePlaceImprovedShiftingAndFixup(
+            Vector3D pos,
+            Quaternion orientation,
+            Vector3 halfExtentsForSearch,
+            Vector3 halfExtentsForFix,
+            Vector3 gravityDir,
+            Predicate<Vector3D> extraTest = null,
+            float maxUpwardShift = 8)
         {
-            if (IsFreePlace(pos, orientation, halfExtents))
+            // Search for rough place.
+            var place = FindFreePlaceImprovedShifting(pos, orientation, halfExtentsForSearch, gravityDir, extraTest, maxUpwardShift) ?? pos;
+
+            // Clean up with minor shift to get out of overlapping any surfaces
+            var cleanupCandidate = MyEntities.FindFreePlace(
+                place, orientation,
+                halfExtentsForFix * 1.05f, 250, 50, 0.025f, false);
+            var cleanedPosition = cleanupCandidate != null && (extraTest == null || extraTest(cleanupCandidate.Value))
+                ? cleanupCandidate.Value
+                : place;
+
+            // Drop down onto the ground.
+            var projectedHalfExtent = gravityDir * (1 + Math.Abs(Vector3.Dot(gravityDir, halfExtentsForFix)));
+            var rayStart = cleanedPosition + projectedHalfExtent;
+            if (MyAPIGateway.Physics != null 
+                && MyAPIGateway.Physics.CastRay(rayStart, rayStart + 2 * gravityDir, out var hit)
+                && (extraTest == null || extraTest(hit.Position - projectedHalfExtent)))
+                return hit.Position - projectedHalfExtent;
+
+            return cleanedPosition;
+        }
+
+        public static Vector3D? FindFreePlaceImprovedShifting(
+            Vector3D pos, Quaternion orientation, Vector3 halfExtents, Vector3 gravityDir,
+            Predicate<Vector3D> extraTest = null,
+            float maxUpwardShift = 8)
+        {
+            const int shiftAttempts = 4;
+            const float shiftExponent = 1.5f;
+            var shiftScale = maxUpwardShift / (float)Math.Pow(shiftAttempts, shiftExponent);
+            for (var i = 0; i <= shiftAttempts; i++)
+            {
+                var shiftDistance = shiftScale * (float)Math.Pow(i, shiftExponent);
+                var outPosCenter = pos - gravityDir * shiftDistance;
+                if (i < shiftAttempts)
+                {
+                    var translate = FindFreePlaceImproved(outPosCenter, orientation, halfExtents, -gravityDir, extraTest);
+                    if (!translate.HasValue) continue;
+                    return translate.Value;
+                }
+                else
+                {
+                    var translate = MyEntities.FindFreePlace(outPosCenter, orientation, halfExtents,
+                        1000, 50, 0.1f,
+                        /* on the last try push to the surface */ true);
+                    if (translate.HasValue)
+                        return translate.Value;
+                }
+            }
+
+            return null;
+        }
+
+        public static Vector3D? FindFreePlaceImproved(Vector3D pos, Quaternion orientation, Vector3 halfExtents,
+            Vector3? onlyInHemisphere = null, Predicate<Vector3D> extraTest = null)
+        {
+            if (IsFreePlace(pos, orientation, halfExtents) && (extraTest == null || extraTest(pos)))
                 return pos;
             var distanceStepSize = halfExtents.Length() / 10f;
             for (var distanceStep = 1; distanceStep <= 20; distanceStep++)
@@ -27,7 +91,7 @@ namespace Equinox76561198048419394.Core.Util
                     if (onlyInHemisphere.HasValue && dir.Dot(onlyInHemisphere.Value) < 0)
                         dir = -dir;
                     var testPos = pos + dir * distance;
-                    if (IsFreePlace(testPos, orientation, halfExtents))
+                    if (IsFreePlace(testPos, orientation, halfExtents) && (extraTest == null || extraTest(testPos)))
                     {
                         var planet = MyPlanets.GetPlanets()[0];
                         var centerVoxData = planet.WorldPositionToStorage(testPos);

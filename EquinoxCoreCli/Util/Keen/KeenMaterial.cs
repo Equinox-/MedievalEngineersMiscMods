@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Equinox76561198048419394.Core.ModelGenerator;
 using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.Cli.Util.Keen

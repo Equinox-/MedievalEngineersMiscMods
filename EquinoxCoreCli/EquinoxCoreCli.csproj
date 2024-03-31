@@ -49,6 +49,7 @@
         <Compile Include="Def\DefinitionObLoader.cs" />
         <Compile Include="Def\DefinitionObSet.cs" />
         <Compile Include="Def\DefinitionWriter.cs" />
+        <Compile Include="Gltf\GltfCli.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="ProgramBootstrapped.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />

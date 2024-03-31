@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using CommandLine;
 using Equinox76561198048419394.Core.Cli.BlockVariant;
+using Equinox76561198048419394.Core.Cli.Gltf;
 using Equinox76561198048419394.Core.Cli.Tree;
 using Equinox76561198048419394.Core.Cli.Util;
 
@@ -13,7 +14,7 @@ namespace Equinox76561198048419394.Core.Cli
     {
         public static int Main(string[] args)
         {
-            var result = Parser.Default.ParseArguments<BlockVariantCli.Options, SpeedTreeCli.Options>(args);
+            var result = Parser.Default.ParseArguments<BlockVariantCli.Options, SpeedTreeCli.Options, GltfCli.Options>(args);
             int code;
             if (result is Parsed<object> parsed && parsed.Value is SharedOptions opts)
                 code = SetupResolverAndRun(opts);
