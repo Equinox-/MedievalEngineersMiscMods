@@ -5,8 +5,7 @@ using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Storage;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
-using Medieval.GameSystems;
-using Medieval.GUI.ContextMenu;
+using Medieval.Constants;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.Entities.Character;
 using Sandbox.Game.EntityComponents.Character;
@@ -31,7 +30,7 @@ using MySession = VRage.Session.MySession;
 namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
-    public abstract class EquiDecorativeToolBase : MyToolBehaviorBase, IToolWithMenu
+    public abstract class EquiDecorativeToolBase : MyToolBehaviorBase, IToolWithMenu, IToolWithBuilding
     {
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
         private EquiDecorativeToolBaseDefinition _definition;
@@ -44,13 +43,13 @@ namespace Equinox76561198048419394.Core.Mesh
             _definition = (EquiDecorativeToolBaseDefinition)definition;
         }
 
-        protected bool HasPermission(MyStringId id)
+        protected override bool ValidateTarget()
         {
             var player = MyAPIGateway.Players.GetPlayerControllingEntity(Holder);
-            if (player == null)
-                return false;
-            return MyAreaPermissionSystem.Static == null || MyAreaPermissionSystem.Static.HasPermission(player.IdentityId, Target.Position, id);
+            return player != null && player.HasPermission(Holder.GetPosition(), MyPermissionsConstants.Build);
         }
+
+        protected override bool Start(MyHandItemActionEnum action) => true;
 
         protected bool TryRemoveDurability(int durability)
         {
@@ -177,6 +176,15 @@ namespace Equinox76561198048419394.Core.Mesh
             }
         }
 
+        protected LineD DetectionLine
+        {
+            get
+            {
+                var caster = Holder.Get<MyCharacterDetectorComponent>();
+                return new LineD(caster.StartPosition, caster.StartPosition + caster.Direction * BuildingState.Distance);
+            }
+        }
+
         private bool TryGetAnchorFromModelBvh(bool snapToGrid, out DecorAnchor anchor)
         {
             anchor = default;
@@ -184,9 +192,7 @@ namespace Equinox76561198048419394.Core.Mesh
             if (mm == null)
                 return false;
 
-            var caster = Holder.Get<MyCharacterDetectorComponent>();
-            var bestDistance = caster.GetDetectionDistance();
-            var worldLine = new LineD(caster.StartPosition, caster.StartPosition + caster.Direction * bestDistance);
+            var worldLine = DetectionLine;
             var found = false;
             using (PoolManager.Get(out List<MyLineSegmentOverlapResult<DecorCandidate>> candidates))
             {
@@ -216,6 +222,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
 
                 var source = AnchorSource.Mesh;
+                var bestDistance = (float) worldLine.Length;
                 candidates.Sort(MyLineSegmentOverlapResult<DecorCandidate>.DistanceComparer);
                 foreach (var overlap in candidates)
                 {
@@ -227,8 +234,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     var blockLocalMatrix = tmpCandidate.Grid.GetBlockLocalMatrix(tmpCandidate.Block);
                     var blockWorldMatrix = blockLocalMatrix * tmpCandidate.Grid.Entity.WorldMatrix;
                     MatrixD.Invert(ref blockWorldMatrix, out var blockInvWorldMatrix);
-                    var localRay = new Ray((Vector3)Vector3D.Transform(caster.StartPosition, in blockInvWorldMatrix),
-                        (Vector3)Vector3D.TransformNormal(caster.Direction, ref blockInvWorldMatrix));
+                    var localRay = new Ray((Vector3)Vector3D.Transform(worldLine.From, in blockInvWorldMatrix),
+                        (Vector3)Vector3D.TransformNormal(worldLine.Direction, ref blockInvWorldMatrix));
                     var bvh = mm.GetMaterialBvh(model);
                     if (bvh == null || !bvh.RayCast(in localRay, out _, out _, out var dist, out var triangleId, bestDistance) || dist > bestDistance)
                         continue;
@@ -261,7 +268,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     var gridLocalNormal = Vector3.TransformNormal(tri.RawNormal, ref blockLocalMatrix);
                     gridLocalNormal.Normalize();
                     anchor = new DecorAnchor(
-                        tmpCandidate.Grid, 
+                        tmpCandidate.Grid,
                         tmpCandidate.Block,
                         EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
                             tmpCandidate.Block,
@@ -359,6 +366,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             base.Activate();
             this.OnActivateWithMenu();
+            this.OnActivateWithBuilding();
             if (IsLocallyControlled)
                 Scene.Scheduler.AddFixedUpdate(RenderHelper);
         }
@@ -366,12 +374,12 @@ namespace Equinox76561198048419394.Core.Mesh
         public override void Deactivate()
         {
             this.OnDeactivateWithMenu();
+            this.OnDeactivateWithBuilding();
             Scene.Scheduler.RemoveFixedUpdate(RenderHelper);
             base.Deactivate();
         }
 
         private readonly List<DecorAnchor> _anchors = new List<DecorAnchor>();
-        private MyContextMenu _openMenu;
 
         protected PackedHsvShift PackedHsvShift => _definition.AllowRecoloring && DecorativeToolSettings.HsvShift.HasValue
             ? (PackedHsvShift)DecorativeToolSettings.HsvShift.Value
@@ -452,8 +460,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
                 else
                 {
-                    var caster = Holder.Get<MyCharacterDetectorComponent>();
-                    var worldPos = caster == null ? Holder.GetPosition() : caster.StartPosition + caster.Direction * 2;
+                    var worldPos = DetectionLine.To;
                     if (grid != null)
                         points.Add((Vector3)Vector3D.Transform(worldPos, grid.Container.Get<MyPositionComponentBase>().WorldMatrixNormalizedInv));
                 }
@@ -476,6 +483,9 @@ namespace Equinox76561198048419394.Core.Mesh
         protected virtual void RenderWithoutShape()
         {
         }
+
+        public virtual Matrix BuildingRotationBias => TryGetAnchor(out var anchor) ? anchor.Grid.Entity.WorldMatrix : default;
+        public ToolBuildingState BuildingState { get; } = new ToolBuildingState { DefaultDistance = 2 };
     }
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]

@@ -1,10 +1,11 @@
 using System;
+using Equinox76561198048419394.Core.UI;
 using Medieval.GUI.ContextMenu.DataSources;
 using VRage.Collections;
 
 namespace Equinox76561198048419394.Core.Mesh
 {
-    public class DecorativeMaterialsDataSource<T> : IMyGridDataSource<IDecorativeMaterial> where T : IDecorativeMaterial
+    public class DecorativeMaterialsDataSource<T> : IMyGridDataSource<IEquiIconGridItem> where T : IEquiIconGridItem
     {
         private readonly ListReader<T> _materials;
         private readonly Func<int> _get;
@@ -23,9 +24,9 @@ namespace Equinox76561198048419394.Core.Mesh
         {
         }
 
-        public IDecorativeMaterial GetData(int index) => _materials[index];
+        public IEquiIconGridItem GetData(int index) => _materials[index];
 
-        void IMyArrayDataSource<IDecorativeMaterial>.SetData(int index, IDecorativeMaterial value)
+        void IMyArrayDataSource<IEquiIconGridItem>.SetData(int index, IEquiIconGridItem value)
         {
         }
 

@@ -67,8 +67,12 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryDropper.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\ItemCollection.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMaterialController.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Decal.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Line.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Model.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Surface.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\DecorativeMaterialsDataSource.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeModelTool.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeToolContext.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\DecorativeToolSettings.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecalPreviewModels.cs" />
@@ -79,6 +83,7 @@
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeSurfaceTool.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDynamicMeshComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeLineTool.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDynamicModelsComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiMeshHelpers.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mirz\Behaviors\MrzAddItemsBehavior.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mirz\Behaviors\MrzVoxelPainterBehavior.cs" />
@@ -168,6 +173,9 @@
     <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedSliderController.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiDataSourceCondition.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiDataSourceExistsCondition.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiIconGridController.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiIconGridControllerBase.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiSearchableVanillaGrids.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\SimpleDataSource.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\ContextMenuDropdownDataSource.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ActionWithArg.cs" />
@@ -213,6 +221,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\SingletonEnumerator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\StackArray.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PackedBoundedVec.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\ToolWithBuilding.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ToolWithMenu.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelMiningBuffer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelPlacementBuffer.cs" />
@@ -232,6 +241,7 @@
     <Content Include="Content\Data\ComponentEffect.sbc.example" />
     <Content Include="Content\Data\ModifierChangeModel.sbc.example" />
     <Content Include="Content\Data\ModifiersGrid.sbc" />
+    <Content Include="Content\Data\SearchableVanillaGrids.sbc" />
     <Content Include="Content\Data\SolarObservation.sbc.example" />
     <Content Include="Content\Data\VoxelEffect.sbc.example" />
     <Content Include="Content\Data\VoxelPower.sbc.example" />

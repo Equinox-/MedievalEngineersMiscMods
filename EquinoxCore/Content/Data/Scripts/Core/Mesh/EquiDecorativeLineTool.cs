@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
+using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.Constants;
@@ -45,10 +46,6 @@ namespace Equinox76561198048419394.Core.Mesh
             base.Init(holder, item, definition);
             _definition = (EquiDecorativeLineToolDefinition)definition;
         }
-
-        protected override bool ValidateTarget() => HasPermission(MyPermissionsConstants.Build);
-
-        protected override bool Start(MyHandItemActionEnum action) => HasPermission(MyPermissionsConstants.Build);
 
         protected override int RequiredPoints => 2;
 
@@ -275,7 +272,7 @@ namespace Equinox76561198048419394.Core.Mesh
             Materials = materials;
         }
 
-        public class LineMaterialDef : IDecorativeMaterial
+        public class LineMaterialDef : IEquiIconGridItem
         {
             public readonly EquiDecorativeLineToolDefinition Owner;
             public readonly MyStringHash Id;
@@ -295,7 +292,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 Owner = owner;
                 Id = MyStringHash.GetOrCompute(ob.Id);
-                Name = ob.Name ?? EquiDecorativeMaterialController.NameFromId(Id);
+                Name = ob.Name ?? EquiIconGridController.NameFromId(Id);
 
                 if (ob.UiIcons != null && ob.UiIcons.Length > 0)
                     UiIcons = ob.UiIcons;
@@ -322,26 +319,73 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiDecorativeLineToolDefinition : MyObjectBuilder_EquiDecorativeToolBaseDefinition
     {
+        /// <summary>
+        /// PBR material definition.
+        /// </summary>
+        [XmlElement]
         public MaterialSpec Material;
 
+        /// <summary>
+        /// Constant width in meters. Defaults to 0.05m.
+        /// </summary>
         [XmlElement]
         public float? Width;
 
+        /// <summary>
+        /// Default width value.
+        /// </summary>
         [XmlElement]
         public float? DefaultWidth;
 
+        /// <summary>
+        /// Range of permitted width values. Defaults to constant width.
+        /// <see cref="Width"/>
+        /// </summary>
         [XmlElement]
         public MutableRange<float>? WidthRange;
 
+        /// <inheritdoc cref="LineMaterialDef.UvOffset"/>
+        [XmlElement]
         public SerializableVector2? UvOffset;
+
+        /// <inheritdoc cref="LineMaterialDef.UvNormal"/>
+        [XmlElement]
         public SerializableVector2? UvNormal;
+
+        /// <inheritdoc cref="LineMaterialDef.UvTangentPerMeter"/>
+        [XmlElement]
         public SerializableVector2? UvTangentPerMeter;
+
+        /// <summary>
+        /// Number of straight line segments per square root of meter of length when the line is sagging.
+        /// </summary>
+        [XmlElement]
         public float? SegmentsPerMeterSqrt;
+
+        /// <summary>
+        /// Number of straight line segments per meter of length when the line is sagging.
+        /// </summary>
+        [XmlElement]
         public float? SegmentsPerMeter;
+
+        /// <summary>
+        /// Half the minimum number of vertices used to represent a cross section. Defaults to 2. 
+        /// </summary>
+        [XmlElement]
         public int? HalfSideSegments;
+
+        /// <summary>
+        /// Maximum error in meters between true circle and n-gon representing the circle in meters. Defaults to 0.01m.
+        /// </summary>
+        [XmlElement]
         public float? MaxCircleError;
 
+        /// <inheritdoc cref="LineMaterialDef.DurabilityBase"/>
+        [XmlElement]
         public float? DurabilityBase;
+
+        /// <inheritdoc cref="LineMaterialDef.DurabilityPerMeter"/>
+        [XmlElement]
         public float? DurabilityPerMeter;
 
         [XmlElement("Variant")]
@@ -349,23 +393,58 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public class LineMaterialDef
         {
+            /// <summary>
+            /// Unique identifier for the material.
+            /// </summary>
             [XmlAttribute("Id")]
             public string Id;
 
+            /// <summary>
+            /// Display name for the material.
+            /// </summary>
             [XmlAttribute("Name")]
             public string Name;
 
+            /// <summary>
+            /// PBR material definition.
+            /// </summary>
             [XmlElement]
             public MaterialSpec Material;
 
+            /// <summary>
+            /// Icons to show in the UI.
+            /// </summary>
             [XmlElement("UiIcon")]
             public string[] UiIcons;
 
+            /// <summary>
+            /// Texture coordinate offset for the beginning of the unwrapped line. Defaults to zero.
+            /// </summary>
+            [XmlElement]
             public SerializableVector2? UvOffset;
+
+            /// <summary>
+            /// Texture coordinate delta for wrapping around the line. Defaults to (0, 1).
+            /// </summary>
+            [XmlElement]
             public SerializableVector2? UvNormal;
+
+            /// <summary>
+            /// Texture coordinate delta along the line, for each meter of length. Defaults to (10, 0).
+            /// </summary>
+            [XmlElement]
             public SerializableVector2? UvTangentPerMeter;
 
+            /// <summary>
+            /// Durability cost for each line.
+            /// </summary>
+            [XmlElement]
             public float? DurabilityBase;
+
+            /// <summary>
+            /// Durability cost per meter of placed line.
+            /// </summary>
+            [XmlElement]
             public float? DurabilityPerMeter;
         }
     }

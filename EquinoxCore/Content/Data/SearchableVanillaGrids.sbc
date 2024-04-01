@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <!-- banner bonus pattern -->
+    <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
+        <Id Type="MyObjectBuilder_ContextMenu" Subtype="BannerEditorBonusLayer" />
+        <MainController Type="MyObjectBuilder_EquiBonusPatternController" Subtype="EquiBannerEditorBonusPatternGrid" />
+        <ContextType>MyObjectBuilder_BannerEditorLayerContext</ContextType>
+        <StyleName>ContextMenuDefault</StyleName>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiBonusPatternControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiBonusPatternController" Subtype="EquiBannerEditorBonusPatternGrid" />
+        <Title>ContextMenu_PatternGridTitle</Title>
+        <DataId>BonusPatterns</DataId>
+        <GridSize x="320" y="320" />
+        <Grid StyleName="ContextMenuInventoryGrid" Columns="4" Rows="4" MaxItems="16" />
+        <PagingButtonSize x="32" y="32" />
+        <PagingButtonStyle>ContextButtonPage</PagingButtonStyle>
+    </Definition>
+
+    <!-- signpost icon -->
+    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
+        <Id Type="MyObjectBuilder_ButtonListController" Subtype="SignpostMain" />
+        <Columns>4</Columns>
+        <Rows>1</Rows>
+        <ButtonStyleId>ButtonListDefault</ButtonStyleId>
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_SignpostSelectColor_Tooltip</Tooltip>
+                <Icon>ContextMenuColorFill</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_SliderController" Subtype="SignpostColorPicker" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_ChangeTextSize_Tooltip</Tooltip>
+                <Icon>ContextMenuCogs</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_SliderController" Subtype="SignpostTextSize" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_SignpostChangeText_Tooltip</Tooltip>
+                <Icon>ContextMenuArrow</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_TextboxController" Subtype="SignpostChangeText" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text></Text>
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_SignpostSelectIcon_Tooltip</Tooltip>
+                <Icon>ContextMenuPattern</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiSignpostIconController" Subtype="EquiSignpostSelectIcon" />
+                </Action>
+            </Button>
+        </Buttons>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiSignpostIconControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiSignpostIconController" Subtype="EquiSignpostSelectIcon" />
+        <Title>ContextMenu_SignpostSelectIcon</Title>
+        <DataId>Icons</DataId>
+        <GridSize x="320" y="400" />
+        <Grid StyleName="ContextMenuInventoryGrid" Columns="4" Rows="5" MaxItems="20" />
+        <PagingButtonSize x="32" y="32" />
+        <PagingButtonStyle>ContextButtonPage</PagingButtonStyle>
+        <LabelStyle>ContextMenuLabel</LabelStyle>
+        <EnableDragAndDrop>false</EnableDragAndDrop>
+        <EnableUse>false</EnableUse>
+    </Definition>
+</Definitions>

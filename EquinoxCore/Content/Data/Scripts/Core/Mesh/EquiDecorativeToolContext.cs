@@ -27,6 +27,8 @@ namespace Equinox76561198048419394.Core.Mesh
         public static readonly MyStringId DecalRotationDeg = MyStringId.GetOrCompute("DecalRotationDeg");
         public static readonly MyStringId DecalHeight = MyStringId.GetOrCompute("DecalHeight");
 
+        public static readonly MyStringId ModelScale = MyStringId.GetOrCompute("ModelScale");
+
         public static readonly MyStringId MaterialDef = MyStringId.GetOrCompute("MaterialDef");
 
         private EquiDecorativeToolBaseDefinition _definition;
@@ -125,6 +127,20 @@ namespace Equinox76561198048419394.Core.Mesh
                             decal.SortedDecals,
                             () => DecorativeToolSettings.DecalIndex,
                             val => DecorativeToolSettings.DecalIndex = val));
+                    break;
+                case EquiDecorativeModelToolDefinition model:
+                    var modelScale = model.ScaleRange;
+                    m_dataSources.Add(ModelScale, new SimpleBoundedDataSource<float>(
+                        modelScale.Min,
+                        1,
+                        modelScale.Max,
+                        () => DecorativeToolSettings.ModelScale,
+                        val => DecorativeToolSettings.ModelScale = val));
+                    if (model.SortedModels.Count > 1)
+                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeModelToolDefinition.ModelDef>(
+                            model.SortedModels,
+                            () => DecorativeToolSettings.ModelIndex,
+                            val => DecorativeToolSettings.ModelIndex = val));
                     break;
             }
         }

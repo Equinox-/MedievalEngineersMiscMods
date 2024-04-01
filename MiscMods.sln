@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DecorativeRopes", "Decorati
 		DecorativeRopes\Content\metadata.mod = DecorativeRopes\Content\metadata.mod
 		DecorativeRopes\Content\Data\Integration.sbc = DecorativeRopes\Content\Data\Integration.sbc
 		DecorativeRopes\Content\Data\DecorativeDecal.sbc.example = DecorativeRopes\Content\Data\DecorativeDecal.sbc.example
+		DecorativeRopes\Content\Data\DecorativeModel.sbc.example = DecorativeRopes\Content\Data\DecorativeModel.sbc.example
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cartography", "Cartography\Cartography.csproj", "{0EC21EE2-60CB-4AD9-92E7-E9AD6BF7C890}"

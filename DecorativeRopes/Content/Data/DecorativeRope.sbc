@@ -1,11 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
     <!-- Base -->
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeLineToolDefinition" Abstract="true">
         <Id Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Base"/>
 
-        <Variant Id="">
-            <Name>Default</Name>
+        <Variant Id="" Name="Default">
             <UiIcon>Textures/GUI/Icons/buttons/Other.png</UiIcon>
             <Material>
                 <Parameter Name="Technique">MESH</Parameter>
@@ -21,7 +20,7 @@
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition" Abstract="true">
         <Id Type="HandItem" Subtype="Equi_DecorativeRope_Base"/>
         <CopyFrom Type="HandItem" Subtype="Rope" />
-        <MaxStackSize>1</MaxStackSize>
+        <MaxStackAmount>1</MaxStackAmount>
     </Definition>
 
     <!-- Small Diameter -->
@@ -47,7 +46,6 @@
         <Description>A basic rope used for decoration.</Description>
         <MaxDurability>100</MaxDurability>
         <StanceToBehavior>
-            <StanceName>NormalMode</StanceName>
             <BehaviorId Type="EquiDecorativeLineToolDefinition" Subtype="Equi_DecorativeRope_Small" />
         </StanceToBehavior>
     </Definition>

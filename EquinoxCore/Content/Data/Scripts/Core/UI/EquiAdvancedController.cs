@@ -1,6 +1,8 @@
-using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.GUI;
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.Attributes;
@@ -8,7 +10,6 @@ using Medieval.GUI.ContextMenu.Controllers;
 using ObjectBuilders.Definitions.GUI;
 using Sandbox.Graphics.GUI;
 using Sandbox.Gui.Layouts;
-using VRage;
 using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Definitions;
@@ -137,34 +138,54 @@ namespace Equinox76561198048419394.Core.UI
         [XmlElement("Embedded", typeof(Embedded))]
         public List<ControlBase> Controls;
 
+        /// <summary>
+        /// Width of the controller to show.
+        /// </summary>
         public float? Width;
 
-        public SerializableVector2? SliderSize;
-
-        public SerializableVector2? DropdownSize;
-
+        /// <summary>
+        /// Should the datasource be updated after every change.
+        /// </summary>
         public bool? AutoCommit;
 
         public class ControlBase : LabelDefinition
         {
+            /// <summary>
+            /// Index in a vector / array data source to edit.
+            /// </summary>
             [XmlAttribute]
             public int DataIndex;
 
+            /// <summary>
+            /// Text to show when the control is disabled.
+            /// </summary>
             [XmlElement]
             public string DisabledReason;
         }
 
         public class Slider : ControlBase
         {
+            /// <summary>
+            /// Should the slider be restricted to integer values.
+            /// </summary>
             [XmlAttribute]
             public bool IsInteger = false;
 
+            /// <summary>
+            /// Minimum value for the slider, used if the data source doesn't provide a minimum.
+            /// </summary>
             [XmlElement]
             public float? Min;
 
+            /// <summary>
+            /// Maximum value for the slider, used if the data source doesn't provide a maximum.
+            /// </summary>
             [XmlElement]
             public float? Max;
 
+            /// <summary>
+            /// Default value for the slider, used if the data source doesn't provide a default.
+            /// </summary>
             [XmlElement]
             public float? Default;
 
@@ -174,6 +195,9 @@ namespace Equinox76561198048419394.Core.UI
             [XmlElement]
             public float? Exponent;
 
+            /// <summary>
+            /// How many decimal places to show in the label.
+            /// </summary>
             [XmlElement]
             public int LabelDecimalPlaces;
         }
@@ -188,6 +212,9 @@ namespace Equinox76561198048419394.Core.UI
 
         public class Embedded : ControlBase
         {
+            /// <summary>
+            /// ID of the embedded Context Menu Controller.
+            /// </summary>
             public SerializableDefinitionId Id;
         }
     }

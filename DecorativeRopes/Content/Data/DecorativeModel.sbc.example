@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
+        <Id Type="HandItem" Subtype="Equi_DecorativeModels" />
+        <DisplayName>Decorative Models</DisplayName>
+        <Description>For placing models on a model</Description>
+        <Icon>Textures\GUI\Icons\Materials\Cloth.dds</Icon>
+        <Size>
+            <X>1.2</X>
+            <Y>0.6</Y>
+            <Z>0.3</Z>
+        </Size>
+        <Mass>0.5</Mass>
+        <Model>Models\Components\Cloth.mwm</Model>
+        <PhysicalMaterial>Cloth</PhysicalMaterial>
+        <Animation>Rope</Animation>
+        <MaxStackAmount>1</MaxStackAmount>
+        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
+        <MaxDurability>100</MaxDurability>
+        <Position>
+            <Slot>MainHand</Slot>
+        </Position>
+        <StanceToBehavior>
+            <StanceName>NormalMode</StanceName>
+            <BehaviorId Type="MyObjectBuilder_EquiDecorativeModelToolDefinition" Subtype="Equi_DecorativeModels" />
+        </StanceToBehavior>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiDecorativeModelToolDefinition">
+        <Id Type="EquiDecorativeModelToolDefinition" Subtype="Equi_DecorativeModels" />
+
+        <Model Id="Cabbage" Name="Cabbage Model">
+            <Model>Environment/Farming/Cabbage.mwm</Model>
+            <DurabilityBase>1</DurabilityBase>
+        </Model>
+    </Definition>
+</Definitions>

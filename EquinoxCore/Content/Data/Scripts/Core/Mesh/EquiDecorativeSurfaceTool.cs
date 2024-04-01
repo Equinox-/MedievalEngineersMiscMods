@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
+using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.Constants;
@@ -45,10 +46,6 @@ namespace Equinox76561198048419394.Core.Mesh
             base.Init(holder, item, definition);
             _definition = (EquiDecorativeSurfaceToolDefinition)definition;
         }
-
-        protected override bool ValidateTarget() => HasPermission(MyPermissionsConstants.Build);
-
-        protected override bool Start(MyHandItemActionEnum action) => HasPermission(MyPermissionsConstants.Build);
 
         private PoolManager.ReturnHandle<List<TR>> GetUnique<TV, TR>(ListReader<TV> values, Func<TV, TR> transform, out List<TR> unique)
             where TR : IEquatable<TR>
@@ -385,7 +382,7 @@ namespace Equinox76561198048419394.Core.Mesh
             Materials = materials;
         }
 
-        public class SurfaceMaterialDef : IDecorativeMaterial
+        public class SurfaceMaterialDef : IEquiIconGridItem
         {
             public readonly EquiDecorativeSurfaceToolDefinition Owner;
             public readonly MyStringHash Id;
@@ -406,7 +403,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 Owner = owner;
                 Id = MyStringHash.GetOrCompute(ob.Id);
-                Name = ob.Name ?? EquiDecorativeMaterialController.NameFromId(Id);
+                Name = ob.Name ?? EquiIconGridController.NameFromId(Id);
 
                 if (ob.UiIcons != null && ob.UiIcons.Length > 0)
                     UiIcons = ob.UiIcons;
@@ -434,16 +431,32 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiDecorativeSurfaceToolDefinition : MyObjectBuilder_EquiDecorativeToolBaseDefinition
     {
+        /// <inheritdoc cref="SurfaceMaterialDef.Material"/>
+        [XmlElement]
         public MaterialSpec Material;
+
+        /// <inheritdoc cref="SurfaceMaterialDef.TextureSize"/>
+        [XmlElement]
         public SerializableVector2? TextureSize;
 
+        /// <inheritdoc cref="SurfaceMaterialDef.TextureScale"/>
+        [XmlElement]
         public MutableRange<float>? TextureScale;
 
+        /// <inheritdoc cref="SurfaceMaterialDef.FlipRearNormals"/>
+        [XmlElement]
         public bool? FlipRearNormals;
 
+        /// <inheritdoc cref="SurfaceMaterialDef.DurabilityBase"/>
+        [XmlElement]
         public float? DurabilityBase;
+
+        /// <inheritdoc cref="SurfaceMaterialDef.DurabilityPerSquareMeter"/>
+        [XmlElement]
         public float? DurabilityPerSquareMeter;
 
+        /// <inheritdoc cref="SurfaceMaterialDef.UvGuide"/>
+        [XmlElement]
         public SerializableVector2? UvGuide;
 
         [XmlElement("Variant")]
@@ -451,23 +464,65 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public class SurfaceMaterialDef
         {
+            /// <summary>
+            /// Unique identifier for the material.
+            /// </summary>
             [XmlAttribute("Id")]
             public string Id;
 
+            /// <summary>
+            /// Display name for the material.
+            /// </summary>
             [XmlAttribute("Name")]
             public string Name;
 
+            /// <summary>
+            /// PBR material definition.
+            /// </summary>
             [XmlElement]
             public MaterialSpec Material;
 
+            /// <summary>
+            /// Icons to show in the UI.
+            /// </summary>
             [XmlElement("UiIcon")]
             public string[] UiIcons;
 
+            /// <summary>
+            /// Size of the full texture in meters. Defaults to 1 by 1 meter.
+            /// </summary>
+            [XmlElement]
             public SerializableVector2? TextureSize;
+
+            /// <summary>
+            /// Range of permitted texture scales, defaults to no scaling.
+            /// </summary>
+            [XmlElement]
             public MutableRange<float>? TextureScale;
+
+            /// <summary>
+            /// Should the surface be rendered twice, once with flipped normals. Defaults to true.
+            /// </summary>
+            [XmlElement]
             public bool? FlipRearNormals;
+
+            /// <summary>
+            /// Direction in texture coordinate space that the dominant texture in the material points.
+            /// Used to render the red guides when placing surfaces.
+            /// </summary>
+            [XmlElement]
             public SerializableVector2? UvGuide;
+
+            /// <summary>
+            /// Durability cost for each surface.
+            /// </summary>
+            [XmlElement]
             public float? DurabilityBase;
+
+            /// <summary>
+            /// Durability cost per square meter of surface.
+            /// </summary>
+            [XmlElement]
             public float? DurabilityPerSquareMeter;
         }
     }

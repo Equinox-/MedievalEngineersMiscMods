@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
+using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Constants;
 using Sandbox.Definitions;
@@ -53,13 +54,9 @@ namespace Equinox76561198048419394.Core.Mesh
         private EquiDecorativeDecalToolDefinition.DecalDef DecalDef =>
             _definition.SortedDecals[DecorativeToolSettings.DecalIndex % _definition.SortedDecals.Count];
 
-        protected override bool ValidateTarget() => HasPermission(MyPermissionsConstants.Build);
-
-        protected override bool Start(MyHandItemActionEnum action) => HasPermission(MyPermissionsConstants.Build);
-
         protected override int RequiredPoints => 1;
 
-        private Vector3 ComputeDecalUp(MyGridDataComponent grid, Vector3 normal)
+        private static Vector3 ComputeDecalUp(MyGridDataComponent grid, Vector3 normal)
         {
             var gridPos = grid.Container.Get<MyPositionComponentBase>();
             var gridInv = gridPos.WorldMatrixNormalizedInv;
@@ -243,20 +240,11 @@ namespace Equinox76561198048419394.Core.Mesh
             }
             else
             {
-                var caster = Holder.Get<MyCharacterDetectorComponent>();
+                var detectionLine = DetectionLine;
                 worldTransform = Holder.WorldMatrix;
                 MatrixD.Invert(ref worldTransform, out var worldInv);
-                if (caster != null)
-                {
-                    localPos = (Vector3)Vector3D.Transform(caster.StartPosition + caster.Direction * 2, ref worldInv);
-                    localNormal = (Vector3)Vector3D.TransformNormal(-caster.Direction, ref worldInv);
-                    localNormal.Normalize();
-                }
-                else
-                {
-                    localPos = Vector3.Zero;
-                    localNormal = Vector3.Backward;
-                }
+                localPos = (Vector3)Vector3D.Transform(detectionLine.To, ref worldInv);
+                localNormal = (Vector3)Vector3D.TransformNormal(-detectionLine.Direction, ref worldInv);
 
                 var rot = Quaternion.CreateFromAxisAngle(localNormal, MathHelper.ToRadians(DecorativeToolSettings.DecalRotationDeg));
                 var rotated = Vector3.Transform(Vector3.Up, rot);
@@ -292,11 +280,12 @@ namespace Equinox76561198048419394.Core.Mesh
                 _currentRenderObject = MyRenderProxy.CreateRenderEntity(
                     $"decal_preview_{Holder.EntityId}",
                     previewModel,
-                    MatrixD.Identity, MyMeshDrawTechnique.MESH,
+                    renderMatrix,
+                    MyMeshDrawTechnique.MESH,
                     RenderFlags.Visible | RenderFlags.ForceOldPipeline,
                     CullingOptions.Default,
                     Color.White,
-                    Vector3.One,
+                    prepared.ColorMask,
                     depthBias: 255);
                 _currentRenderObjectModel = previewModel;
             }
@@ -322,7 +311,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public ListReader<DecalDef> SortedDecals { get; private set; }
         public DictionaryReader<MyStringHash, DecalDef> Decals { get; private set; }
 
-        public class DecalDef : IMyObject, IDecorativeMaterial
+        public class DecalDef : IMyObject, IEquiIconGridItem
         {
             public readonly EquiDecorativeDecalToolDefinition Owner;
             public readonly MyStringHash Id;
@@ -341,7 +330,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 Owner = owner;
                 Id = id;
-                Name = ob.Name ?? EquiDecorativeMaterialController.NameFromId(id);
+                Name = ob.Name ?? EquiIconGridController.NameFromId(id);
                 if (ob.UiIcons != null && ob.UiIcons.Length > 0)
                     UiIcons = ob.UiIcons;
                 else if (ob.Material.Icons != null && ob.Material.Icons.Count > 0)
@@ -387,6 +376,24 @@ namespace Equinox76561198048419394.Core.Mesh
             if (ob.ItemDecals != null)
                 foreach (var itemDecal in ob.ItemDecals)
                 {
+                    if (itemDecal.All)
+                        CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>());
+                    if (itemDecal.AllWithoutSchematics)
+                        CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>().Where(x => !(x is MySchematicItemDefinition)));
+
+                    if (itemDecal.ItemSubtypes != null)
+                        foreach (var subtype in itemDecal.ItemSubtypes)
+                            Create(MyDefinitionManager.Get<MyInventoryItemDefinition>(subtype));
+                    if (itemDecal.Tags != null)
+                        foreach (var tag in itemDecal.Tags)
+                            if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
+                                CreateMany(tagDef.Items);
+                    if (itemDecal.TagsNonPublic != null)
+                        foreach (var tag in itemDecal.TagsNonPublic)
+                            if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
+                                CreateMany(tagDef.Items, true);
+                    continue;
+
                     void Create(MyInventoryItemDefinition item)
                     {
                         if (item?.Icons == null || item.Icons.Length == 0) return;
@@ -415,23 +422,6 @@ namespace Equinox76561198048419394.Core.Mesh
                             if ((includeHidden || item.Public) && item.Enabled)
                                 Create(item);
                     }
-
-                    if (itemDecal.All)
-                        CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>());
-                    if (itemDecal.AllWithoutSchematics)
-                        CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>().Where(x => !(x is MySchematicItemDefinition)));
-
-                    if (itemDecal.ItemSubtypes != null)
-                        foreach (var subtype in itemDecal.ItemSubtypes)
-                            Create(MyDefinitionManager.Get<MyInventoryItemDefinition>(subtype));
-                    if (itemDecal.Tags != null)
-                        foreach (var tag in itemDecal.Tags)
-                            if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
-                                CreateMany(tagDef.Items);
-                    if (itemDecal.TagsNonPublic != null)
-                        foreach (var tag in itemDecal.TagsNonPublic)
-                            if (MyDefinitionManager.TryGet<MyItemTagDefinition>(MyStringHash.GetOrCompute(tag), out var tagDef))
-                                CreateMany(tagDef.Items, true);
                 }
 
             // Custom decals
@@ -453,34 +443,59 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiDecorativeDecalToolDefinition : MyObjectBuilder_EquiDecorativeToolBaseDefinition
     {
-        public class DecalDef
+        public class DecalDefShared
         {
-            [XmlAttribute("Id")]
-            public string Id;
-
-            [XmlAttribute("Name")]
-            public string Name;
-
-            [XmlElement]
-            public MaterialSpec Material;
-
-            [XmlElement("UiIcon")]
-            public string[] UiIcons;
-
-            [XmlElement]
-            public SerializableVector2? TopLeftUv;
-
-            [XmlElement]
-            public SerializableVector2? BottomRightUv;
-
-            [XmlElement]
-            public float? AspectRatio;
-
             [XmlElement]
             public float? DurabilityBase;
 
             [XmlElement]
             public float? DurabilityPerSquareMeter;
+        }
+
+
+        public class DecalDef : DecalDefShared
+        {
+            /// <summary>
+            /// Unique identifier for the decal.
+            /// </summary>
+            [XmlAttribute("Id")]
+            public string Id;
+
+            /// <summary>
+            /// Display name for the decal.
+            /// </summary>
+            [XmlAttribute("Name")]
+            public string Name;
+
+            /// <summary>
+            /// Icons to show in the UI.
+            /// </summary>
+            [XmlElement("UiIcon")]
+            public string[] UiIcons;
+
+            /// <summary>
+            /// Texture coordinates for the top left of the decal. Defaults to (0, 0).
+            /// </summary>
+            [XmlElement]
+            public SerializableVector2? TopLeftUv;
+
+            /// <summary>
+            /// Texture coordinates for the bottom left of the decal. Defaults to (1, 1).
+            /// </summary>
+            [XmlElement]
+            public SerializableVector2? BottomRightUv;
+
+            /// <summary>
+            /// Preferred aspect ratio of the decal. Defaults to 1.
+            /// </summary>
+            [XmlElement]
+            public float? AspectRatio;
+
+            /// <summary>
+            /// PBR material to use for the decal.
+            /// </summary>
+            [XmlElement]
+            public MaterialSpec Material;
         }
 
         [XmlElement("Decal")]
@@ -489,31 +504,43 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement("ItemDecals")]
         public ItemDecalsDef[] ItemDecals;
 
-        public class ItemDecalsDef
+        public class ItemDecalsDef : DecalDefShared
         {
+            /// <summary>
+            /// Include all items.
+            /// </summary>
             [XmlAttribute("All")]
             public bool All;
 
+            /// <summary>
+            /// Include all items that aren't schematic items.
+            /// </summary>
             [XmlAttribute("AllWithoutSchematics")]
             public bool AllWithoutSchematics;
 
+            /// <summary>
+            /// Include items with specific subtypes.
+            /// </summary>
             [XmlElement("Item")]
             public List<string> ItemSubtypes;
 
+            /// <summary>
+            /// Include public items with any of the provided tags.
+            /// </summary>
             [XmlElement("Tag")]
             public List<string> Tags;
 
+            /// <summary>
+            /// Include non-public items with any of the provided tags.
+            /// </summary>
             [XmlElement("TagNonPublic")]
             public List<string> TagsNonPublic;
 
+            /// <summary>
+            /// Material to overlay icons on top of.
+            /// </summary>
             [XmlElement]
             public MaterialSpec Material;
-
-            [XmlElement]
-            public float? DurabilityBase;
-
-            [XmlElement]
-            public float? DurabilityPerSquareMeter;
         }
     }
 }

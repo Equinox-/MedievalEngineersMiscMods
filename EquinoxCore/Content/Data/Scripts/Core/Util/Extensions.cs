@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
+using Medieval.Definitions.GameSystems.Building;
 using Medieval.Entities.UseObject;
 using Medieval.GameSystems;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Players;
 using Sandbox.ModAPI;
 using VRage.Components.Physics;
+using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
 using VRage.Game.ModAPI;
@@ -20,6 +22,8 @@ namespace Equinox76561198048419394.Core.Util
 {
     public static class Extensions
     {
+        public static IMyUtilities ApiUtilities => MyAPIUtilities.Static;
+        
         public static void SetTransform(this MyCharacterBone bone, Matrix matrix)
         {
             var q = Quaternion.CreateFromRotationMatrix(matrix);
@@ -105,10 +109,9 @@ namespace Equinox76561198048419394.Core.Util
             return result != null ? new string(result) : input;
         }
 
-        public static bool IsCreative(this IMyPlayer player)
-        {
-            return MyAPIGateway.Session.CreativeMode || MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
-        }
+        public static bool IsAdminModeEnabled(this IMyPlayer player) => MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
+
+        public static bool IsCreative(this IMyPlayer player) => MyAPIGateway.Session.CreativeMode || player.IsAdminModeEnabled();
 
         public static bool IsCreative(this MyToolBehaviorBase behavior)
         {
@@ -121,6 +124,16 @@ namespace Equinox76561198048419394.Core.Util
             return MyMultiplayerModApi.Static.IsServer;
         }
 
+        public const float DefaultBuildingDistanceLimit = 10;
+        public static float BuildingDistanceLimit(this IMyPlayer player)
+        {
+            var gridPlacer = MyDefinitionManager.Get<MyGridPlacerDefinition>("Default");
+
+            return player.IsCreative()
+                ? gridPlacer?.MaxBuildingDistanceCreative ?? 20
+                : gridPlacer?.MaxBuildingDistanceSurvival ?? 10;
+        }
+
         public static bool HasPermission(this IMyPlayer player, Vector3D location, MyStringId id)
         {
             return MyAreaPermissionSystem.Static == null || MyAreaPermissionSystem.Static.HasPermission(player.IdentityId, location, id);
@@ -128,11 +141,8 @@ namespace Equinox76561198048419394.Core.Util
 
         public static bool IsLocallyControlled(this MyToolBehaviorBase behavior) => MySession.Static.PlayerEntity == behavior.Holder;
 
-        public static bool IsAdmin(this MyToolBehaviorBase behavior)
-        {
-            var player = MyAPIGateway.Players?.GetPlayerControllingEntity(behavior.Holder);
-            return player != null && MyAPIGateway.Session.IsAdminModeEnabled(player.IdentityId);
-        }
+        public static bool IsAdmin(this MyToolBehaviorBase behavior) =>
+            MyAPIGateway.Players?.GetPlayerControllingEntity(behavior.Holder)?.IsAdminModeEnabled() ?? false;
 
         public static MyHandItemBehaviorBase GetHeldBehavior(this MyEntity entity)
         {

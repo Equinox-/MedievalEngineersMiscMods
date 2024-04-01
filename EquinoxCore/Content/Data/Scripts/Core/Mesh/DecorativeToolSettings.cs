@@ -18,6 +18,9 @@ namespace Equinox76561198048419394.Core.Mesh
         public static float DecalHeight = 0.125f;
         public static int DecalIndex = 0;
 
+        public static float ModelScale = 1;
+        public static int ModelIndex = 0;
+
         public static Vector3? HsvShift = null;
 
         /// <summary>

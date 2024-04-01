@@ -18,6 +18,8 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             return (surfaceDistance + elevationDistance) / periodMeters;
         }
 
+        public static float Volume(this in BoundingSphere sphere) => MathHelper.FourPi / 3 * sphere.Radius * sphere.Radius * sphere.Radius;
+
         public static Vector3 ToDegrees(Vector3 vec) => vec * (180 / MathHelper.Pi);
 
         // r, theta (inc), phi (az)

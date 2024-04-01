@@ -74,6 +74,7 @@ namespace Equinox76561198048419394.Core.Mesh
             Decal,
             Line,
             Surface,
+            Model,
         }
 
         private readonly struct FeatureKey : IEquatable<FeatureKey>

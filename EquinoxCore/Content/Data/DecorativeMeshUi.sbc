@@ -70,6 +70,15 @@
             <Tooltip>Controls the rotation of the decal</Tooltip>
             <IsInteger>true</IsInteger>
         </Slider>
+        
+        <!-- Models -->
+        <Slider DataId="ModelScale">
+            <Text>Scale</Text>
+            <LabelDecimalPlaces>2</LabelDecimalPlaces>
+            <TextFormat>{0}</TextFormat>
+            <Exponent>2</Exponent>
+            <Tooltip>Controls the scale of the model</Tooltip>
+        </Slider>
 
         <!-- Snapping -->
         <Slider DataId="SnapDivisions" IsInteger="true">
@@ -112,7 +121,7 @@
                 <Icon>ContextMenuPattern</Icon>
                 <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="MaterialDef" Reason="Not supported" />
                 <Action xsi:type="MyObjectBuilder_CMA_AddController">
-                    <Controller Type="MyObjectBuilder_EquiDecorativeMaterialsController" Subtype="DecorativeMeshSelectMaterial" />
+                    <Controller Type="MyObjectBuilder_EquiIconGridController" Subtype="DecorativeMeshSelectMaterial" />
                 </Action>
             </Button>
         </Buttons>
@@ -152,8 +161,8 @@
         </Buttons>
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_EquiDecorativeMaterialsControllerDefinition">
-        <Id Type="MyObjectBuilder_EquiDecorativeMaterialsController" Subtype="DecorativeMeshSelectMaterial" />
+    <Definition xsi:type="MyObjectBuilder_EquiIconGridControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="DecorativeMeshSelectMaterial" />
         <Title>Select material</Title>
         <DataId>MaterialDef</DataId>
         <GridSize x="320" y="400" />
