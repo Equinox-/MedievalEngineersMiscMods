@@ -89,5 +89,29 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             nearestDistanceSquared = tdc;
             return ref tri.C;
         }
+
+        public static Vector3 NearestEdge(this in Triangle tri, in Vector3 pos, out float nearestDistanceSquared)
+        {
+            var best = MiscMath.ClosestPointOnLine(in tri.A, in tri.B, in pos);
+            nearestDistanceSquared = best.DistanceSquared(in pos);
+
+            var bcPt = MiscMath.ClosestPointOnLine(in tri.B, in tri.C, in pos);
+            var bcDist = bcPt.DistanceSquared(in pos);
+            if (bcDist < nearestDistanceSquared)
+            {
+                best = bcPt;
+                nearestDistanceSquared = bcDist;
+            }
+
+            var caPt = MiscMath.ClosestPointOnLine(in tri.C, in tri.A, in pos);
+            var caDist = caPt.DistanceSquared(in pos);
+            if (caDist < nearestDistanceSquared)
+            {
+                best = caPt;
+                nearestDistanceSquared = caDist;
+            }
+
+            return best;
+        }
     }
 }

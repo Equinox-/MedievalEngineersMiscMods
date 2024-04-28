@@ -1,12 +1,13 @@
 using System;
 using System.Diagnostics;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.Struct;
 using VRage.Utils;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Cli.Util.Spatial
 {
-    public sealed class RTree<T> where T : IBoxBounded
+    public sealed class RTree<T> where T : struct, IBoxBounded
     {
         private readonly uint _minChildren;
         private readonly uint _maxChildren;
@@ -22,7 +23,7 @@ namespace Equinox76561198048419394.Core.Cli.Util.Spatial
 
             _minChildren = minChildren;
             _maxChildren = maxChildren;
-            _root = _nodes.Allocate();
+            _root = _nodes.AllocateIndex();
             ref var root = ref _nodes[_root];
             root.Init(0);
         }
@@ -153,7 +154,7 @@ namespace Equinox76561198048419394.Core.Cli.Util.Spatial
 
         public uint Insert(in T childIn)
         {
-            var leafIndex = _leaves.Allocate();
+            var leafIndex = _leaves.AllocateIndex();
             ref var leaf = ref _leaves[leafIndex];
             leaf = childIn;
 
@@ -171,7 +172,7 @@ namespace Equinox76561198048419394.Core.Cli.Util.Spatial
             }
 
             // Split the root node up.
-            var newRootIndex = _nodes.Allocate();
+            var newRootIndex = _nodes.AllocateIndex();
             ref var newRoot = ref _nodes[newRootIndex];
             newRoot.Init(rootNode.Level + 1);
             ref var oldRootEntry = ref AppendEntry(ref newRoot);
@@ -245,7 +246,7 @@ namespace Equinox76561198048419394.Core.Cli.Util.Spatial
 
         private void Split(ref Entry keptEntry, ref Node keptNode, ref Entry peeledEntry)
         {
-            var peeledNodeIndex = _nodes.Allocate();
+            var peeledNodeIndex = _nodes.AllocateIndex();
             peeledEntry.NodeIndex = peeledNodeIndex;
             ref var peeledNode = ref _nodes[peeledNodeIndex];
             peeledNode.Init(keptNode.Level);

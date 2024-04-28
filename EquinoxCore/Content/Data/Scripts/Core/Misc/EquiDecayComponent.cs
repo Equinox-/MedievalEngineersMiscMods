@@ -21,7 +21,7 @@ namespace Equinox76561198048419394.Core.Misc
     public class EquiDecayComponent : MySimpleDecayComponent
     {
         [Automatic]
-        private readonly MyPositionComponentBase _position;
+        private readonly MyPositionComponentBase _position = null;
         
         public override void OnAddedToContainer()
         {

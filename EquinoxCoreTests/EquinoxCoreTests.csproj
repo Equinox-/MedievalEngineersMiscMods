@@ -50,6 +50,7 @@
         <Compile Include="TestMaterialBvh.cs" />
         <Compile Include="TestModelSerializer.cs" />
         <Compile Include="TestModifierDataSerialization.cs" />
+        <Compile Include="TestPagedList.cs" />
         <Compile Include="Tests.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="TestUtils.cs" />

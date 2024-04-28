@@ -28,6 +28,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public float CatenaryLength;
 
             public PackedHsvShift ColorMask;
+            public bool Ghost;
         }
 
         public static bool TrySolveCatenary(in LineData line, List<Vector3> points)
@@ -58,10 +59,11 @@ namespace Equinox76561198048419394.Core.Mesh
             return true;
         }
 
-        public static void BuildLine(in LineData line, MyModelData mesh)
+        public static void BuildLine(in LineData line, MyModelData mesh, Vector3 offset = default, Vector3? overrideGravity = default)
         {
-            var pointA = line.Pt0;
-            var pointB = line.Pt1;
+            var pointA = line.Pt0 + offset;
+            var pointB = line.Pt1 + offset;
+            var gravity = overrideGravity ?? line.Gravity;
             using (PoolManager.Get<List<Vector3>>(out var points))
             {
                 points.EnsureCapacity(line.Segments + 1);
@@ -77,7 +79,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 mesh.TexCoords.EnsureCapacity(reserveVertexCapacity);
                 mesh.Normals.EnsureCapacity(reserveVertexCapacity);
                 mesh.Tangents.EnsureCapacity(reserveVertexCapacity);
-                var biasWithGravity = line.Gravity.LengthSquared() > 0;
+                var biasWithGravity = gravity.LengthSquared() > 0;
 
                 for (var i = 0; i < points.Count; ++i)
                 {
@@ -88,7 +90,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     var normal = Vector3.Zero;
                     if (biasWithGravity)
                     {
-                        var biTangent = Vector3.Cross(line.Gravity, lineTangent);
+                        var biTangent = Vector3.Cross(gravity, lineTangent);
                         normal = Vector3.Cross(biTangent, lineTangent);
                     }
 
@@ -105,7 +107,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     for (var j = 0; j < verticesPerRing; j++)
                     {
                         var theta = MathHelper.TwoPi * j / sideSegments;
-                        var dir = (float)Math.Cos(theta) * normal + (float)Math.Sin(theta) * binormal; 
+                        var dir = (float)Math.Cos(theta) * normal + (float)Math.Sin(theta) * binormal;
 
                         mesh.Positions.Add(pt + dir * halfWidth);
                         mesh.TexCoords.Add(uv + j * line.UvNormal / sideSegments);
@@ -133,6 +135,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         }
                     }
                 }
+
                 for (var ring = 0; ring < points.Count - 1; ring++)
                 {
                     var io = indexOffset + verticesPerRing * ring;
@@ -159,7 +162,9 @@ namespace Equinox76561198048419394.Core.Mesh
         public struct VertexData
         {
             public Vector3 Position;
+
             public HalfVector2 Uv;
+
             // Normal should be aligned such that the vertices are in counter clockwise order when the normal is pointing to the camera.
             public uint Normal;
             public uint Tangent;
@@ -175,6 +180,8 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool FlipRearNormals;
 
             public PackedHsvShift ColorMask;
+
+            public bool Ghost;
 
             public float Area
             {
@@ -283,7 +290,7 @@ namespace Equinox76561198048419394.Core.Mesh
             a = tmpD;
         }
 
-        public static void BuildSurface(in SurfaceData tri, MyModelData mesh)
+        public static void BuildSurface(in SurfaceData tri, MyModelData mesh, Vector3 offset = default)
         {
             var repeats = tri.FlipRearNormals ? 2 : 1;
             var singleSideVertices = tri.Pt3.HasValue ? 4 : 3;
@@ -301,7 +308,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     var normal = VF_Packer.UnpackNormal(vtx.Normal);
                     var tangent = VF_Packer.UnpackNormal(vtx.Tangent);
                     if (i == 1) normal = -normal;
-                    mesh.Positions.Add(vtx.Position);
+                    mesh.Positions.Add(vtx.Position + offset);
                     mesh.TexCoords.Add(vtx.Uv.ToVector2());
                     mesh.Normals.Add(normal);
                     mesh.Tangents.Add(tangent);
@@ -354,9 +361,11 @@ namespace Equinox76561198048419394.Core.Mesh
             public HalfVector3 Left;
 
             public PackedHsvShift ColorMask;
+
+            public bool Ghost;
         }
 
-        public static void BuildDecal(in DecalData data, MyModelData mesh)
+        public static void BuildDecal(in DecalData data, MyModelData mesh, Vector3 offset = default)
         {
             var neededVertices = mesh.Positions.Count + 4;
             mesh.Positions.EnsureCapacity(neededVertices);
@@ -375,22 +384,23 @@ namespace Equinox76561198048419394.Core.Mesh
             tangent.Normalize();
 
             var vertexOffset = mesh.Positions.Count;
-            mesh.Positions.Add(data.Position + up + left);
+            var position = data.Position + offset;
+            mesh.Positions.Add(position + up + left);
             mesh.TexCoords.Add(upLeftUv);
             mesh.Normals.Add(normal);
             mesh.Tangents.Add(tangent);
 
-            mesh.Positions.Add(data.Position - up + left);
+            mesh.Positions.Add(position - up + left);
             mesh.TexCoords.Add(new Vector2(upLeftUv.X, downRightUv.Y));
             mesh.Normals.Add(normal);
             mesh.Tangents.Add(tangent);
 
-            mesh.Positions.Add(data.Position - up - left);
+            mesh.Positions.Add(position - up - left);
             mesh.TexCoords.Add(downRightUv);
             mesh.Normals.Add(normal);
             mesh.Tangents.Add(tangent);
 
-            mesh.Positions.Add(data.Position + up - left);
+            mesh.Positions.Add(position + up - left);
             mesh.TexCoords.Add(new Vector2(downRightUv.X, upLeftUv.Y));
             mesh.Normals.Add(normal);
             mesh.Tangents.Add(tangent);
@@ -410,7 +420,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
             var det = uvDelta1.Y * uvDelta2.X - uvDelta1.X * uvDelta2.Y;
             if (Math.Abs(det) < 1e-6f) return Vector3.Zero;
-                
+
             // Solution for uv(j, k) == [1, 0]
             var j = -uvDelta2.Y / det;
             var k = uvDelta1.Y / det;

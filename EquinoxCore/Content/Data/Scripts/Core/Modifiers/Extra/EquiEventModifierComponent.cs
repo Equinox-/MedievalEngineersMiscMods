@@ -28,13 +28,13 @@ namespace Equinox76561198048419394.Core.Modifiers.Extra
     public class EquiEventModifierComponent : MyEntityComponent
     {
         [Automatic]
-        private readonly MyComponentEventBus _eventBus;
+        private readonly MyComponentEventBus _eventBus = null;
 
         [Automatic]
-        private readonly MyEntityStateComponent _state;
+        private readonly MyEntityStateComponent _state = null;
 
         [Automatic]
-        private readonly MyBlockComponent _block;
+        private readonly MyBlockComponent _block = null;
 
         public override void OnAddedToScene()
         {

@@ -1,16 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
-using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
-using Medieval.Constants;
-using Sandbox.Definitions.Equipment;
 using Sandbox.Game.EntityComponents.Character;
-using Sandbox.Game.Inventory;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Collections;
@@ -20,7 +15,6 @@ using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
-using VRage.Game.Entity;
 using VRage.Library.Collections;
 using VRage.Network;
 using VRage.ObjectBuilders;
@@ -34,27 +28,19 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeLineToolDefinition))]
     [StaticEventOwner]
-    public class EquiDecorativeLineTool : EquiDecorativeToolBase
+    public class EquiDecorativeLineTool : EquiDecorativeToolBase<EquiDecorativeLineToolDefinition, EquiDecorativeLineToolDefinition.LineMaterialDef>
     {
-        private EquiDecorativeLineToolDefinition _definition;
-
         private EquiDecorativeLineToolDefinition.LineMaterialDef MaterialDef =>
-            _definition.SortedMaterials[DecorativeToolSettings.LineMaterialIndex % _definition.SortedMaterials.Count];
-
-        public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
-        {
-            base.Init(holder, item, definition);
-            _definition = (EquiDecorativeLineToolDefinition)definition;
-        }
+            Def.SortedMaterials[DecorativeToolSettings.LineMaterialIndex % Def.SortedMaterials.Count];
 
         protected override int RequiredPoints => 2;
 
-        private float CorrectWidth(float width) => width < 0 ? -1 : _definition.WidthRange.Clamp(width);
+        private float CorrectWidth(float width) => width < 0 ? -1 : Def.WidthRange.Clamp(width);
 
         private float WidthA => CorrectWidth(DecorativeToolSettings.LineWidthA);
         private float WidthB => CorrectWidth(DecorativeToolSettings.LineWidthB);
 
-        protected override void HitWithEnoughPoints(ListReader<DecorAnchor> points)
+        protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
             if (points.Count < 2 || points[0].Equals(points[1])) return;
             var remove = ActiveAction == MyHandItemActionEnum.Secondary;
@@ -62,7 +48,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 var length = Vector3.Distance(points[0].GridLocalPosition, points[1].GridLocalPosition);
                 var durabilityCost = (int)Math.Ceiling(MaterialDef.DurabilityBase + MaterialDef.DurabilityPerMeter * length);
-                if (!TryRemoveDurability(durabilityCost))
+                if (!TryRemovePreReqs(durabilityCost, MaterialDef))
                     return;
             }
 
@@ -74,14 +60,17 @@ namespace Equinox76561198048419394.Core.Mesh
                 else
                     gridDecor.AddLine(
                         MaterialDef,
-                        new EquiDecorativeMeshComponent.LineArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                        new EquiDecorativeMeshComponent.LineArgs<BlockAndAnchor>
                         {
                             A = points[0].Anchor,
                             B = points[1].Anchor,
                             CatenaryFactor = DecorativeToolSettings.LineCatenaryFactor,
-                            Color = PackedHsvShift,
                             WidthA = WidthA,
                             WidthB = WidthB,
+                            Shared =
+                            {
+                                Color = PackedHsvShift
+                            },
                         });
                 return;
             }
@@ -107,7 +96,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public EntityId Grid;
             public MyStringHash MaterialId;
-            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt0, Pt1;
+            public RpcBlockAndAnchor Pt0, Pt1;
             public float CatenaryFactor;
             public PackedHsvShift Color;
             public float WidthA, WidthB;
@@ -117,15 +106,15 @@ namespace Equinox76561198048419394.Core.Mesh
         private static void PerformOp(OpArgs args, bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeLineTool behavior)
-                || !behavior._definition.Materials.TryGetValue(args.MaterialId, out var materialDef)
+                || !behavior.Def.Materials.TryGetValue(args.MaterialId, out var materialDef)
                 || !behavior.Scene.TryGetEntity(args.Grid, out var gridEntity))
             {
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = args.Pt0;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt1 = args.Pt1;
+            BlockAndAnchor pt0 = args.Pt0;
+            BlockAndAnchor pt1 = args.Pt1;
 
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData)
                 || !pt0.TryGetGridLocalAnchor(gridData, out var local0)
@@ -145,7 +134,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 var length = Vector3.Distance(local0, local1);
                 var durabilityCost = (int)Math.Ceiling(materialDef.DurabilityBase + materialDef.DurabilityPerMeter * length);
-                if (!behavior.TryRemoveDurability(durabilityCost))
+                if (!behavior.TryRemovePreReqs(durabilityCost, materialDef))
                 {
                     MyEventContext.ValidationFailed();
                     return;
@@ -156,14 +145,17 @@ namespace Equinox76561198048419394.Core.Mesh
             if (remove)
                 gridDecor.RemoveLine(pt0, pt1);
             else
-                gridDecor.AddLine(materialDef, new EquiDecorativeMeshComponent.LineArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                gridDecor.AddLine(materialDef, new EquiDecorativeMeshComponent.LineArgs<BlockAndAnchor>
                 {
                     A = pt0,
                     B = pt1,
                     CatenaryFactor = args.CatenaryFactor,
-                    Color = args.Color,
                     WidthA = behavior.CorrectWidth(args.WidthA),
                     WidthB = behavior.CorrectWidth(args.WidthB),
+                    Shared =
+                    {
+                        Color = args.Color,
+                    },
                 });
         }
 
@@ -175,9 +167,12 @@ namespace Equinox76561198048419394.Core.Mesh
                 A = positions[0],
                 B = positions[1],
                 CatenaryFactor = DecorativeToolSettings.LineCatenaryFactor,
-                Color = PackedHsvShift,
                 WidthA = WidthA,
                 WidthB = WidthB,
+                Shared =
+                {
+                    Color = PackedHsvShift
+                },
             });
             if (line.CatenaryLength > 0 && line.UseNaturalGravity)
                 line.Gravity = Vector3.TransformNormal(
@@ -207,12 +202,14 @@ namespace Equinox76561198048419394.Core.Mesh
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeLineToolDefinition))]
     [MyDependency(typeof(EquiModifierBaseDefinition))]
-    public class EquiDecorativeLineToolDefinition : EquiDecorativeToolBaseDefinition
+    public class EquiDecorativeLineToolDefinition : EquiDecorativeToolBaseDefinition,
+        IEquiDecorativeToolBaseDefinition<EquiDecorativeLineToolDefinition.LineMaterialDef>
     {
-        private const int MaxHalfSideSegments = 8;
+        private readonly MaterialHolder<LineMaterialDef> _holder = new MaterialHolder<LineMaterialDef>();
+        public DictionaryReader<MyStringHash, LineMaterialDef> Materials => _holder.Materials;
+        public ListReader<LineMaterialDef> SortedMaterials => _holder.SortedMaterials;
 
-        public DictionaryReader<MyStringHash, LineMaterialDef> Materials { get; private set; }
-        public ListReader<LineMaterialDef> SortedMaterials { get; private set; }
+        private const int MaxHalfSideSegments = 8;
 
         public float DefaultWidth { get; private set; }
         public ImmutableRange<float> WidthRange { get; private set; }
@@ -250,66 +247,34 @@ namespace Equinox76561198048419394.Core.Mesh
             _minHalfSideSegments = Math.Max(2, ob.HalfSideSegments ?? 0);
             _maxCircleError = Math.Max(0.01f, ob.MaxCircleError ?? 0);
 
-            var materials = new Dictionary<MyStringHash, LineMaterialDef>();
             if (ob.Material != null)
-            {
-                var def = new LineMaterialDef(this, ob, new MyObjectBuilder_EquiDecorativeLineToolDefinition.LineMaterialDef
+                _holder.Add(new LineMaterialDef(this, ob, new MyObjectBuilder_EquiDecorativeLineToolDefinition.LineMaterialDef
                 {
                     Id = "",
                     Material = ob.Material
-                });
-                materials[def.Id] = def;
-            }
+                }));
 
             if (ob.Materials != null)
                 foreach (var mtl in ob.Materials)
-                {
-                    var def = new LineMaterialDef(this, ob, mtl);
-                    materials[def.Id] = def;
-                }
-
-            SortedMaterials = materials.Values.OrderBy(x => x.Name).ToList();
-            Materials = materials;
+                    _holder.Add(new LineMaterialDef(this, ob, mtl));
         }
 
-        public class LineMaterialDef : IEquiIconGridItem
+        public class LineMaterialDef : MaterialDef<EquiDecorativeLineToolDefinition>
         {
-            public readonly EquiDecorativeLineToolDefinition Owner;
-            public readonly MyStringHash Id;
-            public string Name { get; }
-            public string[] UiIcons { get; }
             public readonly MaterialDescriptor Material;
             public readonly Vector2 UvOffset;
             public readonly Vector2 UvNormal;
             public readonly Vector2 UvTangentPerMeter;
-
-            public readonly float DurabilityBase;
             public readonly float DurabilityPerMeter;
 
             internal LineMaterialDef(EquiDecorativeLineToolDefinition owner,
                 MyObjectBuilder_EquiDecorativeLineToolDefinition ownerOb,
-                MyObjectBuilder_EquiDecorativeLineToolDefinition.LineMaterialDef ob)
+                MyObjectBuilder_EquiDecorativeLineToolDefinition.LineMaterialDef ob) : base(owner, ownerOb, ob, ob.Material?.Icons)
             {
-                Owner = owner;
-                Id = MyStringHash.GetOrCompute(ob.Id);
-                Name = ob.Name ?? EquiIconGridController.NameFromId(Id);
-
-                if (ob.UiIcons != null && ob.UiIcons.Length > 0)
-                    UiIcons = ob.UiIcons;
-                else if (ob.Material.Icons != null && ob.Material.Icons.Count > 0)
-                    UiIcons = ob.Material.Icons.ToArray();
-                else
-                {
-                    // Log.Warning($"Line material {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the decal.");
-                    UiIcons = null;
-                }
-
                 Material = ob.Material.Build();
                 UvOffset = ob.UvOffset ?? ownerOb.UvOffset ?? Vector2.Zero;
                 UvNormal = ob.UvNormal ?? ownerOb.UvNormal ?? new Vector2(0, 1);
                 UvTangentPerMeter = ob.UvTangentPerMeter ?? ownerOb.UvTangentPerMeter ?? new Vector2(10, 0);
-
-                DurabilityBase = ob.DurabilityBase ?? ownerOb.DurabilityBase ?? 1;
                 DurabilityPerMeter = ob.DurabilityPerMeter ?? ownerOb.DurabilityPerMeter ?? 0;
             }
         }
@@ -380,10 +345,6 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement]
         public float? MaxCircleError;
 
-        /// <inheritdoc cref="LineMaterialDef.DurabilityBase"/>
-        [XmlElement]
-        public float? DurabilityBase;
-
         /// <inheritdoc cref="LineMaterialDef.DurabilityPerMeter"/>
         [XmlElement]
         public float? DurabilityPerMeter;
@@ -391,31 +352,13 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement("Variant")]
         public LineMaterialDef[] Materials;
 
-        public class LineMaterialDef
+        public class LineMaterialDef : MaterialDef
         {
-            /// <summary>
-            /// Unique identifier for the material.
-            /// </summary>
-            [XmlAttribute("Id")]
-            public string Id;
-
-            /// <summary>
-            /// Display name for the material.
-            /// </summary>
-            [XmlAttribute("Name")]
-            public string Name;
-
             /// <summary>
             /// PBR material definition.
             /// </summary>
             [XmlElement]
             public MaterialSpec Material;
-
-            /// <summary>
-            /// Icons to show in the UI.
-            /// </summary>
-            [XmlElement("UiIcon")]
-            public string[] UiIcons;
 
             /// <summary>
             /// Texture coordinate offset for the beginning of the unwrapped line. Defaults to zero.
@@ -434,12 +377,6 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement]
             public SerializableVector2? UvTangentPerMeter;
-
-            /// <summary>
-            /// Durability cost for each line.
-            /// </summary>
-            [XmlElement]
-            public float? DurabilityBase;
 
             /// <summary>
             /// Durability cost per meter of placed line.

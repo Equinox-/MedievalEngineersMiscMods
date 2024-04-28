@@ -10,12 +10,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using VRageMath;
 using VRageMath.PackedVector;
 using VRageRender.Animations;
 using VRageRender.Import;
+// ReSharper disable FieldCanBeMadeReadOnly.Global
+// ReSharper disable InconsistentNaming
+// ReSharper disable FieldCanBeMadeReadOnly.Local
+// ReSharper disable ConvertToConstant.Global
+#pragma warning disable CS0169 // Field is never used
 
 namespace Equinox76561198048419394.Core.ModelGenerator.ModelIO
 {

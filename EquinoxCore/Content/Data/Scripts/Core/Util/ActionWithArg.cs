@@ -2,6 +2,12 @@ using System;
 
 namespace Equinox76561198048419394.Core.Util
 {
+    public static class ActionWithArg
+    {
+        public static ActionWithArg<TInstance, T1> Create<TInstance, T1>(TInstance instance, Action<TInstance, T1> arg) =>
+            new ActionWithArg<TInstance, T1>(instance, arg);
+    }
+
     public readonly struct ActionWithArg<TInstance, T1>
     {
         public readonly TInstance Instance;

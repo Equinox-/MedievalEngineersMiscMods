@@ -40,11 +40,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Content\Data\Scripts\Core\Cloth\Cloth.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Cloth\ClothColliderComponent.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Cloth\ClothQuadDefinition.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Cloth\ClothSquaresComponent.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Cloth\ImmutablePointRef.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiEntityControllerComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiEntityControllerTracker.cs" />
     <Compile Include="Content\Data\Scripts\Core\Controller\EquiPlayerAttachmentComponent.cs" />
@@ -67,6 +62,8 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryDropper.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\ItemCollection.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\BlockAnchor.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\BlockAnchorInteraction.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Decal.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Line.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Model.cs" />
@@ -194,7 +191,6 @@
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Range.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\RootSolver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\SahBvhBuilder.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Util\EqMath\TriangleBvhBad.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Extensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\FarmingExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\FindFreePlaceUtil.cs" />
@@ -208,7 +204,6 @@
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqSpan.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\EqReadOnlySpan.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\MemoryStream.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Util\Memory\SpanAllocator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Memory\SpanUtils.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MessageUtil.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\MultiComponentReference.cs" />
@@ -221,6 +216,8 @@
     <Compile Include="Content\Data\Scripts\Core\Util\SingletonEnumerator.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\StackArray.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PackedBoundedVec.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\Struct\OffloadedDictionary.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\Struct\PagedFreeList.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ToolWithBuilding.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ToolWithMenu.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\VoxelMiningBuffer.cs" />

@@ -6,7 +6,6 @@ using Equinox76561198048419394.Core.Util;
 using Sandbox.ModAPI;
 using VRage.Entity.Block;
 using VRage.ObjectBuilder;
-using VRage.ObjectBuilders;
 using VRage.Serialization;
 using VRage.Utils;
 using VRageMath;
@@ -19,13 +18,16 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public TPos A, B;
             public float CatenaryFactor;
-            public PackedHsvShift Color;
+            public SharedArgs Shared;
 
             public float? WidthA;
             public float? WidthB;
         }
 
-        public static EquiMeshHelpers.LineData CreateLineData(EquiDecorativeLineToolDefinition.LineMaterialDef material, in LineArgs<Vector3> args)
+        public static EquiMeshHelpers.LineData CreateLineData(
+            EquiDecorativeLineToolDefinition.LineMaterialDef material,
+            in LineArgs<Vector3> args,
+            bool ghost = false)
         {
             var def = material.Owner;
             var length = Vector3.Distance(args.A, args.B);
@@ -53,7 +55,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 HalfSideSegments = def.HalfSideSegments(Math.Max(width0, width1)),
                 CatenaryLength = catenaryLength,
                 UseNaturalGravity = true,
-                ColorMask = args.Color
+                ColorMask = args.Shared.Color,
+                Ghost = ghost,
             };
         }
 
@@ -68,7 +71,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 MaterialId = def.Id,
                 CatenaryFactor = args.CatenaryFactor,
-                Color = args.Color,
+                Shared = args.Shared,
                 WidthA = args.WidthA >= 0 ? args.WidthA.Value : -1,
                 WidthB = args.WidthB >= 0 ? args.WidthB.Value : -1,
             };
@@ -127,28 +130,29 @@ namespace Equinox76561198048419394.Core.Mesh
                 set => _wb = value < 0 ? null : (float?)value;
             }
 
+            public bool ShouldSerializeWidthA() => WidthA >= 0;
+            public bool ShouldSerializeWidthB() => WidthB >= 0;
+
+#pragma warning disable CS0612 // Type or member is obsolete, backcompat
             [XmlIgnore]
-            public PackedHsvShift ColorRaw;
+            [NoSerialize]
+            [Obsolete]
+            public PackedHsvShift? ColorRaw;
 
             [XmlAttribute("Color")]
             [NoSerialize]
             public string Color
             {
-                get => ModifierDataColor.Serialize(ColorRaw);
                 set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+                get => ColorRaw.HasValue ? ModifierDataColor.Serialize(ColorRaw.Value) : null;
             }
 
-            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
-
-            public bool ShouldSerializeWidthA() => WidthA >= 0;
-            public bool ShouldSerializeWidthB() => WidthB >= 0;
+            public bool ShouldSerializeColor() => ColorRaw.HasValue;
+#pragma warning restore CS0612 // Type or member is obsolete
         }
 
-        public class DecorativeLines : IMyRemappable
+        public class DecorativeLines : DecorativeGroup
         {
-            [XmlElement("Definition")]
-            public SerializableDefinitionId Definition;
-
             [XmlElement("MaterialId")]
             [Nullable]
             public string MaterialId;
@@ -156,7 +160,7 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlElement("Line")]
             public List<LineBuilder> Lines;
 
-            public void Remap(IMySceneRemapper remapper)
+            public override void Remap(IMySceneRemapper remapper)
             {
                 if (Lines == null) return;
                 for (var i = 0; i < Lines.Count; i++)

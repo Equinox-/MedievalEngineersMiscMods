@@ -37,16 +37,16 @@ namespace Equinox76561198048419394.Core.Misc
         private readonly Dictionary<string, uint> _lights = new Dictionary<string, uint>();
 
         [Automatic]
-        private readonly MyModelComponent _modelComponent;
+        private readonly MyModelComponent _modelComponent = null;
 
         [Automatic]
-        private readonly MySkeletonComponent _skeletonComponent;
+        private readonly MySkeletonComponent _skeletonComponent = null;
 
         [Automatic]
-        private readonly MyPositionComponentBase _positionComponent;
+        private readonly MyPositionComponentBase _positionComponent = null;
 
         [Automatic]
-        private readonly MyEntityStateComponent _stateComponent;
+        private readonly MyEntityStateComponent _stateComponent = null;
 
         public override void OnAddedToContainer()
         {

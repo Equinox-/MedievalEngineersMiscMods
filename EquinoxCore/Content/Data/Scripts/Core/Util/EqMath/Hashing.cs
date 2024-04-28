@@ -180,9 +180,9 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 }
 
                 if (_wipBytes < sizeof(ulong))
-                    _wipH1 |= (ulong) (c << (_wipBytes * 8));
+                    _wipH1 |= (ulong) c << (_wipBytes * 8);
                 else
-                    _wipH2 |= (ulong) (c << (_wipBytes * 8));
+                    _wipH2 |= (ulong) c << (_wipBytes * 8);
                 _wipBytes += sizeof(long);
                 if (_wipBytes < sizeof(ulong) * 2)
                     return;
@@ -201,9 +201,9 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 }
 
                 if (_wipBytes < sizeof(ulong))
-                    _wipH1 |= (ulong) (c << (_wipBytes * 8));
+                    _wipH1 |= (ulong) c << (_wipBytes * 8);
                 else
-                    _wipH2 |= (ulong) (c << (_wipBytes * 8));
+                    _wipH2 |= (ulong) c << (_wipBytes * 8);
                 _wipBytes += sizeof(int);
                 if (_wipBytes < sizeof(ulong) * 2)
                     return;
@@ -222,9 +222,9 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                 }
 
                 if (_wipBytes < sizeof(ulong))
-                    _wipH1 |= (ulong) (c << (_wipBytes * 8));
+                    _wipH1 |= (ulong) c << (_wipBytes * 8);
                 else
-                    _wipH2 |= (ulong) (c << (_wipBytes * 8));
+                    _wipH2 |= (ulong) c << (_wipBytes * 8);
                 _wipBytes += sizeof(char);
                 if (_wipBytes < sizeof(ulong) * 2)
                     return;
@@ -236,9 +236,9 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             public void Add(byte b)
             {
                 if (_wipBytes < sizeof(ulong))
-                    _wipH1 |= (ulong) (b << (_wipBytes * 8));
+                    _wipH1 |= (ulong) b << (_wipBytes * 8);
                 else
-                    _wipH2 |= (ulong) (b << (_wipBytes * 8));
+                    _wipH2 |= (ulong) b << (_wipBytes * 8);
                 _wipBytes += sizeof(byte);
                 if (_wipBytes < sizeof(ulong) * 2)
                     return;

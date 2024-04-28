@@ -28,11 +28,15 @@ namespace Equinox76561198048419394.Core.Mesh
         /// </summary>
         public static int SnapDivisions = 16;
 
-        /// <summary>
-        /// Should anchors be snapped to block model vertices.
-        /// </summary>
-        public static bool SnapToVertices = false;
+        public static MeshSnappingType MeshSnapping = MeshSnappingType.None;
 
         public static float SnapSize => 0.25f / SnapDivisions;
+
+        public enum MeshSnappingType
+        {
+            None,
+            Vertex,
+            Edge,
+        }
     }
 }

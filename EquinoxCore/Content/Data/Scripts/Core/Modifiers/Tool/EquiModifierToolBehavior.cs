@@ -520,9 +520,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Tool
                 ActionHint = builder.ActionHint;
                 ActionIcon = MyStringHash.GetOrCompute(builder.ActionIcon);
                 Inventory = MyStringHash.GetOrCompute(builder.Inventory);
-                ItemActions = builder.ItemActions != null && builder.ItemActions.Length > 0
-                    ? builder.ItemActions.Select(x => x.ToImmutable()).ToList()
-                    : ListReader<ImmutableInventoryAction>.Empty;
+                ItemActions = builder.ItemActions?.ToImmutable() ?? ListReader<ImmutableInventoryAction>.Empty;
                 _requireMaterial = builder.RequireMaterial != null && builder.RequireMaterial.Length > 0
                     ? new HashSet<string>(builder.RequireMaterial.Select(string.Intern))
                     : default;

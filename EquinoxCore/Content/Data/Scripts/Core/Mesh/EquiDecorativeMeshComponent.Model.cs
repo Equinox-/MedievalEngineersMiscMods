@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Modifiers.Data;
@@ -6,7 +7,6 @@ using Sandbox.ModAPI;
 using VRage.Entity.Block;
 using VRage.Import;
 using VRage.ObjectBuilder;
-using VRage.ObjectBuilders;
 using VRage.Serialization;
 using VRageMath;
 
@@ -20,18 +20,20 @@ namespace Equinox76561198048419394.Core.Mesh
             public Vector3 Forward;
             public Vector3 Up;
             public float Scale;
-            public PackedHsvShift Color;
+            public SharedArgs Shared;
         }
 
         public static EquiDynamicModelsComponent.ModelData CreateModelData(
             EquiDecorativeModelToolDefinition.ModelDef model,
-            in ModelArgs<Vector3> args)
+            in ModelArgs<Vector3> args,
+            bool ghost = false)
         {
             var data = new EquiDynamicModelsComponent.ModelData
             {
                 Model = model.Model,
                 Matrix = Matrix.CreateWorld(args.Position, args.Forward, args.Up),
-                ColorMask = args.Color
+                ColorMask = args.Shared.Color,
+                Ghost = ghost,
             };
             Matrix.Rescale(ref data.Matrix, model.Scale.Clamp(args.Scale));
             return data;
@@ -47,7 +49,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 ModelForward = VF_Packer.PackNormal(args.Forward),
                 ModelUp = VF_Packer.PackNormal(args.Up),
                 ModelScale = args.Scale,
-                Color = args.Color
+                Shared = args.Shared,
             };
             if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
                 RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
@@ -82,25 +84,26 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlAttribute("S")]
             public float Scale;
 
+#pragma warning disable CS0612 // Type or member is obsolete, backcompat
             [XmlIgnore]
-            public PackedHsvShift ColorRaw;
+            [NoSerialize]
+            [Obsolete]
+            public PackedHsvShift? ColorRaw;
 
             [XmlAttribute("Color")]
             [NoSerialize]
             public string Color
             {
-                get => ModifierDataColor.Serialize(ColorRaw);
                 set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+                get => ColorRaw.HasValue ? ModifierDataColor.Serialize(ColorRaw.Value) : null;
             }
 
-            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
+            public bool ShouldSerializeColor() => ColorRaw.HasValue;
+#pragma warning restore CS0612 // Type or member is obsolete
         }
 
-        public class DecorativeModels : IMyRemappable
+        public class DecorativeModels : DecorativeGroup
         {
-            [XmlElement("Definition")]
-            public SerializableDefinitionId Definition;
-
             [XmlElement("ModelId")]
             [Nullable]
             public string ModelId;
@@ -108,7 +111,7 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlElement("Model")]
             public List<ModelBuilder> Models;
 
-            public void Remap(IMySceneRemapper remapper)
+            public override void Remap(IMySceneRemapper remapper)
             {
                 if (Models == null) return;
                 for (var i = 0; i < Models.Count; i++)

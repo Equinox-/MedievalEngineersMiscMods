@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.Struct;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
@@ -26,6 +27,8 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyDependency(typeof(MyRenderComponentGrid), Critical = true)]
     public class EquiDynamicMeshComponent : MyEntityComponent, IComponentDebugDraw
     {
+        public const float GhostDithering = 0.4f;
+
 #pragma warning disable CS0649
         [Automatic]
         private readonly MyRenderComponentGrid _gridRender;
@@ -46,22 +49,40 @@ namespace Equinox76561198048419394.Core.Mesh
 
         private static bool IsDedicated => ((IMyUtilities)MyAPIUtilities.Static).IsDedicated;
 
+        private readonly struct CellArgs : IEquatable<CellArgs>
+        {
+            public readonly PackedHsvShift Color;
+            public readonly bool Ghost;
+
+            public CellArgs(PackedHsvShift color, bool ghost)
+            {
+                Color = color;
+                Ghost = ghost;
+            }
+
+            public bool Equals(CellArgs other) => Color.Equals(other.Color) && Ghost.Equals(other.Ghost);
+
+            public override bool Equals(object obj) => obj is CellArgs other && Equals(other);
+
+            public override int GetHashCode() => (Color.GetHashCode() * 397) ^ Ghost.GetHashCode();
+        }
+
         private readonly struct CellKey : IEquatable<CellKey>
         {
             public readonly Vector3I Position;
-            public readonly PackedHsvShift Color;
+            public readonly CellArgs Args;
 
-            public CellKey(Vector3I position, PackedHsvShift color)
+            public CellKey(Vector3I position, in CellArgs args)
             {
                 Position = position;
-                Color = color;
+                Args = args;
             }
 
-            public bool Equals(CellKey other) => Position.Equals(other.Position) && Color.Equals(other.Color);
+            public bool Equals(CellKey other) => Position.Equals(other.Position) && Args.Equals(other.Args);
 
             public override bool Equals(object obj) => obj is CellKey other && Equals(other);
 
-            public override int GetHashCode() => (Position.GetHashCode() * 397) ^ Color.GetHashCode();
+            public override int GetHashCode() => (Position.GetHashCode() * 397) ^ Args.GetHashCode();
         }
 
         public override void OnAddedToScene()
@@ -163,7 +184,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public ulong CreateDecal(EquiMeshHelpers.DecalData data)
         {
             if (IsDedicated) return NullId;
-            AllocateObjectForCell(data.Position, data.ColorMask, out var cell, out var id);
+            AllocateObjectForCell(data.Position, new CellArgs(data.ColorMask, data.Ghost), out var cell, out var id);
             cell.Decals.Add(id, data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
@@ -172,7 +193,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public ulong CreateLine(EquiMeshHelpers.LineData data)
         {
             if (IsDedicated) return NullId;
-            AllocateObjectForCell((data.Pt0 + data.Pt1) / 2, data.ColorMask, out var cell, out var id);
+            AllocateObjectForCell((data.Pt0 + data.Pt1) / 2, new CellArgs(data.ColorMask, data.Ghost), out var cell, out var id);
             cell.Lines.Add(id, data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
@@ -184,7 +205,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var center = data.Pt0.Position + data.Pt1.Position + data.Pt2.Position;
             if (data.Pt3.HasValue)
                 center += data.Pt3.Value.Position;
-            AllocateObjectForCell(center / (data.Pt3.HasValue ? 4 : 3), data.ColorMask, out var cell, out var id);
+            AllocateObjectForCell(center / (data.Pt3.HasValue ? 4 : 3), new CellArgs(data.ColorMask, data.Ghost), out var cell, out var id);
             cell.Surfaces.Add(id, data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
@@ -197,19 +218,19 @@ namespace Equinox76561198048419394.Core.Mesh
                 return false;
             if (cell.Decals.TryGetValue(obj, out var decalData))
             {
-                cell.MaterialToObject.Remove(decalData.Material, obj);
+                cell.MaterialToObject.Remove(decalData.Value.Material, obj);
                 cell.Decals.Remove(obj);
             }
 
             if (cell.Lines.TryGetValue(obj, out var lineData))
             {
-                cell.MaterialToObject.Remove(lineData.Material, obj);
+                cell.MaterialToObject.Remove(lineData.Value.Material, obj);
                 cell.Lines.Remove(obj);
             }
 
             if (cell.Surfaces.TryGetValue(obj, out var triangleData))
             {
-                cell.MaterialToObject.Remove(triangleData.Material, obj);
+                cell.MaterialToObject.Remove(triangleData.Value.Material, obj);
                 cell.Surfaces.Remove(obj);
             }
 
@@ -217,10 +238,10 @@ namespace Equinox76561198048419394.Core.Mesh
             return true;
         }
 
-        private void AllocateObjectForCell(Vector3 objectCenter, PackedHsvShift colorMask, out RenderCell cell, out ulong id)
+        private void AllocateObjectForCell(Vector3 objectCenter, in CellArgs args, out RenderCell cell, out ulong id)
         {
             var cellPos = PosToCell(objectCenter);
-            var cellKey = new CellKey(cellPos, colorMask);
+            var cellKey = new CellKey(cellPos, in args);
             id = _nextId++;
             _objectToCell.Add(id, cellKey);
             MarkCellDirty(cellKey);
@@ -234,9 +255,9 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             private readonly EquiDynamicMeshComponent _owner;
             private readonly CellKey _key;
-            internal readonly Dictionary<ulong, EquiMeshHelpers.DecalData> Decals = new Dictionary<ulong, EquiMeshHelpers.DecalData>();
-            internal readonly Dictionary<ulong, EquiMeshHelpers.LineData> Lines = new Dictionary<ulong, EquiMeshHelpers.LineData>();
-            internal readonly Dictionary<ulong, EquiMeshHelpers.SurfaceData> Surfaces = new Dictionary<ulong, EquiMeshHelpers.SurfaceData>();
+            internal readonly OffloadedDictionary<ulong, EquiMeshHelpers.DecalData> Decals = new OffloadedDictionary<ulong, EquiMeshHelpers.DecalData>();
+            internal readonly OffloadedDictionary<ulong, EquiMeshHelpers.LineData> Lines = new OffloadedDictionary<ulong, EquiMeshHelpers.LineData>();
+            internal readonly OffloadedDictionary<ulong, EquiMeshHelpers.SurfaceData> Surfaces = new OffloadedDictionary<ulong, EquiMeshHelpers.SurfaceData>();
             internal readonly MyHashSetDictionary<string, ulong> MaterialToObject = new MyHashSetDictionary<string, ulong>();
             private readonly string _modelPrefix;
             private string _modelName;
@@ -251,15 +272,21 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 _owner = owner;
                 _key = key;
-                _modelPrefix = $"dyn_mesh_{_owner.Entity.Id}_{_key.Position}_{_key.Color}";
+                _modelPrefix = $"dyn_mesh_{_owner.Entity.Id}_{_key.Position}_{_key.Args.Color}_{_key.Args.Ghost}";
             }
 
             private Vector3 Origin => (_key.Position + 1) * CellSize;
 
             private void BuildMesh(MyModelData mesh)
             {
-                var origin = Origin;
+                var offset = -Origin;
                 mesh.AABB = BoundingBox.CreateInvalid();
+
+
+                var localGravity = Vector3.TransformNormal(
+                    MyGravityProviderSystem.CalculateNaturalGravityInPoint(Vector3.Transform(Origin, _owner.Entity.WorldMatrix)),
+                    _owner.Entity.PositionComp.WorldMatrixNormalizedInv);
+
                 foreach (var kv in MaterialToObject)
                 {
                     if (MaterialTable.TryGetById(kv.Key, out var mtl))
@@ -269,40 +296,13 @@ namespace Equinox76561198048419394.Core.Mesh
                     foreach (var obj in kv.Value)
                     {
                         if (Lines.TryGetValue(obj, out var line))
-                        {
-                            if (line.CatenaryLength > 0 && line.UseNaturalGravity)
-                            {
-                                var center = Vector3.Transform((line.Pt0 + line.Pt1) / 2, _owner.Entity.WorldMatrix);
-                                var worldGravity = MyGravityProviderSystem.CalculateNaturalGravityInPoint(center);
-                                line.Gravity = Vector3.TransformNormal(worldGravity, _owner.Entity.PositionComp.WorldMatrixNormalizedInv);
-                            }
-
-                            line.Pt0 -= origin;
-                            line.Pt1 -= origin;
-
-                            EquiMeshHelpers.BuildLine(in line, mesh);
-                        }
+                            EquiMeshHelpers.BuildLine(in line.Value, mesh, offset, localGravity);
 
                         if (Surfaces.TryGetValue(obj, out var surface))
-                        {
-                            surface.Pt0.Position -= origin;
-                            surface.Pt1.Position -= origin;
-                            surface.Pt2.Position -= origin;
-                            if (surface.Pt3.HasValue)
-                            {
-                                var pt3 = surface.Pt3.Value;
-                                pt3.Position -= origin;
-                                surface.Pt3 = pt3;
-                            }
-
-                            EquiMeshHelpers.BuildSurface(in surface, mesh);
-                        }
+                            EquiMeshHelpers.BuildSurface(in surface.Value, mesh, offset);
 
                         if (Decals.TryGetValue(obj, out var decal))
-                        {
-                            decal.Position -= origin;
-                            EquiMeshHelpers.BuildDecal(in decal, mesh);
-                        }
+                            EquiMeshHelpers.BuildDecal(in decal.Value, mesh, offset);
                     }
 
                     if (mesh.Positions.Count == vertexOffset || mesh.Indices.Count == indexOffset)
@@ -365,9 +365,10 @@ namespace Equinox76561198048419394.Core.Mesh
                     parent.GetRenderCullingOptions(),
                     parent.GetDiffuseColor(),
                     Vector3.One,
+                    dithering: _key.Args.Ghost ? GhostDithering : 0,
                     depthBias: 255
                 );
-                MyRenderProxy.UpdateRenderEntity(_renderObject, null, (Vector3)_key.Color);
+                MyRenderProxy.UpdateRenderEntity(_renderObject, null, (Vector3)_key.Args.Color, dithering: _key.Args.Ghost ? GhostDithering : 0);
                 return false;
             }
 

@@ -6,10 +6,8 @@ using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
-using Medieval.Constants;
 using Sandbox.Definitions;
 using Sandbox.Definitions.Equipment;
-using Sandbox.Game.Entities.Character;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Inventory;
 using Sandbox.ModAPI;
@@ -38,21 +36,13 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeDecalToolDefinition))]
     [StaticEventOwner]
-    public class EquiDecorativeDecalTool : EquiDecorativeToolBase
+    public class EquiDecorativeDecalTool : EquiDecorativeToolBase<EquiDecorativeDecalToolDefinition, EquiDecorativeDecalToolDefinition.DecalDef>
     {
         internal const float MinDecalHeight = .125f / 4;
         internal const float MaxDecalHeight = 5f;
 
-        private EquiDecorativeDecalToolDefinition _definition;
-
-        public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
-        {
-            base.Init(holder, item, definition);
-            _definition = (EquiDecorativeDecalToolDefinition)definition;
-        }
-
         private EquiDecorativeDecalToolDefinition.DecalDef DecalDef =>
-            _definition.SortedDecals[DecorativeToolSettings.DecalIndex % _definition.SortedDecals.Count];
+            Def.SortedMaterials[DecorativeToolSettings.DecalIndex % Def.SortedMaterials.Count];
 
         protected override int RequiredPoints => 1;
 
@@ -90,7 +80,7 @@ namespace Equinox76561198048419394.Core.Mesh
             return result;
         }
 
-        protected override void HitWithEnoughPoints(ListReader<DecorAnchor> points)
+        protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
             if (points.Count < 1) return;
             var remove = ActiveAction == MyHandItemActionEnum.Secondary;
@@ -99,7 +89,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 var area = DecorativeToolSettings.DecalHeight * DecorativeToolSettings.DecalHeight * decalDef.AspectRatio;
                 var durabilityCost = (int)Math.Ceiling(decalDef.DurabilityBase + decalDef.DurabilityPerSquareMeter * area);
-                if (!TryRemoveDurability(durabilityCost))
+                if (!TryRemovePreReqs(durabilityCost, decalDef))
                     return;
             }
 
@@ -110,13 +100,16 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveDecal(points[0].Anchor);
                 else
-                    gridDecor.AddDecal(decalDef, new EquiDecorativeMeshComponent.DecalArgs<EquiDecorativeMeshComponent.BlockAndAnchor>()
+                    gridDecor.AddDecal(decalDef, new EquiDecorativeMeshComponent.DecalArgs<BlockAndAnchor>()
                     {
                         Position = points[0].Anchor,
                         Normal = normal,
                         Up = ComputeDecalUp(points[0].Grid, normal),
                         Height = DecorativeToolSettings.DecalHeight,
-                        Color = PackedHsvShift
+                        Shared =
+                        {
+                            Color = PackedHsvShift
+                        }
                     });
                 return;
             }
@@ -152,19 +145,19 @@ namespace Equinox76561198048419394.Core.Mesh
         [Event, Reliable, Server]
         private static void PerformOp(
             EntityId grid,
-            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
+            RpcBlockAndAnchor rpcPt0,
             DecalRpcArgs decal,
             bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeDecalTool behavior)
-                || !behavior._definition.Decals.TryGetValue(decal.DecalId, out var decalDef)
+                || !behavior.Def.Materials.TryGetValue(decal.DecalId, out var decalDef)
                 || !behavior.Scene.TryGetEntity(grid, out var gridEntity))
             {
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = rpcPt0;
+            BlockAndAnchor pt0 = rpcPt0;
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData)
                 || !pt0.TryGetGridLocalAnchor(gridData, out var local0))
             {
@@ -182,7 +175,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 var area = decal.Height * decal.Height * decalDef.AspectRatio;
                 var durabilityCost = (int)Math.Ceiling(decalDef.DurabilityBase + decalDef.DurabilityPerSquareMeter * area);
-                if (!behavior.TryRemoveDurability(durabilityCost))
+                if (!behavior.TryRemovePreReqs(durabilityCost, decalDef))
                 {
                     MyEventContext.ValidationFailed();
                     return;
@@ -195,13 +188,16 @@ namespace Equinox76561198048419394.Core.Mesh
             else
                 gridDecor.AddDecal(
                     decalDef,
-                    new EquiDecorativeMeshComponent.DecalArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                    new EquiDecorativeMeshComponent.DecalArgs<BlockAndAnchor>
                     {
                         Position = pt0,
                         Normal = VF_Packer.UnpackNormal(decal.PackedNormal),
                         Up = VF_Packer.UnpackNormal(decal.PackedUp),
                         Height = decal.Height,
-                        Color = decal.Color,
+                        Shared =
+                        {
+                            Color = decal.Color
+                        }
                     });
         }
 
@@ -235,7 +231,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 localPos = nextAnchor.GridLocalPosition;
                 localNormal = nextAnchor.GridLocalNormal;
                 localUp = ComputeDecalUp(nextAnchor.Grid, localNormal);
-                if (nextAnchor.Source == AnchorSource.Existing)
+                if (nextAnchor.Source == BlockAnchorInteraction.SourceType.Existing)
                     nextAnchor.Draw();
             }
             else
@@ -261,7 +257,10 @@ namespace Equinox76561198048419394.Core.Mesh
                     Normal = localNormal,
                     Up = localUp,
                     Height = DecorativeToolSettings.DecalHeight,
-                    Color = PackedHsvShift,
+                    Shared =
+                    {
+                        Color = PackedHsvShift
+                    }
                 });
 
             var renderMatrix = MatrixD.Identity;
@@ -306,58 +305,33 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyDependency(typeof(EquiModifierBaseDefinition))]
     [MyDependency(typeof(MyInventoryItemDefinition))]
     [MyDependency(typeof(MyItemTagDefinition))]
-    public class EquiDecorativeDecalToolDefinition : EquiDecorativeToolBaseDefinition
+    public class EquiDecorativeDecalToolDefinition : EquiDecorativeToolBaseDefinition,
+        IEquiDecorativeToolBaseDefinition<EquiDecorativeDecalToolDefinition.DecalDef>
     {
-        public ListReader<DecalDef> SortedDecals { get; private set; }
-        public DictionaryReader<MyStringHash, DecalDef> Decals { get; private set; }
+        private readonly MaterialHolder<DecalDef> _holder = new MaterialHolder<DecalDef>();
+        public DictionaryReader<MyStringHash, DecalDef> Materials => _holder.Materials;
+        public ListReader<DecalDef> SortedMaterials => _holder.SortedMaterials;
 
-        public class DecalDef : IMyObject, IEquiIconGridItem
+        public class DecalDef : MaterialDef
         {
-            public readonly EquiDecorativeDecalToolDefinition Owner;
-            public readonly MyStringHash Id;
-            public string Name { get; }
             public readonly HalfVector2 TopLeftUv;
             public readonly HalfVector2 BottomRightUv;
             public readonly float AspectRatio;
-            public readonly float DurabilityBase;
             public readonly float DurabilityPerSquareMeter;
             public readonly string Material;
 
-            // Used for icon rendering.
-            public string[] UiIcons { get; }
-
-            internal DecalDef(EquiDecorativeDecalToolDefinition owner, MyStringHash id, MyObjectBuilder_EquiDecorativeDecalToolDefinition.DecalDef ob)
+            internal DecalDef(EquiDecorativeDecalToolDefinition owner, MyObjectBuilder_EquiDecorativeDecalToolDefinition ownerOb,
+                MyObjectBuilder_EquiDecorativeDecalToolDefinition.DecalDef ob) : base(owner, ownerOb, ob,
+                ob.Material?.Icons)
             {
-                Owner = owner;
-                Id = id;
-                Name = ob.Name ?? EquiIconGridController.NameFromId(id);
-                if (ob.UiIcons != null && ob.UiIcons.Length > 0)
-                    UiIcons = ob.UiIcons;
-                else if (ob.Material.Icons != null && ob.Material.Icons.Count > 0)
-                    UiIcons = ob.Material.Icons.ToArray();
-                else
-                {
-                    // Log.Warning($"Decal {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the decal.");
-                    UiIcons = null;
-                }
-
                 Material = ob.Material.Build().MaterialName;
                 var topLeftUv = ob.TopLeftUv ?? Vector2.Zero;
                 TopLeftUv = new HalfVector2(topLeftUv);
                 var bottomRightUv = ob.BottomRightUv ?? Vector2.One;
                 BottomRightUv = new HalfVector2(bottomRightUv);
                 AspectRatio = Math.Abs(ob.AspectRatio ?? (bottomRightUv.X - topLeftUv.X) / (bottomRightUv.Y - topLeftUv.Y));
-                DurabilityBase = ob.DurabilityBase ?? 1;
                 DurabilityPerSquareMeter = ob.DurabilityPerSquareMeter ?? 0;
             }
-
-            void IMyObject.Deserialize(MyObjectBuilder_Base builder) => throw new NotImplementedException();
-
-            MyObjectBuilder_Base IMyObject.Serialize() => throw new NotImplementedException();
-
-            IMyObjectIdentifier IMyObject.Id => throw new NotImplementedException();
-            MyDefinitionId IMyObject.DefinitionId => new MyDefinitionId(typeof(MyObjectBuilder_EquiDecorativeDecalToolDefinition), Id);
-            bool IMyObject.NeedsSerialize => throw new NotImplementedException();
         }
 
         private static readonly List<MaterialSpec.Parameter> ItemDecalParameters = new List<MaterialSpec.Parameter>
@@ -371,7 +345,6 @@ namespace Equinox76561198048419394.Core.Mesh
             base.Init(builder);
             var ob = (MyObjectBuilder_EquiDecorativeDecalToolDefinition)builder;
             if (ob.Decals == null) return;
-            var dict = new Dictionary<MyStringHash, DecalDef>();
             // Item decals
             if (ob.ItemDecals != null)
                 foreach (var itemDecal in ob.ItemDecals)
@@ -412,8 +385,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         };
                         if (itemDecal.Material?.Icons != null)
                             decal.Material.Icons.AddRange(itemDecal.Material.Icons);
-                        var id = MyStringHash.GetOrCompute(decal.Id);
-                        dict[id] = new DecalDef(this, id, decal);
+                        _holder.Add(new DecalDef(this, ob, decal));
                     }
 
                     void CreateMany(IEnumerable<MyInventoryItemDefinition> items, bool includeHidden = false)
@@ -430,12 +402,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 {
                     if (string.IsNullOrEmpty(decal.Id) || decal.Material == null)
                         continue;
-                    var id = MyStringHash.GetOrCompute(decal.Id);
-                    dict[id] = new DecalDef(this, id, decal);
+                    _holder.Add(new DecalDef(this, ob, decal));
                 }
-
-            Decals = dict;
-            SortedDecals = dict.Values.OrderBy(x => x.Name).ToList();
         }
     }
 
@@ -443,36 +411,8 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiDecorativeDecalToolDefinition : MyObjectBuilder_EquiDecorativeToolBaseDefinition
     {
-        public class DecalDefShared
+        public class DecalDef : MaterialDef
         {
-            [XmlElement]
-            public float? DurabilityBase;
-
-            [XmlElement]
-            public float? DurabilityPerSquareMeter;
-        }
-
-
-        public class DecalDef : DecalDefShared
-        {
-            /// <summary>
-            /// Unique identifier for the decal.
-            /// </summary>
-            [XmlAttribute("Id")]
-            public string Id;
-
-            /// <summary>
-            /// Display name for the decal.
-            /// </summary>
-            [XmlAttribute("Name")]
-            public string Name;
-
-            /// <summary>
-            /// Icons to show in the UI.
-            /// </summary>
-            [XmlElement("UiIcon")]
-            public string[] UiIcons;
-
             /// <summary>
             /// Texture coordinates for the top left of the decal. Defaults to (0, 0).
             /// </summary>
@@ -496,6 +436,12 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement]
             public MaterialSpec Material;
+
+            /// <summary>
+            /// Durability cost per square meter of decal.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityPerSquareMeter;
         }
 
         [XmlElement("Decal")]
@@ -504,7 +450,7 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement("ItemDecals")]
         public ItemDecalsDef[] ItemDecals;
 
-        public class ItemDecalsDef : DecalDefShared
+        public class ItemDecalsDef
         {
             /// <summary>
             /// Include all items.
@@ -541,6 +487,18 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement]
             public MaterialSpec Material;
+
+            /// <summary>
+            /// Durability cost for each placement.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityBase;
+
+            /// <summary>
+            /// Durability cost per square meter of decal.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityPerSquareMeter;
         }
     }
 }

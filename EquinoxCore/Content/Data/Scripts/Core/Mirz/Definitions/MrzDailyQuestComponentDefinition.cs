@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using VRage.Components;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Library.Utils;
@@ -37,7 +38,7 @@ namespace Equinox76561198048419394.Core.Mirz.Definitions
             TimeBetweenQuests = (long)((TimeSpan) ob.TimeBetweenQuests).TotalMilliseconds;
 
             if (ob.Quests == null || ob.Quests.Count == 0)
-                throw new MyDefinitionException("Daily quest components needs to have quests defined");
+                throw new InitializationException("Daily quest components needs to have quests defined");
 
             foreach (var quest in ob.Quests)
                 Quests.Add(MyStringHash.GetOrCompute(quest));

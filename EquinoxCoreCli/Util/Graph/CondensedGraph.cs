@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.Struct;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.Cli.Util.Graph
@@ -102,7 +103,7 @@ namespace Equinox76561198048419394.Core.Cli.Util.Graph
 
         private uint CondenseNode(uint midId, in VaporNode node)
         {
-            var condensedIndex = _condensedNodeData.Allocate();
+            var condensedIndex = _condensedNodeData.AllocateIndex();
             _condensedNodes.Add(midId, condensedIndex);
             _vaporNodes.Remove(midId);
 
@@ -167,14 +168,14 @@ namespace Equinox76561198048419394.Core.Cli.Util.Graph
 
             if (!_condensedNodes.TryGetValue(a, out var condensedAIndex))
             {
-                condensedAIndex = _condensedNodeData.Allocate();
+                condensedAIndex = _condensedNodeData.AllocateIndex();
                 _condensedNodeData[condensedAIndex].NeighborCount = 0;
                 _condensedNodes.Add(a, condensedAIndex);
             }
 
             if (!_condensedNodes.TryGetValue(b, out var condensedBIndex))
             {
-                condensedBIndex = _condensedNodeData.Allocate();
+                condensedBIndex = _condensedNodeData.AllocateIndex();
                 _condensedNodeData[condensedBIndex].NeighborCount = 0;
                 _condensedNodes.Add(b, condensedBIndex);
             }

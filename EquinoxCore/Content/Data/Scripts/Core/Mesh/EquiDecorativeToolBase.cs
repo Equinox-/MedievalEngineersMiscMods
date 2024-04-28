@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Storage;
+using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
-using Equinox76561198048419394.Core.Util.EqMath;
 using Medieval.Constants;
 using Sandbox.Definitions.Equipment;
 using Sandbox.Game.Entities.Character;
@@ -13,8 +13,7 @@ using Sandbox.Game.Inventory;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components.Entity.CubeGrid;
-using VRage.Components.Session;
-using VRage.Entity.Block;
+using VRage.Core;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
@@ -22,25 +21,27 @@ using VRage.Game.Entity;
 using VRage.Library.Collections;
 using VRage.ObjectBuilders;
 using VRage.ObjectBuilders.Definitions.Equipment;
+using VRage.Scene;
 using VRage.Utils;
 using VRageMath;
-using VRageRender;
 using MySession = VRage.Session.MySession;
 
 namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
-    public abstract class EquiDecorativeToolBase : MyToolBehaviorBase, IToolWithMenu, IToolWithBuilding
+    public abstract class EquiDecorativeToolBase<TDef, TMaterial> : MyToolBehaviorBase, IToolWithMenu, IToolWithBuilding
+        where TDef : EquiDecorativeToolBaseDefinition
+        where TMaterial : EquiDecorativeToolBaseDefinition.MaterialDef
     {
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
-        private EquiDecorativeToolBaseDefinition _definition;
+        protected TDef Def { get; private set; }
 
         protected Vector2 DebugTextAnchor => MyAPIGateway.Session?.CreativeMode ?? false ? new Vector2(-.45f, -.45f) : new Vector2(-.45f, 100);
 
         public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
         {
             base.Init(holder, item, definition);
-            _definition = (EquiDecorativeToolBaseDefinition)definition;
+            Def = (TDef)definition;
         }
 
         protected override bool ValidateTarget()
@@ -51,10 +52,10 @@ namespace Equinox76561198048419394.Core.Mesh
 
         protected override bool Start(MyHandItemActionEnum action) => true;
 
-        protected bool TryRemoveDurability(int durability)
+        protected bool TryRemovePreReqs(int durability, EquiDecorativeToolBaseDefinition.MaterialDef mtl)
         {
             var player = MyAPIGateway.Players?.GetPlayerControllingEntity(Holder);
-            if (player == null || player.IsCreative()) return true;
+            // if (player == null || player.IsCreative()) return true;
             if (durability > Item.Durability)
             {
                 player.ShowNotification(
@@ -69,113 +70,6 @@ namespace Equinox76561198048419394.Core.Mesh
         protected virtual int RenderPoints => RequiredPoints;
         protected abstract int RequiredPoints { get; }
 
-        protected enum AnchorSource
-        {
-            Mesh,
-            MeshVertex,
-            Dummy,
-            Existing,
-        }
-
-        protected readonly struct DecorAnchor : IEquatable<DecorAnchor>
-        {
-            public readonly MyGridDataComponent Grid;
-            public readonly MyBlock Block;
-            public readonly EquiDecorativeMeshComponent.BlockAndAnchor Anchor;
-            public readonly AnchorSource Source;
-            public readonly Vector3 GridLocalNormal;
-
-            public EquiDecorativeMeshComponent.RpcBlockAndAnchor RpcAnchor => Anchor;
-
-            public DecorAnchor(MyGridDataComponent grid, MyBlock block,
-                EquiDecorativeMeshComponent.BlockAndAnchor anchor, AnchorSource source,
-                Vector3 gridLocalNormal)
-            {
-                Grid = grid;
-                Block = block;
-                Anchor = anchor;
-                Source = source;
-                GridLocalNormal = gridLocalNormal;
-            }
-
-            public Vector3 BlockLocalPosition => Anchor.GetBlockLocalAnchor(Grid, Block);
-            public Vector3 GridLocalPosition => Anchor.GetGridLocalAnchor(Grid, Block);
-
-            public bool TryGetWorldPosition(out Vector3D pos)
-            {
-                var gridPos = Grid?.Container?.Get<MyPositionComponentBase>();
-                if (gridPos != null && Anchor.TryGetGridLocalAnchor(Grid, out var localPos))
-                {
-                    pos = Vector3D.Transform(localPos, gridPos.WorldMatrix);
-                    return true;
-                }
-
-                pos = default;
-                return false;
-            }
-
-            public void Draw()
-            {
-                if (!TryGetWorldPosition(out var pos)) return;
-                var color = SourceColor;
-                const float size = 0.0625f;
-                for (var i = 0; i < 3; i++)
-                {
-                    var dir = new Vector3D();
-                    dir.SetDim(i, size);
-                    MyRenderProxy.DebugDrawLine3D(pos - dir, pos + dir, color, color, false);
-                }
-            }
-
-            public Color SourceColor
-            {
-                get
-                {
-                    switch (Source)
-                    {
-                        case AnchorSource.Mesh:
-                            return Color.White;
-                        case AnchorSource.MeshVertex:
-                        case AnchorSource.Dummy:
-                            return Color.BlueViolet;
-                        default:
-                        case AnchorSource.Existing:
-                            return Color.Lime;
-                    }
-                }
-            }
-
-            public bool Equals(DecorAnchor other) => Equals(Grid, other.Grid) && Anchor.Equals(other.Anchor);
-
-            public override bool Equals(object obj) => obj is DecorAnchor other && Equals(other);
-
-            public override int GetHashCode() => ((Grid != null ? Grid.GetHashCode() : 0) * 397) ^ Anchor.GetHashCode();
-        }
-
-        private readonly struct DecorCandidate
-        {
-            public readonly MyGridDataComponent Grid;
-            public readonly MyBlock Block;
-
-            public DecorCandidate(MyGridDataComponent grid, MyBlock block)
-            {
-                Grid = grid;
-                Block = block;
-            }
-
-            public string ModelName
-            {
-                get
-                {
-                    var model = Block.Model.AssetName;
-                    if (!Grid.Container.TryGet(out EquiGridModifierComponent modifier)) return model;
-                    var key = new EquiGridModifierComponent.BlockModifierKey(Block.Id, MyStringHash.NullOrEmpty);
-                    if (!modifier.TryCreateContext(in key, modifier.GetModifiers(in key), out var ctx)) return model;
-                    return ctx.OriginalModel ?? model;
-                }
-            }
-        }
-
         protected LineD DetectionLine
         {
             get
@@ -185,154 +79,23 @@ namespace Equinox76561198048419394.Core.Mesh
             }
         }
 
-        private bool TryGetAnchorFromModelBvh(bool snapToGrid, out DecorAnchor anchor)
+        private bool TrySnapToExisting(in BlockAnchorInteraction anchor, out BlockAnchorInteraction snapped)
         {
-            anchor = default;
-            var mm = MySession.Static.Components.Get<DerivedModelManager>();
-            if (mm == null)
-                return false;
-
-            var worldLine = DetectionLine;
-            var found = false;
-            using (PoolManager.Get(out List<MyLineSegmentOverlapResult<DecorCandidate>> candidates))
-            {
-                using (PoolManager.Get(out List<MyLineSegmentOverlapResult<MyEntity>> entities))
-                {
-                    MyGamePruningStructure.GetTopmostEntitiesOverlappingRay(ref worldLine, entities);
-                    foreach (var overlap in entities)
-                    {
-                        var entity = overlap.Element;
-                        if (!entity.Components.TryGet(out MyGridDataComponent gridDataComponent))
-                            continue;
-                        var invMatrix = entity.PositionComp.WorldMatrixNormalizedInv;
-                        var localLine = new LineD(Vector3D.Transform(worldLine.From, in invMatrix), Vector3D.Transform(worldLine.To, in invMatrix));
-                        var localLineSingle = (Line)localLine;
-                        using (PoolManager.Get(out List<MyBlock> blocks))
-                        {
-                            gridDataComponent.GetBlocksInLine(localLine, blocks);
-                            foreach (var block in blocks)
-                                if (gridDataComponent.GetBlockLocalBounds(block).Intersects(localLineSingle, out var distance))
-                                    candidates.Add(new MyLineSegmentOverlapResult<DecorCandidate>
-                                    {
-                                        Distance = distance,
-                                        Element = new DecorCandidate(gridDataComponent, block)
-                                    });
-                        }
-                    }
-                }
-
-                var source = AnchorSource.Mesh;
-                var bestDistance = (float) worldLine.Length;
-                candidates.Sort(MyLineSegmentOverlapResult<DecorCandidate>.DistanceComparer);
-                foreach (var overlap in candidates)
-                {
-                    // Stop trying if the whole entity is farther away
-                    if (overlap.Distance > bestDistance)
-                        break;
-                    var tmpCandidate = overlap.Element;
-                    var model = tmpCandidate.ModelName;
-                    var blockLocalMatrix = tmpCandidate.Grid.GetBlockLocalMatrix(tmpCandidate.Block);
-                    var blockWorldMatrix = blockLocalMatrix * tmpCandidate.Grid.Entity.WorldMatrix;
-                    MatrixD.Invert(ref blockWorldMatrix, out var blockInvWorldMatrix);
-                    var localRay = new Ray((Vector3)Vector3D.Transform(worldLine.From, in blockInvWorldMatrix),
-                        (Vector3)Vector3D.TransformNormal(worldLine.Direction, ref blockInvWorldMatrix));
-                    var bvh = mm.GetMaterialBvh(model);
-                    if (bvh == null || !bvh.RayCast(in localRay, out _, out _, out var dist, out var triangleId, bestDistance) || dist > bestDistance)
-                        continue;
-                    bestDistance = dist;
-                    var pos = localRay.Position + localRay.Direction * dist;
-                    ref readonly var tri = ref bvh.GetTriangle(triangleId);
-                    if (snapToGrid)
-                    {
-                        var snapSize = DecorativeToolSettings.SnapSize;
-                        var snappedToMesh = false;
-                        if (DecorativeToolSettings.SnapToVertices)
-                        {
-                            ref readonly var nearest = ref tri.NearestVertex(in pos, out var nearestDistance);
-                            if (nearestDistance < snapSize * 4)
-                            {
-                                pos = nearest;
-                                source = AnchorSource.MeshVertex;
-                                snappedToMesh = true;
-                            }
-                        }
-
-                        if (!snappedToMesh)
-                        {
-                            // Snapping is performed on the grid's coordinate system, but anchors are relative to the block's coordinate system.
-                            var snapOffset = ((BoundingBox)tmpCandidate.Block.Definition.BoundingBox).Center * tmpCandidate.Grid.Size;
-                            pos = Vector3.Round((pos - snapOffset) / snapSize) * snapSize + snapOffset;
-                        }
-                    }
-
-                    var gridLocalNormal = Vector3.TransformNormal(tri.RawNormal, ref blockLocalMatrix);
-                    gridLocalNormal.Normalize();
-                    anchor = new DecorAnchor(
-                        tmpCandidate.Grid,
-                        tmpCandidate.Block,
-                        EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(tmpCandidate.Grid,
-                            tmpCandidate.Block,
-                            pos),
-                        source,
-                        gridLocalNormal);
-                    found = true;
-                }
-            }
-
-            return found;
-        }
-
-        private bool TrySnapToDummy(in DecorAnchor anchor, out DecorAnchor snapped)
-        {
-            snapped = default;
-            if (_definition.SnapToDummy.Count == 0) return false;
-            var hasSnapped = false;
-            Matrix snapTo = default;
-            var snapToDistSq = _definition.SnapDummyDistance * _definition.SnapDummyDistance;
-            var blockLocalPos = anchor.BlockLocalPosition;
-            foreach (var dummy in anchor.Block.Model.Dummies)
-                if (_definition.SnapToDummy.Contains(dummy.Name))
-                {
-                    var dist2 = Vector3.DistanceSquared(dummy.Matrix.Translation, blockLocalPos);
-                    if (dist2 >= snapToDistSq) continue;
-                    hasSnapped = true;
-                    snapTo = dummy.Matrix;
-                    snapToDistSq = dist2;
-                }
-
-            if (!hasSnapped) return false;
-
-            // Snap to dummy axes
-            Matrix.Transpose(ref snapTo, out var snapToTranspose);
-            var snappedBlockNormal = Vector3.TransformNormal(anchor.GridLocalNormal, ref snapToTranspose);
-            snappedBlockNormal = Vector3.DominantAxisProjection(snappedBlockNormal);
-            var snappedGridNormal = Vector3.TransformNormal(snappedBlockNormal, ref snapTo);
-            snappedGridNormal.Normalize();
-
-            snapped = new DecorAnchor(anchor.Grid, anchor.Block,
-                EquiDecorativeMeshComponent.CreateAnchorFromBlockLocalPosition(anchor.Grid, anchor.Block, snapTo.Translation),
-                AnchorSource.Dummy,
-                snappedGridNormal);
-            return true;
-        }
-
-        private bool TrySnapToExisting(in DecorAnchor anchor, out DecorAnchor snapped)
-        {
-            if (!EquiDecorativeMeshComponent.TrySnapPosition(anchor.Grid, anchor.GridLocalPosition, _definition.SnapExistingDistance, out var snappedAnchor))
+            if (!EquiDecorativeMeshComponent.TrySnapPosition(anchor.Grid, anchor.GridLocalPosition, Def.SnapExistingDistance, out var snappedAnchor))
             {
                 snapped = default;
                 return false;
             }
 
-            snapped = new DecorAnchor(anchor.Grid, anchor.Grid.GetBlock(snappedAnchor.Block), snappedAnchor,
-                AnchorSource.Existing, anchor.GridLocalNormal);
+            snapped = new BlockAnchorInteraction(anchor.Grid, anchor.Grid.GetBlock(snappedAnchor.Block), snappedAnchor,
+                BlockAnchorInteraction.SourceType.Existing, anchor.GridLocalNormal);
             return true;
         }
 
-        private bool TrySnapToStaged(in DecorAnchor anchor, out DecorAnchor snapped)
+        private bool TrySnapToStaged(in BlockAnchorInteraction anchor, out BlockAnchorInteraction snapped)
         {
             snapped = default;
-            var bestSnappedDistanceSq = _definition.SnapExistingDistance * _definition.SnapExistingDistance;
+            var bestSnappedDistanceSq = Def.SnapExistingDistance * Def.SnapExistingDistance;
             foreach (var existing in _anchors)
             {
                 if (existing.Grid != anchor.Grid) continue;
@@ -345,13 +108,17 @@ namespace Equinox76561198048419394.Core.Mesh
             return snapped.Block != null;
         }
 
-        protected bool TryGetAnchor(out DecorAnchor anchor)
+        protected bool TryGetAnchor(out BlockAnchorInteraction anchor)
         {
-            var snap = _definition.RequireDummySnapping || !Modified;
-            if (!TryGetAnchorFromModelBvh(snap, out anchor)) return false;
-            if (snap && TrySnapToDummy(in anchor, out var dummySnapped))
+            var snap = Def.RequireDummySnapping || !Modified;
+            if (!BlockAnchorInteraction.TryGetAnchorFromModelBvh(DetectionLine,
+                    snap ? DecorativeToolSettings.SnapSize : 0,
+                    snap && DecorativeToolSettings.MeshSnapping == DecorativeToolSettings.MeshSnappingType.Vertex ? DecorativeToolSettings.SnapSize : 0,
+                    snap && DecorativeToolSettings.MeshSnapping == DecorativeToolSettings.MeshSnappingType.Edge ? DecorativeToolSettings.SnapSize : 0,
+                    out anchor)) return false;
+            if (snap && BlockAnchorInteraction.TrySnapToDummy(in anchor, Def.SnapToDummy, Def.SnapDummyDistance * Def.SnapDummyDistance, out var dummySnapped))
                 anchor = dummySnapped;
-            else if (_definition.RequireDummySnapping)
+            else if (Def.RequireDummySnapping)
                 return false;
             if (!snap)
                 return true;
@@ -379,9 +146,9 @@ namespace Equinox76561198048419394.Core.Mesh
             base.Deactivate();
         }
 
-        private readonly List<DecorAnchor> _anchors = new List<DecorAnchor>();
+        private readonly List<BlockAnchorInteraction> _anchors = new List<BlockAnchorInteraction>();
 
-        protected PackedHsvShift PackedHsvShift => _definition.AllowRecoloring && DecorativeToolSettings.HsvShift.HasValue
+        protected PackedHsvShift PackedHsvShift => Def.AllowRecoloring && DecorativeToolSettings.HsvShift.HasValue
             ? (PackedHsvShift)DecorativeToolSettings.HsvShift.Value
             : default;
 
@@ -426,7 +193,7 @@ namespace Equinox76561198048419394.Core.Mesh
             _anchors.Clear();
         }
 
-        protected abstract void HitWithEnoughPoints(ListReader<DecorAnchor> points);
+        protected abstract void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points);
 
         protected virtual void RenderHelper()
         {
@@ -489,7 +256,7 @@ namespace Equinox76561198048419394.Core.Mesh
     }
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
-    public class EquiDecorativeToolBaseDefinition : MyToolBehaviorDefinition
+    public abstract class EquiDecorativeToolBaseDefinition : MyToolBehaviorDefinition
     {
         public HashSetReader<string> SnapToDummy { get; private set; }
         public float SnapDummyDistance { get; private set; }
@@ -509,11 +276,88 @@ namespace Equinox76561198048419394.Core.Mesh
             RequireDummySnapping = ob.RequireDummySnapping ?? false;
             AllowRecoloring = ob.AllowRecoloring ?? false;
         }
+
+        public abstract class MaterialDef : IMyObject, IEquiIconGridItem
+        {
+            public readonly EquiDecorativeToolBaseDefinition Owner;
+            public readonly MyStringHash Id;
+
+            public string Name { get; }
+
+            public string[] UiIcons { get; }
+
+            public readonly float DurabilityBase;
+
+            public MaterialDef(
+                EquiDecorativeToolBaseDefinition owner,
+                MyObjectBuilder_EquiDecorativeToolBaseDefinition ownerOb,
+                MyObjectBuilder_EquiDecorativeToolBaseDefinition.MaterialDef ob,
+                ICollection<string> fallbackIcons = null)
+            {
+                Owner = owner;
+                Id = MyStringHash.GetOrCompute(ob.Id);
+                Name = ob.Name ?? EquiIconGridController.NameFromId(Id);
+                UiIcons = ob.UiIcons ?? (fallbackIcons?.Count > 0 ? fallbackIcons.ToArray() : Array.Empty<string>());
+                DurabilityBase = ob.DurabilityBase ?? ownerOb.DurabilityBase ?? 1;
+            }
+
+            void IMyObject.Deserialize(MyObjectBuilder_Base builder) => throw new NotImplementedException();
+
+            MyObjectBuilder_Base IMyObject.Serialize() => throw new NotImplementedException();
+
+            IMyObjectIdentifier IMyObject.Id => throw new NotImplementedException();
+            MyDefinitionId IMyObject.DefinitionId => new MyDefinitionId(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition), Id);
+            bool IMyObject.NeedsSerialize => throw new NotImplementedException();
+        }
+
+        public abstract class MaterialDef<TOwner> : MaterialDef where TOwner : EquiDecorativeToolBaseDefinition
+        {
+            public new readonly TOwner Owner;
+
+            protected MaterialDef(
+                TOwner owner,
+                MyObjectBuilder_EquiDecorativeToolBaseDefinition ownerOb,
+                MyObjectBuilder_EquiDecorativeToolBaseDefinition.MaterialDef ob,
+                ICollection<string> fallbackIcons = null) : base(owner, ownerOb, ob, fallbackIcons)
+            {
+                Owner = owner;
+            }
+        }
+
+        protected sealed class MaterialHolder<TMaterial> where TMaterial : MaterialDef
+        {
+            private readonly Dictionary<MyStringHash, TMaterial> _materials = new Dictionary<MyStringHash, TMaterial>(MyStringHash.Comparer);
+            private List<TMaterial> _sortedMaterials;
+
+            public DictionaryReader<MyStringHash, TMaterial> Materials => _materials;
+
+            public ListReader<TMaterial> SortedMaterials
+            {
+                get
+                {
+                    if (_sortedMaterials == null)
+                        _sortedMaterials = _materials.Values.OrderBy(x => x.Name).ToList();
+                    return _sortedMaterials;
+                }
+            }
+
+            public void Add(TMaterial material)
+            {
+                _materials.Add(material.Id, material);
+                _sortedMaterials = null;
+            }
+        }
+    }
+
+    public interface IEquiDecorativeToolBaseDefinition<TMaterial> where TMaterial : EquiDecorativeToolBaseDefinition.MaterialDef
+    {
+        DictionaryReader<MyStringHash, TMaterial> Materials { get; }
+        ListReader<TMaterial> SortedMaterials { get; }
     }
 
     [MyObjectBuilderDefinition]
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-    public class MyObjectBuilder_EquiDecorativeToolBaseDefinition : MyObjectBuilder_ToolBehaviorDefinition
+    public abstract class MyObjectBuilder_EquiDecorativeToolBaseDefinition : MyObjectBuilder_ToolBehaviorDefinition
     {
         [XmlElement("SnapToDummy")]
         public List<string> SnapToDummy;
@@ -525,5 +369,37 @@ namespace Equinox76561198048419394.Core.Mesh
         public float? SnapExistingDistance;
 
         public bool? AllowRecoloring;
+
+        /// <inheritdoc cref="MaterialDef.DurabilityBase"/>
+        [XmlElement]
+        public float? DurabilityBase;
+
+        public abstract class MaterialDef
+        {
+            /// <summary>
+            /// Unique identifier for the material.
+            /// </summary>
+            [XmlAttribute("Id")]
+            public string Id;
+
+            /// <summary>
+            /// Display name for the material.
+            /// </summary>
+            [XmlAttribute("Name")]
+            public string Name;
+
+
+            /// <summary>
+            /// Icons to show in the UI.
+            /// </summary>
+            [XmlElement("UiIcon")]
+            public string[] UiIcons;
+
+            /// <summary>
+            /// Durability cost for each placement.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityBase;
+        }
     }
 }

@@ -68,5 +68,28 @@ namespace Equinox76561198048419394.Core.Util.EqMath
         public static double SafeSign(double value) => value < 0 ? -1 : 1;
 
         public static Vector3 SafeSign(in Vector3 vec) => new Vector3(SafeSign(vec.X), SafeSign(vec.Y), SafeSign(vec.Z));
+
+        public static float DistanceSquared(this in Vector3 a, in Vector3 b)
+        {
+            var dx = a.X - b.X;
+            var dy = a.Y - b.Y;
+            var dz = a.Z - b.Z;
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        public static Vector3 ClosestPointOnLine(in Vector3 lineA, in Vector3 lineB, in Vector3 pt)
+        {
+            var aToBNorm = lineB - lineA;
+            var aToBLength = aToBNorm.Normalize();
+            if (aToBLength <= 1e-6f)
+                return lineA;
+            var aToPt = pt - lineA;
+            var t = Vector3.Dot(aToPt, aToBNorm);
+            if (t <= 0)
+                return lineA;
+            if (t >= aToBLength)
+                return lineB;
+            return lineA + aToBNorm * t;
+        }
     }
 }

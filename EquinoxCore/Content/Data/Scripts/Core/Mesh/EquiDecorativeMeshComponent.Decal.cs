@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Modifiers.Data;
@@ -6,7 +7,6 @@ using Sandbox.ModAPI;
 using VRage.Entity.Block;
 using VRage.Import;
 using VRage.ObjectBuilder;
-using VRage.ObjectBuilders;
 using VRage.Serialization;
 using VRageMath;
 using VRageMath.PackedVector;
@@ -21,12 +21,13 @@ namespace Equinox76561198048419394.Core.Mesh
             public Vector3 Normal;
             public Vector3 Up;
             public float Height;
-            public PackedHsvShift Color;
+            public SharedArgs Shared;
         }
 
         public static EquiMeshHelpers.DecalData CreateDecalData(
             EquiDecorativeDecalToolDefinition.DecalDef decal,
-            in DecalArgs<Vector3> args)
+            in DecalArgs<Vector3> args,
+            bool ghost = false)
         {
             var left = Vector3.Cross(args.Normal, args.Up);
             left *= args.Height * decal.AspectRatio / left.Length() / 2;
@@ -39,7 +40,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 Normal = VF_Packer.PackNormal(args.Normal),
                 Up = new HalfVector3(args.Up * args.Height / 2),
                 Left = new HalfVector3(left),
-                ColorMask = args.Color
+                ColorMask = args.Shared.Color,
+                Ghost = ghost,
             };
         }
 
@@ -53,7 +55,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 DecalNormal = VF_Packer.PackNormal(args.Normal),
                 DecalUp = VF_Packer.PackNormal(args.Up),
                 DecalHeight = args.Height,
-                Color = args.Color
+                Shared = args.Shared,
             };
             if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
                 RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
@@ -88,25 +90,26 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlAttribute("H")]
             public float Height;
 
+#pragma warning disable CS0612 // Type or member is obsolete, backcompat
             [XmlIgnore]
-            public PackedHsvShift ColorRaw;
+            [NoSerialize]
+            [Obsolete]
+            public PackedHsvShift? ColorRaw;
 
             [XmlAttribute("Color")]
             [NoSerialize]
             public string Color
             {
-                get => ModifierDataColor.Serialize(ColorRaw);
                 set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+                get => ColorRaw.HasValue ? ModifierDataColor.Serialize(ColorRaw.Value) : null;
             }
 
-            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
+            public bool ShouldSerializeColor() => ColorRaw.HasValue;
+#pragma warning restore CS0612 // Type or member is obsolete
         }
 
-        public class DecorativeDecals : IMyRemappable
+        public class DecorativeDecals : DecorativeGroup
         {
-            [XmlElement("Definition")]
-            public SerializableDefinitionId Definition;
-
             [XmlElement("DecalId")]
             [Nullable]
             public string DecalId;
@@ -114,7 +117,7 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlElement("Decal")]
             public List<DecalBuilder> Decals;
 
-            public void Remap(IMySceneRemapper remapper)
+            public override void Remap(IMySceneRemapper remapper)
             {
                 if (Decals == null) return;
                 for (var i = 0; i < Decals.Count; i++)

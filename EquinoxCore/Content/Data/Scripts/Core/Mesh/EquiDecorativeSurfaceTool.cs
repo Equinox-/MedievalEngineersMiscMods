@@ -1,16 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
-using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
-using Medieval.Constants;
-using Sandbox.Definitions.Equipment;
 using Sandbox.Game.EntityComponents.Character;
-using Sandbox.Game.Inventory;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Collections;
@@ -20,7 +15,6 @@ using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
-using VRage.Game.Entity;
 using VRage.Library.Collections;
 using VRage.Network;
 using VRage.ObjectBuilders;
@@ -34,18 +28,10 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeSurfaceToolDefinition))]
     [StaticEventOwner]
-    public class EquiDecorativeSurfaceTool : EquiDecorativeToolBase
+    public class EquiDecorativeSurfaceTool : EquiDecorativeToolBase<EquiDecorativeSurfaceToolDefinition, EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef>
     {
-        private EquiDecorativeSurfaceToolDefinition _definition;
-
         private EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef MaterialDef =>
-            _definition.SortedMaterials[DecorativeToolSettings.SurfaceMaterialIndex % _definition.SortedMaterials.Count];
-
-        public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
-        {
-            base.Init(holder, item, definition);
-            _definition = (EquiDecorativeSurfaceToolDefinition)definition;
-        }
+            Def.SortedMaterials[DecorativeToolSettings.SurfaceMaterialIndex % Def.SortedMaterials.Count];
 
         private PoolManager.ReturnHandle<List<TR>> GetUnique<TV, TR>(ListReader<TV> values, Func<TV, TR> transform, out List<TR> unique)
             where TR : IEquatable<TR>
@@ -65,9 +51,9 @@ namespace Equinox76561198048419394.Core.Mesh
         protected override int RenderPoints => 3;
         protected override int RequiredPoints => 4;
 
-        private float UvScale => _definition.TextureScale.Clamp(DecorativeToolSettings.UvScale);
+        private float UvScale => Def.TextureScale.Clamp(DecorativeToolSettings.UvScale);
 
-        protected override void HitWithEnoughPoints(ListReader<DecorAnchor> points)
+        protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
             using (GetUnique(points, pt => pt, out var unique))
             {
@@ -77,29 +63,32 @@ namespace Equinox76561198048419394.Core.Mesh
                 var remove = ActiveAction == MyHandItemActionEnum.Secondary;
                 if (!remove)
                 {
-                    var surfData = CreateSurfaceData<DecorAnchor>(gridPos, unique, pt => pt.GridLocalPosition);
+                    var surfData = CreateSurfaceData<BlockAnchorInteraction>(gridPos, unique, pt => pt.GridLocalPosition);
                     var durabilityRequired = (int)Math.Ceiling(MaterialDef.DurabilityBase + surfData.Area * MaterialDef.DurabilityPerSquareMeter);
-                    if (!TryRemoveDurability(durabilityRequired))
+                    if (!TryRemovePreReqs(durabilityRequired, MaterialDef))
                         return;
                 }
 
-                var anchor3 = unique.Count > 3 ? unique[3].Anchor : EquiDecorativeMeshComponent.BlockAndAnchor.Null;
+                var anchor3 = unique.Count > 3 ? unique[3].Anchor : BlockAndAnchor.Null;
                 if (MyMultiplayerModApi.Static.IsServer)
                 {
                     var gridDecor = unique[0].Grid.Container.GetOrAdd<EquiDecorativeMeshComponent>();
                     if (remove)
                         gridDecor.RemoveSurface(unique[0].Anchor, unique[1].Anchor, unique[2].Anchor, anchor3);
                     else
-                        gridDecor.AddSurface(MaterialDef, new EquiDecorativeMeshComponent.SurfaceArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                        gridDecor.AddSurface(MaterialDef, new EquiDecorativeMeshComponent.SurfaceArgs<BlockAndAnchor>
                         {
                             A = unique[0].Anchor,
                             B = unique[1].Anchor,
                             C = unique[2].Anchor,
                             D = anchor3,
-                            Color = PackedHsvShift,
                             UvProjection = DecorativeToolSettings.UvProjection,
                             UvBias = DecorativeToolSettings.UvBias,
-                            UvScale = UvScale
+                            UvScale = UvScale,
+                            Shared =
+                            {
+                                Color = PackedHsvShift
+                            },
                         });
                     return;
                 }
@@ -127,10 +116,10 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public EntityId Grid;
             public MyStringHash MaterialId;
-            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt0;
-            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt1;
-            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt2;
-            public EquiDecorativeMeshComponent.RpcBlockAndAnchor Pt3;
+            public RpcBlockAndAnchor Pt0;
+            public RpcBlockAndAnchor Pt1;
+            public RpcBlockAndAnchor Pt2;
+            public RpcBlockAndAnchor Pt3;
             public PackedHsvShift Color;
             public UvProjectionMode UvProjection;
             public UvBiasMode UvBias;
@@ -141,17 +130,17 @@ namespace Equinox76561198048419394.Core.Mesh
         private static void PerformOp(OpArgs args, bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeSurfaceTool behavior)
-                || !behavior._definition.Materials.TryGetValue(args.MaterialId, out var material)
+                || !behavior.Def.Materials.TryGetValue(args.MaterialId, out var material)
                 || !behavior.Scene.TryGetEntity(args.Grid, out var gridEntity))
             {
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = args.Pt0;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt1 = args.Pt1;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt2 = args.Pt2;
-            EquiDecorativeMeshComponent.BlockAndAnchor pt3 = args.Pt3;
+            BlockAndAnchor pt0 = args.Pt0;
+            BlockAndAnchor pt1 = args.Pt1;
+            BlockAndAnchor pt2 = args.Pt2;
+            BlockAndAnchor pt3 = args.Pt3;
 
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData))
             {
@@ -200,7 +189,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     var surfData = behavior.CreateSurfaceData<Vector3>(gridEntity.PositionComp, points, pt => pt);
                     var durabilityRequired =
                         (int)Math.Ceiling(material.DurabilityBase + surfData.Area * material.DurabilityPerSquareMeter);
-                    if (!behavior.TryRemoveDurability(durabilityRequired))
+                    if (!behavior.TryRemovePreReqs(durabilityRequired, material))
                     {
                         MyEventContext.ValidationFailed();
                         return;
@@ -213,16 +202,19 @@ namespace Equinox76561198048419394.Core.Mesh
                 gridDecor.RemoveSurface(pt0, pt1, pt2, pt3);
             else
                 gridDecor.AddSurface(
-                    material, new EquiDecorativeMeshComponent.SurfaceArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                    material, new EquiDecorativeMeshComponent.SurfaceArgs<BlockAndAnchor>
                     {
                         A = pt0,
                         B = pt1,
                         C = pt2,
                         D = pt3,
-                        Color = args.Color,
                         UvProjection = args.UvProjection,
                         UvBias = args.UvBias,
-                        UvScale = args.UvScale
+                        UvScale = args.UvScale,
+                        Shared =
+                        {
+                            Color = args.Color,
+                        },
                     });
         }
 
@@ -242,10 +234,13 @@ namespace Equinox76561198048419394.Core.Mesh
                     B = gridLocalPos(values[1]),
                     C = gridLocalPos(values[2]),
                     D = values.Count > 3 ? (Vector3?)gridLocalPos(values[3]) : null,
-                    Color = PackedHsvShift,
                     UvProjection = DecorativeToolSettings.UvProjection,
                     UvBias = DecorativeToolSettings.UvBias,
-                    UvScale = UvScale
+                    UvScale = UvScale,
+                    Shared =
+                    {
+                        Color = PackedHsvShift
+                    },
                 }, -localGravity);
         }
 
@@ -344,10 +339,13 @@ namespace Equinox76561198048419394.Core.Mesh
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeSurfaceToolDefinition))]
     [MyDependency(typeof(EquiModifierBaseDefinition))]
-    public class EquiDecorativeSurfaceToolDefinition : EquiDecorativeToolBaseDefinition
+    public class EquiDecorativeSurfaceToolDefinition
+        : EquiDecorativeToolBaseDefinition,
+            IEquiDecorativeToolBaseDefinition<EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef>
     {
-        public DictionaryReader<MyStringHash, SurfaceMaterialDef> Materials { get; private set; }
-        public ListReader<SurfaceMaterialDef> SortedMaterials { get; private set; }
+        private readonly MaterialHolder<SurfaceMaterialDef> _holder = new MaterialHolder<SurfaceMaterialDef>();
+        public DictionaryReader<MyStringHash, SurfaceMaterialDef> Materials => _holder.Materials;
+        public ListReader<SurfaceMaterialDef> SortedMaterials => _holder.SortedMaterials;
         public ImmutableRange<float> TextureScale { get; private set; }
 
 
@@ -357,71 +355,39 @@ namespace Equinox76561198048419394.Core.Mesh
             var ob = (MyObjectBuilder_EquiDecorativeSurfaceToolDefinition)builder;
 
             TextureScale = ob.TextureScale?.Immutable() ?? new ImmutableRange<float>(1, 1);
-            var materials = new Dictionary<MyStringHash, SurfaceMaterialDef>();
             if (ob.Material != null)
-            {
-                var def = new SurfaceMaterialDef(this, ob, new MyObjectBuilder_EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef
+                _holder.Add(new SurfaceMaterialDef(this, ob, new MyObjectBuilder_EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef
                 {
                     Id = "",
                     Material = ob.Material,
                     TextureSize = ob.TextureSize,
                     FlipRearNormals = ob.FlipRearNormals,
                     UvGuide = ob.UvGuide,
-                });
-                materials[def.Id] = def;
-            }
+                }));
 
             if (ob.Materials != null)
                 foreach (var mtl in ob.Materials)
-                {
-                    var def = new SurfaceMaterialDef(this, ob, mtl);
-                    materials[def.Id] = def;
-                }
-
-            SortedMaterials = materials.Values.OrderBy(x => x.Name).ToList();
-            Materials = materials;
+                    _holder.Add(new SurfaceMaterialDef(this, ob, mtl));
         }
 
-        public class SurfaceMaterialDef : IEquiIconGridItem
+        public class SurfaceMaterialDef : MaterialDef<EquiDecorativeSurfaceToolDefinition>
         {
-            public readonly EquiDecorativeSurfaceToolDefinition Owner;
-            public readonly MyStringHash Id;
-            public string Name { get; }
-            public string[] UiIcons { get; }
-
             public MaterialDescriptor Material { get; private set; }
             public Vector2 TextureSize { get; private set; }
-            public bool FlipRearNormals { get; private set; }
-            public Vector2 UvGuidePerpendicular { get; private set; }
-            public readonly float DurabilityBase;
+            public bool FlipRearNormals { get; }
+            public Vector2 UvGuidePerpendicular { get; }
             public readonly float DurabilityPerSquareMeter;
 
             internal SurfaceMaterialDef(
                 EquiDecorativeSurfaceToolDefinition owner,
                 MyObjectBuilder_EquiDecorativeSurfaceToolDefinition ownerOb,
-                MyObjectBuilder_EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef ob)
+                MyObjectBuilder_EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef ob) : base(owner, ownerOb, ob, ob.Material?.Icons)
             {
-                Owner = owner;
-                Id = MyStringHash.GetOrCompute(ob.Id);
-                Name = ob.Name ?? EquiIconGridController.NameFromId(Id);
-
-                if (ob.UiIcons != null && ob.UiIcons.Length > 0)
-                    UiIcons = ob.UiIcons;
-                else if (ob.Material.Icons != null && ob.Material.Icons.Count > 0)
-                    UiIcons = ob.Material.Icons.ToArray();
-                else
-                {
-                    // Log.Warning($"Surface material {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the decal.");
-                    UiIcons = null;
-                }
-
-                Material = ob.Material.Build();
                 Material = ob.Material.Build();
                 TextureSize = ob.TextureSize ?? ownerOb.TextureSize ?? Vector2.One;
                 FlipRearNormals = ob.FlipRearNormals ?? ownerOb.FlipRearNormals ?? true;
                 var uvGuideTangent = ob.UvGuide ?? ownerOb.UvGuide ?? Vector2.UnitX;
                 UvGuidePerpendicular = new Vector2(-uvGuideTangent.Y, uvGuideTangent.X);
-                DurabilityBase = ob.DurabilityBase ?? ownerOb.DurabilityBase ?? 1;
                 DurabilityPerSquareMeter = ob.DurabilityPerSquareMeter ?? ownerOb.DurabilityPerSquareMeter ?? 0;
             }
         }
@@ -447,10 +413,6 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement]
         public bool? FlipRearNormals;
 
-        /// <inheritdoc cref="SurfaceMaterialDef.DurabilityBase"/>
-        [XmlElement]
-        public float? DurabilityBase;
-
         /// <inheritdoc cref="SurfaceMaterialDef.DurabilityPerSquareMeter"/>
         [XmlElement]
         public float? DurabilityPerSquareMeter;
@@ -462,31 +424,13 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement("Variant")]
         public SurfaceMaterialDef[] Materials;
 
-        public class SurfaceMaterialDef
+        public class SurfaceMaterialDef : MaterialDef
         {
-            /// <summary>
-            /// Unique identifier for the material.
-            /// </summary>
-            [XmlAttribute("Id")]
-            public string Id;
-
-            /// <summary>
-            /// Display name for the material.
-            /// </summary>
-            [XmlAttribute("Name")]
-            public string Name;
-
             /// <summary>
             /// PBR material definition.
             /// </summary>
             [XmlElement]
             public MaterialSpec Material;
-
-            /// <summary>
-            /// Icons to show in the UI.
-            /// </summary>
-            [XmlElement("UiIcon")]
-            public string[] UiIcons;
 
             /// <summary>
             /// Size of the full texture in meters. Defaults to 1 by 1 meter.
@@ -512,12 +456,6 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement]
             public SerializableVector2? UvGuide;
-
-            /// <summary>
-            /// Durability cost for each surface.
-            /// </summary>
-            [XmlElement]
-            public float? DurabilityBase;
 
             /// <summary>
             /// Durability cost per square meter of surface.

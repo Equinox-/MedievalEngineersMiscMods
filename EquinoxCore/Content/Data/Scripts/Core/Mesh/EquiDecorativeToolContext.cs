@@ -14,7 +14,7 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         public static readonly MyStringId Color = MyStringId.GetOrCompute("Color");
         public static readonly MyStringId SnapDivisions = MyStringId.GetOrCompute("SnapDivisions");
-        public static readonly MyStringId SnapToVertices = MyStringId.GetOrCompute("SnapToVertices");
+        public static readonly MyStringId MeshSnapping = MyStringId.GetOrCompute("MeshSnapping");
 
         public static readonly MyStringId LineCatenaryFactor = MyStringId.GetOrCompute("LineCatenaryFactor");
         public static readonly MyStringId LineWidthA = MyStringId.GetOrCompute("LineWidthA");
@@ -55,9 +55,9 @@ namespace Equinox76561198048419394.Core.Mesh
                 val => DecorativeToolSettings.SnapDivisions = (int)Math.Round(val)
             ));
 
-            m_dataSources.Add(SnapToVertices, new SimpleDataSource<bool>(
-                () => DecorativeToolSettings.SnapToVertices,
-                val => DecorativeToolSettings.SnapToVertices = val
+            m_dataSources.Add(MeshSnapping, new EnumDataSource<DecorativeToolSettings.MeshSnappingType>(
+                () => DecorativeToolSettings.MeshSnapping,
+                val => DecorativeToolSettings.MeshSnapping = val
             ));
 
             switch (_definition)
@@ -122,9 +122,9 @@ namespace Equinox76561198048419394.Core.Mesh
                         EquiDecorativeDecalTool.MaxDecalHeight,
                         () => DecorativeToolSettings.DecalHeight,
                         val => DecorativeToolSettings.DecalHeight = val));
-                    if (decal.SortedDecals.Count > 1)
+                    if (decal.SortedMaterials.Count > 1)
                         m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeDecalToolDefinition.DecalDef>(
-                            decal.SortedDecals,
+                            decal.SortedMaterials,
                             () => DecorativeToolSettings.DecalIndex,
                             val => DecorativeToolSettings.DecalIndex = val));
                     break;
@@ -136,9 +136,9 @@ namespace Equinox76561198048419394.Core.Mesh
                         modelScale.Max,
                         () => DecorativeToolSettings.ModelScale,
                         val => DecorativeToolSettings.ModelScale = val));
-                    if (model.SortedModels.Count > 1)
+                    if (model.SortedMaterials.Count > 1)
                         m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeModelToolDefinition.ModelDef>(
-                            model.SortedModels,
+                            model.SortedMaterials,
                             () => DecorativeToolSettings.ModelIndex,
                             val => DecorativeToolSettings.ModelIndex = val));
                     break;

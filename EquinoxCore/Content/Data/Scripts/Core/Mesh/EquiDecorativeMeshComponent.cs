@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.Struct;
 using Sandbox.ModAPI;
 using VRage.Components;
 using VRage.Components.Entity.CubeGrid;
@@ -20,8 +22,6 @@ using VRage.Serialization;
 using VRage.Utils;
 using VRageMath;
 using VRageMath.PackedVector;
-using VRageRender;
-using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.Mesh
 {
@@ -33,8 +33,7 @@ namespace Equinox76561198048419394.Core.Mesh
     [ReplicatedComponent]
     public partial class EquiDecorativeMeshComponent : MyEntityComponent, IMyEventProxy
     {
-        private readonly MyFreeList<RenderData> _features = new MyFreeList<RenderData>();
-        private readonly Dictionary<FeatureKey, int> _featuresByKey = new Dictionary<FeatureKey, int>();
+        private readonly OffloadedDictionary<FeatureKey, RenderData> _features = new OffloadedDictionary<FeatureKey, RenderData>();
         private readonly MyHashSetDictionary<BlockId, FeatureKey> _featureByBlock = new MyHashSetDictionary<BlockId, FeatureKey>();
 
 #pragma warning disable CS0649
@@ -46,6 +45,11 @@ namespace Equinox76561198048419394.Core.Mesh
 #pragma warning restore CS0649
         private EquiDynamicMeshComponent _dynamicMesh;
         private EquiDynamicModelsComponent _dynamicModels;
+
+        public struct SharedArgs
+        {
+            public PackedHsvShift Color;
+        }
 
         public override void OnAddedToContainer()
         {
@@ -68,7 +72,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
             using (PoolManager.Get<List<FeatureKey>>(out var toUpdate))
             {
-                toUpdate.AddRange(_featuresByKey.Keys);
+                toUpdate.AddRange(_features.Keys);
                 foreach (var triplet in toUpdate)
                     if (CommitFeatureInternal(in triplet))
                         DestroyFeatureInternal(in triplet);
@@ -113,7 +117,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 var splitMesh = splitEntity.Components.Get<EquiDecorativeMeshComponent>();
                 foreach (var triplet in moveOrDestroy)
                 {
-                    if (!originalMesh._featuresByKey.TryGetValue(triplet, out var index)) continue;
+                    if (!originalMesh._features.TryGetValue(triplet, out var handle)) continue;
                     if (
                         moved.Contains(triplet.A.Block)
                         && (triplet.B.IsNull || moved.Contains(triplet.B.Block))
@@ -121,8 +125,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         && (triplet.D.IsNull || moved.Contains(triplet.D.Block)))
                     {
                         if (splitMesh == null) splitEntity.Components.Add(splitMesh = new EquiDecorativeMeshComponent());
-                        ref var feature = ref originalMesh._features[index];
-                        splitMesh.AddFeatureInternal(triplet, feature.Def, feature.Args);
+                        splitMesh.AddFeatureInternal(triplet, handle.Value.Def, handle.Value.Args);
                     }
 
                     originalMesh.DestroyFeatureInternal(triplet);
@@ -153,16 +156,13 @@ namespace Equinox76561198048419394.Core.Mesh
             if (otherMesh == null || otherMesh._features.Count == 0) return;
             // Move all features to new grid
             var finalMesh = finalGridData.Container.GetOrAdd<EquiDecorativeMeshComponent>();
-            foreach (var kv in otherMesh._featuresByKey)
+            foreach (var kv in otherMesh._features)
             {
                 // Destroy feature on old grid.
-                ref var otherFeature = ref otherMesh._features[kv.Value];
-                otherMesh.DestroyRendererInternal(kv.Key, ref otherFeature);
+                ref var otherFeature = ref kv.Value;
+                otherMesh.DestroyRendererInternal(in kv.Key, ref otherFeature);
                 // Copy feature data to new grid.
-                if (!finalMesh._featuresByKey.TryGetValue(kv.Key, out var finalIndex))
-                    finalMesh._featuresByKey.Add(kv.Key, finalIndex = finalMesh._features.Allocate());
-                ref var finalFeature = ref finalMesh._features[finalIndex];
-                finalFeature = otherFeature;
+                finalMesh._features.Add(in kv.Key, in otherFeature);
             }
 
             // Copy all block -> feature bindings.
@@ -170,7 +170,6 @@ namespace Equinox76561198048419394.Core.Mesh
                 finalMesh._featureByBlock.Add(kv.Key, kv.Value);
 
             otherMesh._features.Clear();
-            otherMesh._featuresByKey.Clear();
             otherMesh._featureByBlock.Clear();
         }
 
@@ -204,17 +203,16 @@ namespace Equinox76561198048419394.Core.Mesh
 
         private struct RenderData
         {
-            public MyDefinitionBase Def;
+            public EquiDecorativeToolBaseDefinition Def;
             public FeatureArgs Args;
             public ulong? RenderId;
         }
 
-        private void AddFeatureInternal(in FeatureKey triplet, MyDefinitionBase def, in FeatureArgs args)
+        private void AddFeatureInternal(in FeatureKey triplet, EquiDecorativeToolBaseDefinition def, in FeatureArgs args)
         {
-            if (!_featuresByKey.TryGetValue(triplet, out var index))
+            if (!_features.TryGetValue(in triplet, out var handle))
             {
-                index = _features.Allocate();
-                _featuresByKey.Add(triplet, index);
+                handle = _features.AddHandle(in triplet);
                 _featureByBlock.Add(triplet.A.Block, triplet);
                 if (!triplet.B.IsNull)
                     _featureByBlock.Add(triplet.B.Block, triplet);
@@ -224,18 +222,16 @@ namespace Equinox76561198048419394.Core.Mesh
                     _featureByBlock.Add(triplet.D.Block, triplet);
             }
 
-            ref var feature = ref _features[index];
+            ref var feature = ref handle.Value;
             feature.Def = def;
             feature.Args = args;
         }
 
         private bool DestroyFeatureInternal(in FeatureKey triplet)
         {
-            if (!_featuresByKey.TryGetValue(triplet, out var index)) return false;
-            DestroyRendererInternal(in triplet, ref _features[index]);
+            if (!_features.TryGetValue(in triplet, out var handle)) return false;
+            DestroyRendererInternal(in triplet, ref handle.Value);
 
-            _features.Free(index);
-            _featuresByKey.Remove(triplet);
             _featureByBlock.Remove(triplet.A.Block, triplet);
             if (!triplet.B.IsNull)
                 _featureByBlock.Remove(triplet.B.Block, triplet);
@@ -243,6 +239,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 _featureByBlock.Remove(triplet.C.Block, triplet);
             if (!triplet.D.IsNull)
                 _featureByBlock.Remove(triplet.D.Block, triplet);
+            _features.Remove(in triplet);
             return true;
         }
 
@@ -316,7 +313,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var size = block.Definition.Size * grid.Size;
             var norm = blockLocalPosition / size;
-            return new BlockAndAnchor(block.Id, NewAnchorPacking.Pack(norm) | NewAnchorPackingMask);
+            return new BlockAndAnchor(block.Id, BlockAndAnchor.NewAnchorPacking.Pack(norm) | BlockAndAnchor.NewAnchorPackingMask);
         }
 
         /// <summary>
@@ -324,8 +321,8 @@ namespace Equinox76561198048419394.Core.Mesh
         /// </summary>
         private bool CommitFeatureInternal(in FeatureKey triplet)
         {
-            if (!_featuresByKey.TryGetValue(triplet, out var index)) return false;
-            ref var feature = ref _features[index];
+            if (!_features.TryGetValue(triplet, out var handle)) return false;
+            ref var feature = ref handle.Value;
             DestroyRendererInternal(in triplet, ref feature);
             if (!triplet.A.TryGetGridLocalAnchor(_gridData, out var blockA)) return true;
 
@@ -335,14 +332,14 @@ namespace Equinox76561198048419394.Core.Mesh
                 case FeatureType.Decal:
                 {
                     if (!(feature.Def is EquiDecorativeDecalToolDefinition decalsDef)) return true;
-                    if (!decalsDef.Decals.TryGetValue(args.MaterialId, out var decalDef)) return true;
+                    if (!decalsDef.Materials.TryGetValue(args.MaterialId, out var decalDef)) return true;
                     feature.RenderId = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, new DecalArgs<Vector3>
                     {
                         Position = blockA,
                         Normal = VF_Packer.UnpackNormal(args.DecalNormal),
                         Up = VF_Packer.UnpackNormal(args.DecalUp),
                         Height = args.DecalHeight,
-                        Color = args.Color
+                        Shared = args.Shared,
                     }));
                     break;
                 }
@@ -358,7 +355,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         WidthA = args.WidthA,
                         WidthB = args.WidthB,
                         CatenaryFactor = args.CatenaryFactor,
-                        Color = args.Color
+                        Shared = args.Shared,
                     }));
                     break;
                 }
@@ -385,7 +382,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         B = blockB,
                         C = blockC,
                         D = blockD,
-                        Color = args.Color,
+                        Shared = args.Shared,
                         UvProjection = args.UvProjection,
                         UvBias = args.UvBias,
                         UvScale = args.UvScale,
@@ -395,14 +392,14 @@ namespace Equinox76561198048419394.Core.Mesh
                 case FeatureType.Model:
                 {
                     if (!(feature.Def is EquiDecorativeModelToolDefinition modelsDef)) return true;
-                    if (!modelsDef.Models.TryGetValue(args.MaterialId, out var modelDef)) return true;
+                    if (!modelsDef.Materials.TryGetValue(args.MaterialId, out var modelDef)) return true;
                     var data = CreateModelData(modelDef, new ModelArgs<Vector3>
                     {
                         Position = blockA,
                         Forward = VF_Packer.UnpackNormal(args.ModelForward),
                         Up = VF_Packer.UnpackNormal(args.ModelUp),
                         Scale = args.ModelScale,
-                        Color = args.Color,
+                        Shared = args.Shared,
                     });
                     feature.RenderId = _dynamicModels.Create(in data);
                     break;
@@ -430,7 +427,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public MyStringHash MaterialId;
 
             [Serialize]
-            public PackedHsvShift Color;
+            public SharedArgs Shared;
 
             #region Surfaces
 
@@ -564,99 +561,110 @@ namespace Equinox76561198048419394.Core.Mesh
 
         private readonly struct SurfaceGroupKey : IEquatable<SurfaceGroupKey>
         {
-            public readonly MyDefinitionId Definition;
-            public readonly MyStringHash MaterialId;
+            public readonly SharedGroupKey Shared;
             public readonly UvProjectionMode UvProjection;
             public readonly UvBiasMode UvBias;
 
-            public SurfaceGroupKey(MyDefinitionId definition, MyStringHash materialId, UvProjectionMode uvProjection, UvBiasMode uvBias)
+            public SurfaceGroupKey(in RenderData feature)
             {
-                Definition = definition;
-                MaterialId = materialId;
-                UvProjection = uvProjection;
-                UvBias = uvBias;
+                Shared = new SharedGroupKey(in feature);
+                UvProjection = feature.Args.UvProjection;
+                UvBias = feature.Args.UvBias;
             }
 
             public bool Equals(SurfaceGroupKey other)
             {
-                return Definition.Equals(other.Definition) && MaterialId.Equals(other.MaterialId) && UvProjection == other.UvProjection &&
-                       UvBias == other.UvBias;
+                return Shared.Equals(other.Shared) && UvProjection == other.UvProjection && UvBias == other.UvBias;
             }
 
             public override bool Equals(object obj) => obj is SurfaceGroupKey other && Equals(other);
 
             public override int GetHashCode()
             {
-                var hashCode = Definition.GetHashCode();
-                hashCode = (hashCode * 397) ^ MaterialId.GetHashCode();
-                hashCode = (hashCode * 397) ^ (int)UvProjection;
-                hashCode = (hashCode * 397) ^ (int)UvBias;
-                return hashCode;
+                unchecked
+                {
+                    var hashCode = Shared.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (int)UvProjection;
+                    hashCode = (hashCode * 397) ^ (int)UvBias;
+                    return hashCode;
+                }
             }
         }
 
-        private readonly struct MaterialGroupKey : IEquatable<MaterialGroupKey>
+        private readonly struct SharedGroupKey : IEquatable<SharedGroupKey>
         {
             public readonly MyDefinitionId Definition;
             public readonly MyStringHash MaterialId;
+            public readonly PackedHsvShift Color;
 
-            public MaterialGroupKey(MyDefinitionId definition, MyStringHash materialId)
+            public SharedGroupKey(in RenderData feature)
             {
-                Definition = definition;
-                MaterialId = materialId;
+                Definition = feature.Def.Id;
+                MaterialId = feature.Args.MaterialId;
+                Color = feature.Args.Shared.Color;
             }
 
-            public bool Equals(MaterialGroupKey other) => Definition.Equals(other.Definition) && MaterialId.Equals(other.MaterialId);
+            public override bool Equals(object obj) => obj is SharedGroupKey other && Equals(other);
 
-            public override bool Equals(object obj) => obj is MaterialGroupKey other && Equals(other);
+            public bool Equals(SharedGroupKey other)
+            {
+                return Definition.Equals(other.Definition) && MaterialId.Equals(other.MaterialId) && Color.Equals(other.Color);
+            }
 
-            public override int GetHashCode() => (Definition.GetHashCode() * 397) ^ MaterialId.GetHashCode();
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = Definition.GetHashCode();
+                    hashCode = (hashCode * 397) ^ MaterialId.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Color.GetHashCode();
+                    return hashCode;
+                }
+            }
         }
 
         public override MyObjectBuilder_EntityComponent Serialize(bool copy = false)
         {
             var ob = (MyObjectBuilder_EquiDecorativeMeshComponent)base.Serialize(copy);
+            ob.CopyProtection = Entity.EntityId;
             // Purposefully NOT using ListDictionary since the lists in that are pooled and we have to transfer ownership of these lists out
             // of this method to the returned object builder.
-            using (PoolManager.Get<Dictionary<MaterialGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder>>>(out var decals))
-            using (PoolManager.Get<Dictionary<MaterialGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder>>>(out var lines))
-            using (PoolManager.Get<Dictionary<MaterialGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.ModelBuilder>>>(out var models))
+            using (PoolManager.Get<Dictionary<SharedGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder>>>(out var decals))
+            using (PoolManager.Get<Dictionary<SharedGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder>>>(out var lines))
+            using (PoolManager.Get<Dictionary<SharedGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.ModelBuilder>>>(out var models))
             using (PoolManager.Get<Dictionary<SurfaceGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder>>>(out var surfaces))
             {
-                foreach (var kv in _featuresByKey)
+                foreach (var kv in _features)
                 {
-                    var triplet = kv.Key;
-                    ref var feature = ref _features[kv.Value];
-                    var def = feature.Def.Id;
+                    ref readonly var triplet = ref kv.Key;
+                    ref var feature = ref kv.Value;
                     ref var args = ref feature.Args;
                     switch (triplet.Type)
                     {
                         case FeatureType.Decal:
-                            decals.AddMulti(new MaterialGroupKey(def, args.MaterialId), new MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder
+                            decals.AddMulti(new SharedGroupKey(in feature), new MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder
                             {
                                 A = triplet.A.Block.Value,
                                 AOffset = triplet.A.PackedAnchor,
                                 Normal = args.DecalNormal,
                                 Up = args.DecalUp,
                                 Height = args.DecalHeight,
-                                ColorRaw = args.Color,
                             });
                             break;
                         case FeatureType.Line:
-                            lines.AddMulti(new MaterialGroupKey(def, args.MaterialId), new MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder
+                            lines.AddMulti(new SharedGroupKey(in feature), new MyObjectBuilder_EquiDecorativeMeshComponent.LineBuilder
                             {
                                 A = triplet.A.Block.Value,
                                 AOffset = triplet.A.PackedAnchor,
                                 B = triplet.B.Block.Value,
                                 BOffset = triplet.B.PackedAnchor,
                                 CatenaryFactor = args.CatenaryFactor,
-                                ColorRaw = args.Color,
                                 WidthA = args.WidthA,
                                 WidthB = Math.Abs(args.WidthA - args.WidthB) < 1e-6f ? -1 : args.WidthB,
                             });
                             break;
                         case FeatureType.Surface:
-                            surfaces.AddMulti(new SurfaceGroupKey(def, args.MaterialId, args.UvProjection, args.UvBias),
+                            surfaces.AddMulti(new SurfaceGroupKey(in feature),
                                 new MyObjectBuilder_EquiDecorativeMeshComponent.SurfaceBuilder
                                 {
                                     A = triplet.A.Block.Value,
@@ -667,13 +675,12 @@ namespace Equinox76561198048419394.Core.Mesh
                                     COffset = triplet.C.PackedAnchor,
                                     D = triplet.D.Block.Value,
                                     DOffset = triplet.D.PackedAnchor,
-                                    ColorRaw = args.Color,
                                     UvScale = args.UvScale,
                                 });
                             break;
                         case FeatureType.Model:
                             models.AddMulti(
-                                new MaterialGroupKey(def, args.MaterialId),
+                                new SharedGroupKey(in feature),
                                 new MyObjectBuilder_EquiDecorativeMeshComponent.ModelBuilder
                                 {
                                     A = triplet.A.Block.Value,
@@ -681,7 +688,6 @@ namespace Equinox76561198048419394.Core.Mesh
                                     Forward = args.ModelForward,
                                     Up = args.ModelUp,
                                     Scale = args.ModelScale,
-                                    ColorRaw = args.Color,
                                 });
                             break;
                         default:
@@ -695,6 +701,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     {
                         Definition = entry.Key.Definition,
                         DecalId = entry.Key.MaterialId.String,
+                        ColorRaw = entry.Key.Color,
+
                         Decals = entry.Value,
                     });
                 ob.Lines = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeLines>(lines.Count);
@@ -703,14 +711,18 @@ namespace Equinox76561198048419394.Core.Mesh
                     {
                         Definition = entry.Key.Definition,
                         MaterialId = entry.Key.MaterialId.String,
+                        ColorRaw = entry.Key.Color,
+
                         Lines = entry.Value,
                     });
                 ob.Surfaces = new List<MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeSurfaces>(surfaces.Count);
                 foreach (var entry in surfaces)
                     ob.Surfaces.Add(new MyObjectBuilder_EquiDecorativeMeshComponent.DecorativeSurfaces
                     {
-                        Definition = entry.Key.Definition,
-                        MaterialId = entry.Key.MaterialId.String,
+                        Definition = entry.Key.Shared.Definition,
+                        MaterialId = entry.Key.Shared.MaterialId.String,
+                        ColorRaw = entry.Key.Shared.Color,
+
                         UvProjection = entry.Key.UvProjection,
                         UvBias = entry.Key.UvBias,
                         Surfaces = entry.Value,
@@ -721,6 +733,8 @@ namespace Equinox76561198048419394.Core.Mesh
                     {
                         Definition = entry.Key.Definition,
                         ModelId = entry.Key.MaterialId.String,
+                        ColorRaw = entry.Key.Color,
+
                         Models = entry.Value,
                     });
                 decals.Clear();
@@ -737,38 +751,47 @@ namespace Equinox76561198048419394.Core.Mesh
             base.Deserialize(builder);
             var ob = builder as MyObjectBuilder_EquiDecorativeMeshComponent;
             if (ob == null) return;
+
+            // Make decorations into ghosts if this is a copy.  This prevents blueprints from copying the objects.
+            var entityGhosted = ob.CopyProtection != null && ob.CopyProtection != Entity.EntityId;
+
             if (ob.Decals != null)
-                foreach (var decals in ob.Decals)
+                foreach (var group in ob.Decals)
                 {
-                    if (decals.Decals == null) continue;
-                    var def = MyDefinitionManager.Get<EquiDecorativeDecalToolDefinition>(decals.Definition);
+                    if (group.Decals == null) continue;
+                    var def = MyDefinitionManager.Get<EquiDecorativeDecalToolDefinition>(group.Definition);
                     if (def == null) continue;
-                    var decalId = MyStringHash.GetOrCompute(decals.DecalId);
-                    if (!def.Decals.ContainsKey(decalId)) continue;
-                    foreach (var item in decals.Decals)
+                    var materialId = MyStringHash.GetOrCompute(group.DecalId);
+                    if (!def.Materials.TryGetValue(materialId, out var materialDef)) continue;
+                    foreach (var item in group.Decals)
                         if (item.A != 0)
                             AddFeatureInternal(new FeatureKey(
                                 FeatureType.Decal,
                                 new BlockAndAnchor(item.A, item.AOffset),
                                 BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null), def, new FeatureArgs
                             {
-                                MaterialId = decalId,
+                                MaterialId = materialId,
                                 DecalNormal = item.Normal,
                                 DecalUp = item.Up,
                                 DecalHeight = item.Height,
-                                Color = item.ColorRaw,
+                                Shared =
+                                {
+#pragma warning disable CS0612 // Type or member is obsolete, back compat
+                                    Color = item.ColorRaw ?? group.ColorRaw,
+#pragma warning restore CS0612 // Type or member is obsolete
+                                }
                             });
                 }
 
             if (ob.Lines != null)
-                foreach (var line in ob.Lines)
+                foreach (var group in ob.Lines)
                 {
-                    if (line.Lines == null) continue;
-                    var def = MyDefinitionManager.Get<EquiDecorativeLineToolDefinition>(line.Definition);
+                    if (group.Lines == null) continue;
+                    var def = MyDefinitionManager.Get<EquiDecorativeLineToolDefinition>(group.Definition);
                     if (def == null) continue;
-                    var materialId = MyStringHash.GetOrCompute(line.MaterialId);
-                    if (!def.Materials.ContainsKey(materialId)) continue;
-                    foreach (var item in line.Lines)
+                    var materialId = MyStringHash.GetOrCompute(group.MaterialId);
+                    if (!def.Materials.TryGetValue(materialId, out _)) continue;
+                    foreach (var item in group.Lines)
                         if (item.A != 0 && item.B != 0)
                         {
                             var a = new BlockAndAnchor(item.A, item.AOffset);
@@ -778,9 +801,14 @@ namespace Equinox76561198048419394.Core.Mesh
                             {
                                 MaterialId = materialId,
                                 CatenaryFactor = item.CatenaryFactor,
-                                Color = item.ColorRaw,
                                 WidthA = item.WidthA,
                                 WidthB = item.WidthB,
+                                Shared =
+                                {
+#pragma warning disable CS0612 // Type or member is obsolete, back compat
+                                    Color = item.ColorRaw ?? group.ColorRaw,
+#pragma warning restore CS0612 // Type or member is obsolete
+                                }
                             };
                             // Sorting re-ordered the keys, so reorder the widths too.
                             if (!a.Equals(key.A) && args.WidthB >= 0)
@@ -790,16 +818,16 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
 
             if (ob.Surfaces != null)
-                foreach (var triangles in ob.Surfaces)
+                foreach (var group in ob.Surfaces)
                 {
-                    if (triangles.Surfaces == null) continue;
-                    var def = MyDefinitionManager.Get<EquiDecorativeSurfaceToolDefinition>(triangles.Definition);
+                    if (group.Surfaces == null) continue;
+                    var def = MyDefinitionManager.Get<EquiDecorativeSurfaceToolDefinition>(group.Definition);
                     if (def == null) continue;
-                    var materialId = MyStringHash.GetOrCompute(triangles.MaterialId);
-                    if (!def.Materials.ContainsKey(materialId)) continue;
-                    var uvProjection = triangles.UvProjection ?? UvProjectionMode.Bevel;
-                    var uvBias = triangles.UvBias ?? UvBiasMode.XAxis;
-                    foreach (var item in triangles.Surfaces)
+                    var materialId = MyStringHash.GetOrCompute(group.MaterialId);
+                    if (!def.Materials.TryGetValue(materialId, out var materialDef)) continue;
+                    var uvProjection = group.UvProjection ?? UvProjectionMode.Bevel;
+                    var uvBias = group.UvBias ?? UvBiasMode.XAxis;
+                    foreach (var item in group.Surfaces)
                         if (item.A != 0 && item.B != 0 && item.C != 0)
                             AddFeatureInternal(new FeatureKey(
                                     FeatureType.Surface,
@@ -810,33 +838,43 @@ namespace Equinox76561198048419394.Core.Mesh
                                 new FeatureArgs
                                 {
                                     MaterialId = materialId,
-                                    Color = item.ColorRaw,
                                     UvProjection = uvProjection,
                                     UvBias = uvBias,
                                     UvScale = item.UvScale,
+                                    Shared =
+                                    {
+#pragma warning disable CS0612 // Type or member is obsolete, back compat
+                                        Color = item.ColorRaw ?? group.ColorRaw,
+#pragma warning restore CS0612 // Type or member is obsolete
+                                    }
                                 });
                 }
 
             if (ob.Models != null)
-                foreach (var models in ob.Models)
+                foreach (var group in ob.Models)
                 {
-                    if (models.Models == null) continue;
-                    var def = MyDefinitionManager.Get<EquiDecorativeModelToolDefinition>(models.Definition);
+                    if (group.Models == null) continue;
+                    var def = MyDefinitionManager.Get<EquiDecorativeModelToolDefinition>(group.Definition);
                     if (def == null) continue;
-                    var modelId = MyStringHash.GetOrCompute(models.ModelId);
-                    if (!def.Models.ContainsKey(modelId)) continue;
-                    foreach (var item in models.Models)
+                    var materialId = MyStringHash.GetOrCompute(group.ModelId);
+                    if (!def.Materials.TryGetValue(materialId, out var materialDef)) continue;
+                    foreach (var item in group.Models)
                         if (item.A != 0)
                             AddFeatureInternal(new FeatureKey(
                                 FeatureType.Model,
                                 new BlockAndAnchor(item.A, item.AOffset),
                                 BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null), def, new FeatureArgs
                             {
-                                MaterialId = modelId,
+                                MaterialId = materialId,
                                 ModelForward = item.Forward,
                                 ModelUp = item.Up,
                                 ModelScale = item.Scale,
-                                Color = item.ColorRaw,
+                                Shared =
+                                {
+#pragma warning disable CS0612 // Type or member is obsolete, back compat
+                                    Color = item.ColorRaw ?? group.ColorRaw,
+#pragma warning restore CS0612 // Type or member is obsolete
+                                }
                             });
                 }
         }
@@ -846,6 +884,31 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public partial class MyObjectBuilder_EquiDecorativeMeshComponent : MyObjectBuilder_EntityComponent, IMyRemappable
     {
+        // Entity ID of the owner.  Do NOT remap this value, because it is used to detect when the entity
+        // is copied/blueprinted and convert the decorative objects into ghosts.
+        public long? CopyProtection;
+
+        public abstract class DecorativeGroup : IMyRemappable
+        {
+            [XmlElement("Definition")]
+            public SerializableDefinitionId Definition;
+
+            [XmlIgnore]
+            public PackedHsvShift ColorRaw;
+
+            [XmlElement("Color")]
+            [NoSerialize]
+            public string Color
+            {
+                get => ModifierDataColor.Serialize(ColorRaw);
+                set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+            }
+
+            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
+
+            public abstract void Remap(IMySceneRemapper remapper);
+        }
+
         [XmlElement("Lines")]
         public List<DecorativeLines> Lines;
 

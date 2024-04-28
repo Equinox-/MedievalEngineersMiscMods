@@ -86,7 +86,6 @@
         <Compile Include="Util\Models\PrimitiveVisitor.cs" />
         <Compile Include="Util\NullCleaner.cs" />
         <Compile Include="Util\NumericsExt.cs" />
-        <Compile Include="Util\PagedFreeList.cs" />
         <Compile Include="Util\Spatial\IBoxBounded.cs" />
         <Compile Include="Util\Spatial\ISpatialQuery.cs" />
         <Compile Include="Util\Spatial\ISpatialSortedQuery.cs" />

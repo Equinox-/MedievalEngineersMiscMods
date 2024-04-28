@@ -88,10 +88,10 @@
             <Tooltip>How many snap points per small block (0.25m)</Tooltip>
         </Slider>
 
-        <Checkbox DataId="SnapToVertices" IsInteger="true">
-            <Text>Snap to Vertices</Text>
-            <Tooltip>Will positions snap to nearby block vertices</Tooltip>
-        </Checkbox>
+        <Dropdown DataId="MeshSnapping">
+            <Text>Mesh Snapping</Text>
+            <Tooltip>Mesh primitives to snap to</Tooltip>
+        </Dropdown>
 
         <Embedded>
             <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />

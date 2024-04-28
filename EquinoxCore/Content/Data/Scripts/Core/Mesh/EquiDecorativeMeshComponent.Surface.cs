@@ -25,7 +25,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public TPos A, B, C;
             public TPos? D;
 
-            public PackedHsvShift Color;
+            public SharedArgs Shared;
             public UvProjectionMode? UvProjection;
             public UvBiasMode? UvBias;
             public float? UvScale;
@@ -38,7 +38,8 @@ namespace Equinox76561198048419394.Core.Mesh
         public static EquiMeshHelpers.SurfaceData CreateSurfaceData(
             EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef materialDef,
             in SurfaceArgs<Vector3> args,
-            Vector3 alignNormal)
+            Vector3 alignNormal,
+            bool ghost = false)
         {
             Vector3 norm;
             const float eps = 1e-6f;
@@ -91,7 +92,8 @@ namespace Equinox76561198048419394.Core.Mesh
                 Pt2 = CreateVertex(c),
                 Pt3 = d.HasValue ? (EquiMeshHelpers.VertexData?)CreateVertex(d.Value) : null,
                 FlipRearNormals = materialDef.FlipRearNormals,
-                ColorMask = args.Color
+                ColorMask = args.Shared.Color,
+                Ghost = ghost,
             };
 
             Vector2 ComputeUv(in Vector3 pos) => new Vector2(trueUvScale * uvX.Dot(pos), trueUvScale * uvY.Dot(pos)) / materialDef.TextureSize;
@@ -120,7 +122,7 @@ namespace Equinox76561198048419394.Core.Mesh
             var rpcArgs = new FeatureArgs
             {
                 MaterialId = def.Id,
-                Color = args.Color,
+                Shared = args.Shared,
                 UvProjection = args.UvProjection ?? DefaultUvProjection,
                 UvBias = args.UvBias ?? DefaultUvBias,
                 UvScale = args.UvScale ?? DefaultUvScale
@@ -260,19 +262,6 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool ShouldSerializeDOffset() => ShouldSerializeD();
 
             [XmlIgnore]
-            public PackedHsvShift ColorRaw;
-
-            [XmlAttribute("Color")]
-            [NoSerialize]
-            public string Color
-            {
-                get => ModifierDataColor.Serialize(ColorRaw);
-                set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
-            }
-
-            public bool ShouldSerializeColor() => !ColorRaw.Equals(default);
-
-            [XmlIgnore]
             [Nullable]
             public float? UvScaleRaw;
 
@@ -291,13 +280,27 @@ namespace Equinox76561198048419394.Core.Mesh
             }
 
             public bool ShouldSerializeUvScale() => UvScaleRaw.HasValue;
+
+#pragma warning disable CS0612 // Type or member is obsolete, backcompat
+            [XmlIgnore]
+            [NoSerialize]
+            [Obsolete]
+            public PackedHsvShift? ColorRaw;
+
+            [XmlAttribute("Color")]
+            [NoSerialize]
+            public string Color
+            {
+                set => ColorRaw = ModifierDataColor.Deserialize(value).Color;
+                get => ColorRaw.HasValue ? ModifierDataColor.Serialize(ColorRaw.Value) : null;
+            }
+
+            public bool ShouldSerializeColor() => ColorRaw.HasValue;
+#pragma warning restore CS0612 // Type or member is obsolete
         }
 
-        public class DecorativeSurfaces : IMyRemappable
+        public class DecorativeSurfaces : DecorativeGroup
         {
-            [XmlElement("Definition")]
-            public SerializableDefinitionId Definition;
-
             [XmlElement("MaterialId")]
             [Nullable]
             public string MaterialId;
@@ -313,7 +316,7 @@ namespace Equinox76561198048419394.Core.Mesh
             [XmlElement("Surf")]
             public List<SurfaceBuilder> Surfaces;
 
-            public void Remap(IMySceneRemapper remapper)
+            public override void Remap(IMySceneRemapper remapper)
             {
                 if (Surfaces == null) return;
                 for (var i = 0; i < Surfaces.Count; i++)

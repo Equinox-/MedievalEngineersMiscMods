@@ -2,32 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Core.ModelGenerator;
+using Equinox76561198048419394.Core.Inventory;
 using Equinox76561198048419394.Core.Modifiers.Def;
-using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
-using Medieval.Constants;
 using Sandbox.Definitions;
-using Sandbox.Definitions.Equipment;
-using Sandbox.Game.Entities.Character;
 using Sandbox.Game.EntityComponents.Character;
-using Sandbox.Game.Inventory;
 using Sandbox.Game.WorldEnvironment.Definitions;
 using Sandbox.ModAPI;
-using VRage;
 using VRage.Collections;
 using VRage.Components;
-using VRage.Components.Entity.Camera;
 using VRage.Components.Entity.CubeGrid;
-using VRage.Core;
 using VRage.Definitions;
 using VRage.Definitions.Block;
 using VRage.Definitions.Inventory;
 using VRage.Game;
-using VRage.Game.Components;
 using VRage.Game.Definitions;
-using VRage.Game.Entity;
 using VRage.Game.Models;
 using VRage.Import;
 using VRage.Network;
@@ -35,7 +25,6 @@ using VRage.ObjectBuilders;
 using VRage.Scene;
 using VRage.Utils;
 using VRageMath;
-using VRageMath.PackedVector;
 using VRageRender;
 using VRageRender.Import;
 
@@ -43,22 +32,14 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeModelToolDefinition))]
     [StaticEventOwner]
-    public class EquiDecorativeModelTool : EquiDecorativeToolBase
+    public class EquiDecorativeModelTool : EquiDecorativeToolBase<EquiDecorativeModelToolDefinition, EquiDecorativeModelToolDefinition.ModelDef>
     {
-        private EquiDecorativeModelToolDefinition _definition;
-
-        public override void Init(MyEntity holder, MyHandItem item, MyHandItemBehaviorDefinition definition)
-        {
-            base.Init(holder, item, definition);
-            _definition = (EquiDecorativeModelToolDefinition)definition;
-        }
-
         private EquiDecorativeModelToolDefinition.ModelDef ModelDef =>
-            _definition.SortedModels[DecorativeToolSettings.ModelIndex % _definition.SortedModels.Count];
+            Def.SortedMaterials[DecorativeToolSettings.ModelIndex % Def.SortedMaterials.Count];
 
         protected override int RequiredPoints => 1;
 
-        protected override void HitWithEnoughPoints(ListReader<DecorAnchor> points)
+        protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
             if (points.Count < 1) return;
             var remove = ActiveAction == MyHandItemActionEnum.Secondary;
@@ -68,7 +49,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 var volume = ModelDef.Volume * scale * scale * scale;
                 var durabilityCost = (int)Math.Ceiling(ModelDef.DurabilityBase + ModelDef.DurabilityPerCubicMeter * volume);
-                if (!TryRemoveDurability(durabilityCost))
+                if (!TryRemovePreReqs(durabilityCost, modelDef))
                     return;
             }
 
@@ -79,13 +60,16 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveModel(points[0].Anchor);
                 else
-                    gridDecor.AddModel(ModelDef, new EquiDecorativeMeshComponent.ModelArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                    gridDecor.AddModel(ModelDef, new EquiDecorativeMeshComponent.ModelArgs<BlockAndAnchor>
                     {
                         Position = points[0].Anchor,
                         Forward = localRotation.Forward,
                         Up = localRotation.Up,
                         Scale = scale,
-                        Color = PackedHsvShift
+                        Shared =
+                        {
+                            Color = PackedHsvShift
+                        },
                     });
                 return;
             }
@@ -120,19 +104,19 @@ namespace Equinox76561198048419394.Core.Mesh
         [Event, Reliable, Server]
         private static void PerformOp(
             EntityId grid,
-            EquiDecorativeMeshComponent.RpcBlockAndAnchor rpcPt0,
+            RpcBlockAndAnchor rpcPt0,
             ModelRpcArgs model,
             bool remove)
         {
             if (!MyEventContext.Current.TryGetSendersHeldBehavior(out EquiDecorativeModelTool behavior)
-                || !behavior._definition.Models.TryGetValue(model.ModelId, out var modelDef)
+                || !behavior.Def.Materials.TryGetValue(model.ModelId, out var modelDef)
                 || !behavior.Scene.TryGetEntity(grid, out var gridEntity))
             {
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            EquiDecorativeMeshComponent.BlockAndAnchor pt0 = rpcPt0;
+            BlockAndAnchor pt0 = rpcPt0;
             if (!gridEntity.Components.TryGet(out MyGridDataComponent gridData)
                 || !pt0.TryGetGridLocalAnchor(gridData, out var local0))
             {
@@ -150,7 +134,7 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 var volume = model.Scale * model.Scale * model.Scale * modelDef.Volume;
                 var durabilityCost = (int)Math.Ceiling(modelDef.DurabilityBase + modelDef.DurabilityPerCubicMeter * volume);
-                if (!behavior.TryRemoveDurability(durabilityCost))
+                if (!behavior.TryRemovePreReqs(durabilityCost, modelDef))
                 {
                     MyEventContext.ValidationFailed();
                     return;
@@ -163,13 +147,16 @@ namespace Equinox76561198048419394.Core.Mesh
             else
                 gridDecor.AddModel(
                     modelDef,
-                    new EquiDecorativeMeshComponent.ModelArgs<EquiDecorativeMeshComponent.BlockAndAnchor>
+                    new EquiDecorativeMeshComponent.ModelArgs<BlockAndAnchor>
                     {
                         Position = pt0,
                         Forward = VF_Packer.UnpackNormal(model.PackedForward),
                         Up = VF_Packer.UnpackNormal(model.PackedUp),
                         Scale = model.Scale,
-                        Color = model.Color,
+                        Shared =
+                        {
+                            Color = model.Color
+                        },
                     });
         }
 
@@ -201,7 +188,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 worldTransform = nextAnchor.Grid.Entity.WorldMatrix;
                 worldInv = nextAnchor.Grid.Entity.PositionComp.WorldMatrixNormalizedInv;
                 localPos = nextAnchor.GridLocalPosition;
-                if (nextAnchor.Source == AnchorSource.Existing)
+                if (nextAnchor.Source == BlockAnchorInteraction.SourceType.Existing)
                     nextAnchor.Draw();
             }
             else
@@ -220,8 +207,11 @@ namespace Equinox76561198048419394.Core.Mesh
                     Position = localPos,
                     Forward = (Vector3)localRotation.Forward,
                     Up = (Vector3)localRotation.Up,
-                    Color = PackedHsvShift,
                     Scale = DecorativeToolSettings.ModelScale,
+                    Shared =
+                    {
+                        Color = PackedHsvShift
+                    },
                 });
 
             var renderMatrix = prepared.Matrix * worldTransform;
@@ -264,26 +254,25 @@ namespace Equinox76561198048419394.Core.Mesh
     [MyDependency(typeof(MyGrowableEnvironmentItemDefinition))]
     [MyDependency(typeof(MyInventoryItemDefinition))]
     [MyDependency(typeof(MyItemTagDefinition))]
-    public class EquiDecorativeModelToolDefinition : EquiDecorativeToolBaseDefinition
+    public class EquiDecorativeModelToolDefinition
+        : EquiDecorativeToolBaseDefinition,
+            IEquiDecorativeToolBaseDefinition<EquiDecorativeModelToolDefinition.ModelDef>
     {
-        public ListReader<ModelDef> SortedModels { get; private set; }
-        public DictionaryReader<MyStringHash, ModelDef> Models { get; private set; }
+        private readonly MaterialHolder<ModelDef> _holder = new MaterialHolder<ModelDef>();
+        public DictionaryReader<MyStringHash, ModelDef> Materials => _holder.Materials;
+        public ListReader<ModelDef> SortedMaterials => _holder.SortedMaterials;
+
         public ImmutableRange<float> ScaleRange { get; private set; }
         private ImmutableRange<float> _sizeRange;
 
-        public class ModelDef : IMyObject, IEquiIconGridItem
+        public class ModelDef : MaterialDef<EquiDecorativeModelToolDefinition>
         {
             private Action _computeFromModel;
             private ImmutableRange<float> _scale;
             private float _volume;
 
-            public readonly EquiDecorativeModelToolDefinition Owner;
-            public readonly MyStringHash Id;
             public readonly string Model;
-            public string Name { get; }
-            public readonly float DurabilityBase;
             public readonly float DurabilityPerCubicMeter;
-            public string[] UiIcons { get; }
 
             public ImmutableRange<float> Scale
             {
@@ -303,21 +292,11 @@ namespace Equinox76561198048419394.Core.Mesh
                 }
             }
 
-            internal ModelDef(EquiDecorativeModelToolDefinition owner, MyStringHash id, MyObjectBuilder_EquiDecorativeModelToolDefinition.ModelDef ob)
+            internal ModelDef(EquiDecorativeModelToolDefinition owner, MyObjectBuilder_EquiDecorativeModelToolDefinition ownerOb,
+                MyObjectBuilder_EquiDecorativeModelToolDefinition.ModelDef ob)
+                : base(owner, ownerOb, ob)
             {
-                Owner = owner;
-                Id = id;
-                Name = ob.Name ?? EquiIconGridController.NameFromId(id);
-                if (ob.UiIcons != null && ob.UiIcons.Length > 0)
-                    UiIcons = ob.UiIcons;
-                else
-                {
-                    // Log.Warning($"Model {owner.Id}/{Name} has no UI icon.  Add <UiIcon> tag to the Model.");
-                    UiIcons = null;
-                }
-
                 Model = ob.Model;
-                DurabilityBase = ob.DurabilityBase ?? 1;
                 DurabilityPerCubicMeter = ob.DurabilityPerCubicMeter ?? 0;
 
                 _computeFromModel = () =>
@@ -329,14 +308,6 @@ namespace Equinox76561198048419394.Core.Mesh
                     _computeFromModel = null;
                 };
             }
-
-            void IMyObject.Deserialize(MyObjectBuilder_Base builder) => throw new NotImplementedException();
-
-            MyObjectBuilder_Base IMyObject.Serialize() => throw new NotImplementedException();
-
-            IMyObjectIdentifier IMyObject.Id => throw new NotImplementedException();
-            MyDefinitionId IMyObject.DefinitionId => new MyDefinitionId(typeof(MyObjectBuilder_EquiDecorativeModelToolDefinition), Id);
-            bool IMyObject.NeedsSerialize => throw new NotImplementedException();
         }
 
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
@@ -347,7 +318,6 @@ namespace Equinox76561198048419394.Core.Mesh
             ScaleRange = ob.Scale?.Immutable() ?? new ImmutableRange<float>(0.1f, 2f);
             _sizeRange = ob.Size?.Immutable() ?? new ImmutableRange<float>(0.1f, 5f);
 
-            var dict = new Dictionary<MyStringHash, ModelDef>();
             // Custom Models
             if (ob.Models != null)
                 foreach (var model in ob.Models)
@@ -377,7 +347,8 @@ namespace Equinox76561198048419394.Core.Mesh
                                 AddPhysical(block);
                     continue;
 
-                    void AddPhysical(MyPhysicalModelDefinition model) => AddTemplated(physical, model, model.Model);
+                    void AddPhysical(MyPhysicalModelDefinition model) =>
+                        AddTemplated(model, model.Model, physical.DurabilityBase, physical.DurabilityPerCubicMeter);
 
                     void AddCollection(MyPhysicalModelCollectionDefinition collection)
                     {
@@ -409,7 +380,10 @@ namespace Equinox76561198048419394.Core.Mesh
                                 AddItems(tagDef.Items, true);
                     continue;
 
-                    void AddItem(MyInventoryItemDefinition item) => AddTemplated(itemModel, item, item.Model);
+                    void AddItem(MyInventoryItemDefinition item)
+                    {
+                        AddTemplated(item, item.Model, itemModel.DurabilityBase, itemModel.DurabilityPerCubicMeter);
+                    }
 
                     void AddItems(IEnumerable<MyInventoryItemDefinition> items, bool includeHidden = false)
                     {
@@ -419,19 +393,19 @@ namespace Equinox76561198048419394.Core.Mesh
                     }
                 }
 
-            Models = dict;
-            SortedModels = dict.Values.OrderBy(x => x.Name).ToList();
             return;
 
             void AddModel(MyObjectBuilder_EquiDecorativeModelToolDefinition.ModelDef model)
             {
                 if (string.IsNullOrEmpty(model.Id) || string.IsNullOrEmpty(model.Model))
                     return;
-                var id = MyStringHash.GetOrCompute(model.Id);
-                dict[id] = new ModelDef(this, id, model);
+                _holder.Add(new ModelDef(this, ob, model));
             }
 
-            void AddTemplated(MyObjectBuilder_EquiDecorativeModelToolDefinition.ModelDefShared template, MyVisualDefinitionBase visual, string model) =>
+            void AddTemplated(
+                MyVisualDefinitionBase visual, string model, float? durabilityBase, float? durabilityPerCubicMeter,
+                List<InventoryActionBuilder> itemCost = default)
+            {
                 AddModel(
                     new MyObjectBuilder_EquiDecorativeModelToolDefinition.ModelDef
                     {
@@ -439,9 +413,10 @@ namespace Equinox76561198048419394.Core.Mesh
                         Name = visual.DisplayNameText,
                         Model = model,
                         UiIcons = visual.Icons,
-                        DurabilityBase = template.DurabilityBase,
-                        DurabilityPerCubicMeter = template.DurabilityPerCubicMeter,
+                        DurabilityBase = durabilityBase,
+                        DurabilityPerCubicMeter = durabilityPerCubicMeter,
                     });
+            }
         }
     }
 
@@ -455,13 +430,13 @@ namespace Equinox76561198048419394.Core.Mesh
         [XmlElement]
         public MutableRange<float>? Size;
 
-        public class ModelDefShared
+        public class ModelDef : MaterialDef
         {
             /// <summary>
-            /// How much durability to use per placement, regardless of scale.
+            /// Path to the model file.
             /// </summary>
             [XmlElement]
-            public float? DurabilityBase;
+            public string Model;
 
             /// <summary>
             /// Additional durability to use per cubic meter of placed model volume.
@@ -470,37 +445,10 @@ namespace Equinox76561198048419394.Core.Mesh
             public float? DurabilityPerCubicMeter;
         }
 
-        public class ModelDef : ModelDefShared
-        {
-            /// <summary>
-            /// Unique identifier for this model.
-            /// </summary>
-            [XmlAttribute("Id")]
-            public string Id;
-
-            /// <summary>
-            /// Display name for this model.
-            /// </summary>
-            [XmlAttribute("Name")]
-            public string Name;
-
-            /// <summary>
-            /// Path to the model file.
-            /// </summary>
-            [XmlElement]
-            public string Model;
-
-            /// <summary>
-            /// Icons to show in the UI.
-            /// </summary>
-            [XmlElement("UiIcon")]
-            public string[] UiIcons;
-        }
-
         [XmlElement("Model")]
         public ModelDef[] Models;
 
-        public class PhysicalModelDef : ModelDefShared
+        public class PhysicalModelDef
         {
             /// <summary>
             /// Include all physical models.
@@ -525,18 +473,30 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement("BlockVariant")]
             public List<string> BlockVariantSubtypes;
-            
+
             /// <summary>
             /// Include all models associated with a growable environment item.
             /// </summary>
             [XmlElement("Growable")]
             public List<string> GrowableSubtypes;
+
+            /// <summary>
+            /// How much durability to use per placement, regardless of scale.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityBase;
+
+            /// <summary>
+            /// Additional durability to use per cubic meter of placed model volume.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityPerCubicMeter;
         }
 
         [XmlElement("PhysicalModel")]
         public PhysicalModelDef[] PhysicalModels;
 
-        public class ItemModelDef : ModelDefShared
+        public class ItemModelDef
         {
             /// <summary>
             /// Include all items.
@@ -567,6 +527,18 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement("TagNonPublic")]
             public List<string> TagsNonPublic;
+
+            /// <summary>
+            /// How much durability to use per placement, regardless of scale.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityBase;
+
+            /// <summary>
+            /// Additional durability to use per cubic meter of placed model volume.
+            /// </summary>
+            [XmlElement]
+            public float? DurabilityPerCubicMeter;
         }
 
         [XmlElement("ItemModel")]

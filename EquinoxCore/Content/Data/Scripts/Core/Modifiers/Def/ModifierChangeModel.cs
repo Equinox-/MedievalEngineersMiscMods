@@ -111,7 +111,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             int modelHash;
             using (MyRandom.Instance.PushSeed(seed))
                 modelHash = op.Value.Collection.Sample(MyRandom.Instance).GetHashCode();
-            return new ModifierDataLong(((long) seed << 32) | modelHash);
+            return new ModifierDataLong(((long) seed << 32) | (long) modelHash);
         }
 
         public override IModifierData CreateData(string data)
