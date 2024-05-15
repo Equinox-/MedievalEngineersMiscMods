@@ -349,7 +349,6 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             base.Init(builder);
             var ob = (MyObjectBuilder_EquiDecorativeDecalToolDefinition)builder;
-            if (ob.Decals == null) return;
             // Item decals
             if (ob.ItemDecals != null)
                 foreach (var itemDecal in ob.ItemDecals)

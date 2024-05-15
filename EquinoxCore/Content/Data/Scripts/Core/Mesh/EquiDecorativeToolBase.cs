@@ -346,12 +346,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
             public void Add(TMaterial material)
             {
-                if (_materials.ContainsKey(material.Id))
-                {
-                    Log.Warning($"Duplicate material ID in {_owner.Id}: {material.Id}. The previous occurence will be used.");
-                    return;
-                }
-                _materials.Add(material.Id, material);
+                _materials[material.Id] = material;
                 _sortedMaterials = null;
             }
         }
