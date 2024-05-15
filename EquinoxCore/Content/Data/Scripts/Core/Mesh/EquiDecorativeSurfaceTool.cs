@@ -343,7 +343,13 @@ namespace Equinox76561198048419394.Core.Mesh
         : EquiDecorativeToolBaseDefinition,
             IEquiDecorativeToolBaseDefinition<EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef>
     {
-        private readonly MaterialHolder<SurfaceMaterialDef> _holder = new MaterialHolder<SurfaceMaterialDef>();
+        private readonly MaterialHolder<SurfaceMaterialDef> _holder;
+
+        public EquiDecorativeSurfaceToolDefinition()
+        {
+            _holder = new MaterialHolder<SurfaceMaterialDef>(this);
+        }
+
         public DictionaryReader<MyStringHash, SurfaceMaterialDef> Materials => _holder.Materials;
         public ListReader<SurfaceMaterialDef> SortedMaterials => _holder.SortedMaterials;
         public ImmutableRange<float> TextureScale { get; private set; }

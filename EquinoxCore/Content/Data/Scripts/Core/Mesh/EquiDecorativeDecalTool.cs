@@ -308,7 +308,7 @@ namespace Equinox76561198048419394.Core.Mesh
     public class EquiDecorativeDecalToolDefinition : EquiDecorativeToolBaseDefinition,
         IEquiDecorativeToolBaseDefinition<EquiDecorativeDecalToolDefinition.DecalDef>
     {
-        private readonly MaterialHolder<DecalDef> _holder = new MaterialHolder<DecalDef>();
+        private readonly MaterialHolder<DecalDef> _holder;
         public DictionaryReader<MyStringHash, DecalDef> Materials => _holder.Materials;
         public ListReader<DecalDef> SortedMaterials => _holder.SortedMaterials;
 
@@ -339,6 +339,11 @@ namespace Equinox76561198048419394.Core.Mesh
             new MaterialSpec.Parameter { Name = "Technique", Value = "DECAL" },
             new MaterialSpec.Parameter { Name = "NormalGlossTexture", Value = "ReleaseMissingNormalGloss" }
         };
+
+        public EquiDecorativeDecalToolDefinition()
+        {
+            _holder = new MaterialHolder<DecalDef>(this);
+        }
 
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {

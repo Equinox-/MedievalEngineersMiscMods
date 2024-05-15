@@ -258,12 +258,17 @@ namespace Equinox76561198048419394.Core.Mesh
         : EquiDecorativeToolBaseDefinition,
             IEquiDecorativeToolBaseDefinition<EquiDecorativeModelToolDefinition.ModelDef>
     {
-        private readonly MaterialHolder<ModelDef> _holder = new MaterialHolder<ModelDef>();
+        private readonly MaterialHolder<ModelDef> _holder;
         public DictionaryReader<MyStringHash, ModelDef> Materials => _holder.Materials;
         public ListReader<ModelDef> SortedMaterials => _holder.SortedMaterials;
 
         public ImmutableRange<float> ScaleRange { get; private set; }
         private ImmutableRange<float> _sizeRange;
+
+        public EquiDecorativeModelToolDefinition()
+        {
+            _holder = new MaterialHolder<ModelDef>(this);
+        }
 
         public class ModelDef : MaterialDef<EquiDecorativeModelToolDefinition>
         {

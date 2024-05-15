@@ -205,7 +205,7 @@ namespace Equinox76561198048419394.Core.Mesh
     public class EquiDecorativeLineToolDefinition : EquiDecorativeToolBaseDefinition,
         IEquiDecorativeToolBaseDefinition<EquiDecorativeLineToolDefinition.LineMaterialDef>
     {
-        private readonly MaterialHolder<LineMaterialDef> _holder = new MaterialHolder<LineMaterialDef>();
+        private readonly MaterialHolder<LineMaterialDef> _holder;
         public DictionaryReader<MyStringHash, LineMaterialDef> Materials => _holder.Materials;
         public ListReader<LineMaterialDef> SortedMaterials => _holder.SortedMaterials;
 
@@ -218,6 +218,11 @@ namespace Equinox76561198048419394.Core.Mesh
         public float? SegmentsPerMeterSqrt { get; private set; }
         private int _minHalfSideSegments;
         private float _maxCircleError;
+
+        public EquiDecorativeLineToolDefinition()
+        {
+            _holder = new MaterialHolder<LineMaterialDef>(this);
+        }
 
         public int HalfSideSegments(float radius)
         {
