@@ -14,7 +14,7 @@ namespace Equinox76561198048419394.Core.Mesh
         public static float LineWidthA = -1;
         public static float LineWidthB = -1;
 
-        public static int DecalRotationDeg = 0;
+        public static float DecalRotationDeg = 0;
         public static float DecalHeight = 0.125f;
         public static int DecalIndex = 0;
 

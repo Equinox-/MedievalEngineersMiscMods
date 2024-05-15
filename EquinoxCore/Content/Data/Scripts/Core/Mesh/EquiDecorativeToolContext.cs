@@ -110,7 +110,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             val => DecorativeToolSettings.SurfaceMaterialIndex = val));
                     break;
                 case EquiDecorativeDecalToolDefinition decal:
-                    m_dataSources.Add(DecalRotationDeg, new SimpleBoundedDataSource<int>(
+                    m_dataSources.Add(DecalRotationDeg, new SimpleBoundedDataSource<float>(
                         0,
                         0,
                         360,

@@ -50,6 +50,7 @@
         <Compile Include="Def\DefinitionObSet.cs" />
         <Compile Include="Def\DefinitionWriter.cs" />
         <Compile Include="Gltf\GltfCli.cs" />
+        <Compile Include="ModManager\ModManager.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="ProgramBootstrapped.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
@@ -78,6 +79,7 @@
         <Compile Include="Util\Keen\KeenMod.cs" />
         <Compile Include="Util\Keen\KeenModel.cs" />
         <Compile Include="Util\Keen\KeenTexture.cs" />
+        <Compile Include="Util\Keen\MaterialTask.cs" />
         <Compile Include="Util\MiscExt.cs" />
         <Compile Include="Util\Models\GltfUtils.cs" />
         <Compile Include="Util\Models\MeshInstance.cs" />
@@ -102,6 +104,14 @@
         <Compile Include="Util\SpeedTree\SpeedTreeWind.cs" />
         <Compile Include="Util\SteamLibrary.cs" />
         <Compile Include="Util\TaskAvoidance.cs" />
+        <Compile Include="Util\Tasks\AssetTask.cs" />
+        <Compile Include="Util\Tasks\AssetTaskMetadata.cs" />
+        <Compile Include="Util\Tasks\FileFingerprint.cs" />
+        <Compile Include="Util\Tasks\FileProperty.cs" />
+        <Compile Include="Util\Tasks\ObjectFingerprint.cs" />
+        <Compile Include="Util\Tasks\Property.cs" />
+        <Compile Include="Util\Tasks\PropertyBase.cs" />
+        <Compile Include="Util\Tasks\Provider.cs" />
         <Compile Include="Util\Writers\GraphVizWriter.cs" />
         <Compile Include="Util\Writers\WavefrontObjWriter.cs" />
         <Compile Include="Util\ZeroSize.cs" />
@@ -125,6 +135,7 @@
         <PackageReference Include="FastCollections" Version="0.2.3" />
         <PackageReference Include="Gameloop.Vdf" Version="0.6.2" />
         <PackageReference Include="MIConvexHull" Version="1.1.19.1019" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0030" />
     </ItemGroup>
     <ItemGroup>
