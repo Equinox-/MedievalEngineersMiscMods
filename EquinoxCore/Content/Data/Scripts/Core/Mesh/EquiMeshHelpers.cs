@@ -24,25 +24,23 @@ namespace Equinox76561198048419394.Core.Mesh
             public int HalfSideSegments;
 
             public bool UseNaturalGravity;
-            public Vector3 Gravity;
             public float CatenaryLength;
 
             public PackedHsvShift ColorMask;
             public bool Ghost;
         }
 
-        public static bool TrySolveCatenary(in LineData line, List<Vector3> points)
+        public static bool TrySolveCatenary(in LineData line, List<Vector3> points, Vector3 gravity, Vector3 offset)
         {
             if (line.CatenaryLength <= 0) return false;
-            var gravity = line.Gravity;
             var gravityMagnitude = gravity.LengthSquared();
             if (gravityMagnitude <= 0) return false;
             gravity /= -(float)Math.Sqrt(gravityMagnitude);
 
             var h1 = gravity.Dot(line.Pt0);
-            var xy1 = line.Pt0 - h1 * gravity;
+            var xy1 = line.Pt0 - h1 * gravity + offset;
             var h2 = gravity.Dot(line.Pt1);
-            var xy2 = line.Pt1 - h2 * gravity;
+            var xy2 = line.Pt1 - h2 * gravity + offset;
 
             var horizontalDist = Vector3.Distance(xy1, xy2);
             var heightDist = h2 - h1;
@@ -59,15 +57,14 @@ namespace Equinox76561198048419394.Core.Mesh
             return true;
         }
 
-        public static void BuildLine(in LineData line, MyModelData mesh, Vector3 offset = default, Vector3? overrideGravity = default)
+        public static void BuildLine(in LineData line, MyModelData mesh, Vector3 gravity, Vector3 offset = default)
         {
             var pointA = line.Pt0 + offset;
             var pointB = line.Pt1 + offset;
-            var gravity = overrideGravity ?? line.Gravity;
             using (PoolManager.Get<List<Vector3>>(out var points))
             {
                 points.EnsureCapacity(line.Segments + 1);
-                if (!TrySolveCatenary(in line, points))
+                if (!TrySolveCatenary(in line, points, gravity, offset))
                     for (var i = 0; i <= line.Segments; i++)
                         points.Add(Vector3.Lerp(pointA, pointB, i / (float)line.Segments));
                 var indexOffset = mesh.Positions.Count;

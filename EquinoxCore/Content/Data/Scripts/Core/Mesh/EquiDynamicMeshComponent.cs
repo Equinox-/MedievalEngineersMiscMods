@@ -181,32 +181,32 @@ namespace Equinox76561198048419394.Core.Mesh
             _currentCullObject = newCullObject;
         }
 
-        public ulong CreateDecal(EquiMeshHelpers.DecalData data)
+        public ulong CreateDecal(in EquiMeshHelpers.DecalData data)
         {
             if (IsDedicated) return NullId;
             AllocateObjectForCell(data.Position, new CellArgs(data.ColorMask, data.Ghost), out var cell, out var id);
-            cell.Decals.Add(id, data);
+            cell.Decals.Add(id, in data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
         }
 
-        public ulong CreateLine(EquiMeshHelpers.LineData data)
+        public ulong CreateLine(in EquiMeshHelpers.LineData data)
         {
             if (IsDedicated) return NullId;
             AllocateObjectForCell((data.Pt0 + data.Pt1) / 2, new CellArgs(data.ColorMask, data.Ghost), out var cell, out var id);
-            cell.Lines.Add(id, data);
+            cell.Lines.Add(id, in data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
         }
 
-        public ulong CreateSurface(EquiMeshHelpers.SurfaceData data)
+        public ulong CreateSurface(in EquiMeshHelpers.SurfaceData data)
         {
             if (IsDedicated) return NullId;
             var center = data.Pt0.Position + data.Pt1.Position + data.Pt2.Position;
             if (data.Pt3.HasValue)
                 center += data.Pt3.Value.Position;
             AllocateObjectForCell(center / (data.Pt3.HasValue ? 4 : 3), new CellArgs(data.ColorMask, data.Ghost), out var cell, out var id);
-            cell.Surfaces.Add(id, data);
+            cell.Surfaces.Add(id, in data);
             cell.MaterialToObject.Add(data.Material, id);
             return id;
         }
@@ -284,7 +284,9 @@ namespace Equinox76561198048419394.Core.Mesh
 
 
                 var localGravity = Vector3.TransformNormal(
-                    MyGravityProviderSystem.CalculateNaturalGravityInPoint(Vector3.Transform(Origin, _owner.Entity.WorldMatrix)),
+                    MyGravityProviderSystem.CalculateNaturalGravityInPoint(Vector3.Transform(
+                        _owner.Entity.PositionComp.LocalAABB.Center,
+                        _owner.Entity.WorldMatrix)),
                     _owner.Entity.PositionComp.WorldMatrixNormalizedInv);
 
                 foreach (var kv in MaterialToObject)
@@ -296,7 +298,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     foreach (var obj in kv.Value)
                     {
                         if (Lines.TryGetValue(obj, out var line))
-                            EquiMeshHelpers.BuildLine(in line.Value, mesh, offset, localGravity);
+                            EquiMeshHelpers.BuildLine(in line.Value, mesh, localGravity, offset);
 
                         if (Surfaces.TryGetValue(obj, out var surface))
                             EquiMeshHelpers.BuildSurface(in surface.Value, mesh, offset);

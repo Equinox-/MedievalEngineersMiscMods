@@ -135,7 +135,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
 #pragma warning disable CS0612 // Type or member is obsolete, backcompat
             [XmlIgnore]
-            [NoSerialize]
+            [Nullable]
             [Obsolete]
             public PackedHsvShift? ColorRaw;
 

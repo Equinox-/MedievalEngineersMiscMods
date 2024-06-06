@@ -46,8 +46,10 @@ namespace Equinox76561198048419394.Core.Mesh
         private EquiDynamicMeshComponent _dynamicMesh;
         private EquiDynamicModelsComponent _dynamicModels;
 
+        [RpcSerializable]
         public struct SharedArgs
         {
+            [Serialize]
             public PackedHsvShift Color;
         }
 

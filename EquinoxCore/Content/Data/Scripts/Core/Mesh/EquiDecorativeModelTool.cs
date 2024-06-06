@@ -440,6 +440,7 @@ namespace Equinox76561198048419394.Core.Mesh
             /// <summary>
             /// Path to the model file.
             /// </summary>
+            /// <example>Models/Components/Scroll.mwm</example>
             [XmlElement]
             public string Model;
 

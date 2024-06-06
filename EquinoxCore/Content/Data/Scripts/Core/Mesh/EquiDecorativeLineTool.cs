@@ -174,8 +174,9 @@ namespace Equinox76561198048419394.Core.Mesh
                     Color = PackedHsvShift
                 },
             });
+            Vector3 gravity = default;
             if (line.CatenaryLength > 0 && line.UseNaturalGravity)
-                line.Gravity = Vector3.TransformNormal(
+                gravity = Vector3.TransformNormal(
                     MyGravityProviderSystem.CalculateNaturalGravityInPoint(Holder.GetPosition()),
                     gridPos.WorldMatrixNormalizedInv);
             var length = Vector3.Distance(positions[0], positions[1]) * (1 + DecorativeToolSettings.LineCatenaryFactor);
@@ -187,7 +188,7 @@ namespace Equinox76561198048419394.Core.Mesh
             using (PoolManager.Get(out MyModelData modelData))
             {
                 modelData.Clear();
-                EquiMeshHelpers.BuildLine(in line, modelData);
+                EquiMeshHelpers.BuildLine(in line, modelData, gravity);
                 triangleMsg.Vertices.EnsureCapacity(modelData.Positions.Count);
                 foreach (var pos in modelData.Positions)
                     triangleMsg.AddVertex(pos, color);
