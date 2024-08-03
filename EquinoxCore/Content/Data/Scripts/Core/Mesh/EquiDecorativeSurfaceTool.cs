@@ -30,9 +30,6 @@ namespace Equinox76561198048419394.Core.Mesh
     [StaticEventOwner]
     public class EquiDecorativeSurfaceTool : EquiDecorativeToolBase<EquiDecorativeSurfaceToolDefinition, EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef>
     {
-        private EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef MaterialDef =>
-            Def.SortedMaterials[DecorativeToolSettings.SurfaceMaterialIndex % Def.SortedMaterials.Count];
-
         private PoolManager.ReturnHandle<List<TR>> GetUnique<TV, TR>(ListReader<TV> values, Func<TV, TR> transform, out List<TR> unique)
             where TR : IEquatable<TR>
         {
@@ -52,6 +49,14 @@ namespace Equinox76561198048419394.Core.Mesh
         protected override int RequiredPoints => 4;
 
         private float UvScale => Def.TextureScale.Clamp(DecorativeToolSettings.UvScale);
+
+        protected override void EyeDropperFeature(in EquiDecorativeMeshComponent.FeatureHandle feature)
+        {
+            base.EyeDropperFeature(in feature);
+            DecorativeToolSettings.UvProjection = feature.SurfaceUvProjection;
+            DecorativeToolSettings.UvBias = feature.SurfaceUvBias;
+            DecorativeToolSettings.UvScale = feature.SurfaceUvScale;
+        }
 
         protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
@@ -352,8 +357,9 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public DictionaryReader<MyStringHash, SurfaceMaterialDef> Materials => _holder.Materials;
         public ListReader<SurfaceMaterialDef> SortedMaterials => _holder.SortedMaterials;
+        public override DictionaryReader<MyStringHash, MaterialDef> RawMaterials => _holder.RawMaterials;
+        public override ListReader<MaterialDef> RawSortedMaterials => _holder.SortedRawMaterials;
         public ImmutableRange<float> TextureScale { get; private set; }
-
 
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {

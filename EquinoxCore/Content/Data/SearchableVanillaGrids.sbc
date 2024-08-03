@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
     <!-- banner bonus pattern -->
     <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
         <Id Type="MyObjectBuilder_ContextMenu" Subtype="BannerEditorBonusLayer" />

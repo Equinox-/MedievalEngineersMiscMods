@@ -4,7 +4,7 @@ using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util.EqMath
 {
-    public struct Triangle
+    public readonly struct Triangle
     {
         public readonly Vector3 A, B, C;
 

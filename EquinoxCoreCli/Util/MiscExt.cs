@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Cli.Util
@@ -31,6 +32,58 @@ namespace Equinox76561198048419394.Core.Cli.Util
             foreach (var item in collection)
                 item.Dispose();
         });
+
+        public static void StopwatchStart(out long start) => start = Stopwatch.GetTimestamp();
+
+        public static double StopwatchReadAndReset(ref long start)
+        {
+            var time = Stopwatch.GetTimestamp();
+            var sec = (time - start) / (double)Stopwatch.Frequency;
+            start = time;
+            return sec;
+        }
+
+        /// <summary>
+        /// Given a type that is assignable to a parameterized version of genericBase,
+        /// get that parameterized base.  If multiple parameterized versions are
+        /// assignable, the first one will be returned.
+        /// </summary>
+        public static bool TryGetGenericBase(this Type type, Type genericBase, out Type parameterizedBase)
+        {
+            foreach (var interfaceImpl in type.GetInterfaces())
+                if (interfaceImpl.IsGenericType && interfaceImpl.GetGenericTypeDefinition() == genericBase)
+                {
+                    parameterizedBase = interfaceImpl;
+                    return true;
+                }
+
+            for (var candidate = type; candidate != null; candidate = candidate.BaseType)
+                if (candidate.IsGenericType && candidate.GetGenericTypeDefinition() == genericBase)
+                {
+                    parameterizedBase = candidate;
+                    return true;
+                }
+
+            parameterizedBase = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Given a type that is assignable to a parameterized version of genericBase,
+        /// get the type argument of that parameterized base.  If multiple parameterized
+        /// versions are assignable, the first one will be returned.
+        /// </summary>
+        public static bool TryGetGenericArgument(this Type type, Type baseGeneric, out Type genericArg, int index = 0)
+        {
+            if (type.TryGetGenericBase(baseGeneric, out var parameterizedBase))
+            {
+                genericArg = parameterizedBase.GenericTypeArguments[index];
+                return true;
+            }
+
+            genericArg = default;
+            return false;
+        }
 
         private sealed class ActionDisposable : IDisposable
         {

@@ -36,9 +36,9 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
             _subtypeSuffix = subtypeSuffix;
             _sourceSet = sourceSet;
             _destinationSet = destinationSet;
-            _translators = typeof(DefinitionObTranslator).GetMethods((BindingFlags) (-1)).Where(x => x.Name == nameof(TranslateInternal))
+            _translators = typeof(DefinitionObTranslator).GetMethods((BindingFlags)(-1)).Where(x => x.Name == nameof(TranslateInternal))
                 .ToList();
-            _conditionalTranslators = typeof(DefinitionObTranslator).GetMethods((BindingFlags) (-1)).Where(x => x.Name == nameof(ConditionalTranslateInternal))
+            _conditionalTranslators = typeof(DefinitionObTranslator).GetMethods((BindingFlags)(-1)).Where(x => x.Name == nameof(ConditionalTranslateInternal))
                 .ToList();
             _translationTable = translationTable;
             _assetTranslator = assetTranslator;
@@ -52,7 +52,7 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
             if (translated != null && translated.GetType() == input.GetType())
                 return translated;
 
-            var args = new object[] {input, input};
+            var args = new object[] { input, input };
             foreach (var translator in _translators)
             {
                 if (translator.GetParameters()[0].ParameterType.IsInstanceOfType(input))
@@ -61,16 +61,16 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
                 }
             }
 
-            var output = (T) args[1];
+            var output = (T)args[1];
             if (output == input && forceCopy)
-                output = (T) MyObjectBuilderSerializer.Clone(input);
+                output = (T)MyObjectBuilderSerializer.Clone(input);
             if (output != input)
             {
                 foreach (var translator in _conditionalTranslators)
                 {
                     if (translator.GetParameters()[0].ParameterType.IsInstanceOfType(input))
                     {
-                        translator.Invoke(this, new object[] {output});
+                        translator.Invoke(this, new object[] { output });
                     }
                 }
 
@@ -166,7 +166,9 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
             var translatedAsset = _assetTranslator(dep.File);
             if (translatedAsset == dep.File) return dep;
             return new MyObjectBuilder_BuildProgressModel
-                {File = translatedAsset, UpperBound = dep.UpperBound, BuildPercentUpperBound = dep.BuildPercentUpperBound};
+#pragma warning disable CS0618 // Type or member is obsolete
+                { File = translatedAsset, UpperBound = dep.UpperBound, BuildPercentUpperBound = dep.BuildPercentUpperBound };
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         private void TranslateInternal(MyObjectBuilder_ContainerDefinition input, ref MyObjectBuilder_ContainerDefinition output)
@@ -213,12 +215,12 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
         private MyObjectBuilder_CubeBlockDefinition.CbObCubeBlockComponent TranslateDependency(
             MyObjectBuilder_CubeBlockDefinition.CbObCubeBlockComponent original)
         {
-            var originalComponent = (MyDefinitionId) original.Definition;
-            var originalReturned = original.ReturnedItem.HasValue ? (MyDefinitionId) original.ReturnedItem.Value : (MyDefinitionId?) null;
+            var originalComponent = (MyDefinitionId)original.Definition;
+            var originalReturned = original.ReturnedItem.HasValue ? (MyDefinitionId)original.ReturnedItem.Value : (MyDefinitionId?)null;
             var replacedComponent = _translationTable.GetValueOrDefault(originalComponent, originalComponent);
             var replacedReturned = originalReturned.HasValue
                 ? _translationTable.GetValueOrDefault(originalReturned.Value, originalReturned.Value)
-                : (MyDefinitionId?) null;
+                : (MyDefinitionId?)null;
 
             if (replacedReturned != originalReturned || replacedComponent != originalComponent)
             {
@@ -249,7 +251,7 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
                 if (!comp.Equals(original, translated))
                 {
                     if (output == input)
-                        output = (T) MyObjectBuilderSerializer.Clone(input);
+                        output = (T)MyObjectBuilderSerializer.Clone(input);
                     setDependency(output, translated);
                 }
             }
@@ -279,7 +281,7 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
                 if (inequal)
                 {
                     if (output == input)
-                        output = (T) MyObjectBuilderSerializer.Clone(input);
+                        output = (T)MyObjectBuilderSerializer.Clone(input);
                     setDependencies(output, lst);
                 }
             }

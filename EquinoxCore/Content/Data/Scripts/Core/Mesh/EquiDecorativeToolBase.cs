@@ -30,11 +30,13 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
     public abstract class EquiDecorativeToolBase<TDef, TMaterial> : MyToolBehaviorBase, IToolWithMenu, IToolWithBuilding
-        where TDef : EquiDecorativeToolBaseDefinition
+        where TDef : EquiDecorativeToolBaseDefinition, IEquiDecorativeToolBaseDefinition<TMaterial>
         where TMaterial : EquiDecorativeToolBaseDefinition.MaterialDef
     {
         private bool IsLocallyControlled => MySession.Static.PlayerEntity == Holder;
         protected TDef Def { get; private set; }
+        protected TMaterial MaterialDef =>
+            Def.SortedMaterials[DecorativeToolSettings.MaterialIndex % Def.SortedMaterials.Count];
 
         protected Vector2 DebugTextAnchor => MyAPIGateway.Session?.CreativeMode ?? false ? new Vector2(-.45f, -.45f) : new Vector2(-.45f, 100);
 
@@ -108,9 +110,10 @@ namespace Equinox76561198048419394.Core.Mesh
             return snapped.Block != null;
         }
 
-        protected bool TryGetAnchor(out BlockAnchorInteraction anchor)
+        protected bool TryGetAnchor(out BlockAnchorInteraction anchor, out float nextAnchorDistance)
         {
             var snap = Def.RequireDummySnapping || !Modified;
+            nextAnchorDistance = float.PositiveInfinity;
             if (!BlockAnchorInteraction.TryGetAnchorFromModelBvh(DetectionLine,
                     snap ? DecorativeToolSettings.SnapSize : 0,
                     snap && DecorativeToolSettings.MeshSnapping == DecorativeToolSettings.MeshSnappingType.Vertex ? DecorativeToolSettings.SnapSize : 0,
@@ -120,14 +123,21 @@ namespace Equinox76561198048419394.Core.Mesh
                 anchor = dummySnapped;
             else if (Def.RequireDummySnapping)
                 return false;
-            if (!snap)
-                return true;
-            if (TrySnapToExisting(in anchor, out var existingSnapped))
-                anchor = existingSnapped;
-            if (TrySnapToStaged(in anchor, out var stagedSnapped))
-                anchor = stagedSnapped;
+            if (snap)
+            {
+                if (TrySnapToExisting(in anchor, out var existingSnapped))
+                    anchor = existingSnapped;
+                if (TrySnapToStaged(in anchor, out var stagedSnapped))
+                    anchor = stagedSnapped;
+            }
+
+            nextAnchorDistance = Vector3.Distance(
+                anchor.GridLocalPosition,
+                (Vector3) Vector3D.Transform(DetectionLine.From, anchor.Grid.Entity.PositionComp.WorldMatrixInvScaled));
             return true;
         }
+
+        private EquiDecorativeMeshComponent.HighlightToken _highlight = default;
 
         public override void Activate()
         {
@@ -135,14 +145,15 @@ namespace Equinox76561198048419394.Core.Mesh
             this.OnActivateWithMenu();
             this.OnActivateWithBuilding();
             if (IsLocallyControlled)
-                Scene.Scheduler.AddFixedUpdate(RenderHelper);
+                Scene.Scheduler.AddFixedUpdate(RenderAndUpdateHighlight);
         }
 
         public override void Deactivate()
         {
             this.OnDeactivateWithMenu();
             this.OnDeactivateWithBuilding();
-            Scene.Scheduler.RemoveFixedUpdate(RenderHelper);
+            Scene.Scheduler.RemoveFixedUpdate(RenderAndUpdateHighlight);
+            _highlight.Dispose();
             base.Deactivate();
         }
 
@@ -155,10 +166,34 @@ namespace Equinox76561198048419394.Core.Mesh
         public string ToolContextMenuId => "DecorativeMeshMenu";
         public object[] ToolContextMenuArguments => new object[] { Definition };
 
+        protected virtual void EyeDropperFeature(in EquiDecorativeMeshComponent.FeatureHandle feature)
+        {
+            var idx = Def.RawSortedMaterials.IndexOf(feature.Material);
+            if (idx >= 0)
+                DecorativeToolSettings.MaterialIndex = idx;
+            if (!feature.Color.Equals(default))
+                DecorativeToolSettings.HsvShift = feature.Color; 
+        }
+        
         protected override void Hit()
         {
             if (!IsLocallyControlled) return;
-            if (!TryGetAnchor(out var anchor))
+            if (ActiveAction == MyHandItemActionEnum.Secondary && _highlight.IsValid)
+            {
+                _highlight.Owner.RequestRemoveFeature(in _highlight.Key);
+                return;
+            }
+
+            if (ActiveAction == MyHandItemActionEnum.Tertiary
+                && _highlight.IsValid
+                && _highlight.Owner.TryGetFeature(in _highlight.Key, out var selected)
+                && selected.Definition == Definition)
+            {
+                EyeDropperFeature(in selected);
+                return;
+            }
+
+            if (!TryGetAnchor(out var anchor, out _))
             {
                 if (ActiveAction == MyHandItemActionEnum.Tertiary)
                     DecorativeToolSettings.HsvShift = default;
@@ -192,10 +227,33 @@ namespace Equinox76561198048419394.Core.Mesh
             HitWithEnoughPoints(_anchors);
             _anchors.Clear();
         }
-
+        
         protected abstract void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points);
 
-        protected virtual void RenderHelper()
+        private void RenderAndUpdateHighlight()
+        {
+            var hasNextAnchor = TryGetAnchor(out var nextAnchor, out var nextAnchorDistance);
+
+            if (EquiDecorativeMeshComponent.QueryNearestInWorld(DetectionLine, out var result)
+                && (!hasNextAnchor || result.Distance <= nextAnchorDistance + 0.01f))
+            {
+                var newHighlight = result.Owner.HighlightFeature(in result.Key);
+                if (!_highlight.Equals(newHighlight))
+                {
+                    _highlight.Dispose();
+                    _highlight = newHighlight;
+                }
+            }
+            else
+            {
+                _highlight.Dispose();
+                _highlight = default;
+            }
+
+            RenderHelper(hasNextAnchor, nextAnchor);
+        }
+        
+        protected virtual void RenderHelper(bool hasNextAnchor, in BlockAnchorInteraction nextAnchor)
         {
             var renderedShape = false;
             foreach (var anchor in _anchors)
@@ -217,7 +275,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     points.Add(anchor.GridLocalPosition);
                 }
 
-                if (TryGetAnchor(out var nextAnchor))
+                if (hasNextAnchor)
                 {
                     nextAnchor.Draw();
                     if (grid != null && nextAnchor.Grid != grid)
@@ -245,13 +303,15 @@ namespace Equinox76561198048419394.Core.Mesh
             }
         }
 
-        protected abstract void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions);
+        protected virtual void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
+        {
+        }
 
         protected virtual void RenderWithoutShape()
         {
         }
 
-        public virtual Matrix BuildingRotationBias => TryGetAnchor(out var anchor) ? anchor.Grid.Entity.WorldMatrix : default;
+        public virtual Matrix BuildingRotationBias => TryGetAnchor(out var anchor, out _) ? anchor.Grid.Entity.WorldMatrix : default;
         public ToolBuildingState BuildingState { get; } = new ToolBuildingState { DefaultDistance = 2 };
     }
 
@@ -264,6 +324,9 @@ namespace Equinox76561198048419394.Core.Mesh
         public float SnapExistingDistance { get; private set; }
 
         public bool AllowRecoloring { get; private set; }
+
+        public abstract DictionaryReader<MyStringHash, MaterialDef> RawMaterials { get; }
+        public abstract ListReader<MaterialDef> RawSortedMaterials { get; }
 
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
@@ -327,27 +390,28 @@ namespace Equinox76561198048419394.Core.Mesh
         protected sealed class MaterialHolder<TMaterial> where TMaterial : MaterialDef
         {
             private readonly Dictionary<MyStringHash, TMaterial> _materials = new Dictionary<MyStringHash, TMaterial>(MyStringHash.Comparer);
+            private readonly Dictionary<MyStringHash, MaterialDef> _rawMaterials = new Dictionary<MyStringHash, MaterialDef>(MyStringHash.Comparer);
             private readonly EquiDecorativeToolBaseDefinition _owner;
             private List<TMaterial> _sortedMaterials;
+            private List<MaterialDef> _sortedRawMaterials;
 
             public MaterialHolder(EquiDecorativeToolBaseDefinition owner) => _owner = owner;
 
             public DictionaryReader<MyStringHash, TMaterial> Materials => _materials;
 
-            public ListReader<TMaterial> SortedMaterials
-            {
-                get
-                {
-                    if (_sortedMaterials == null)
-                        _sortedMaterials = _materials.Values.OrderBy(x => x.Name).ToList();
-                    return _sortedMaterials;
-                }
-            }
+            public ListReader<TMaterial> SortedMaterials => _sortedMaterials ?? (_sortedMaterials = _materials.Values.OrderBy(x => x.Name).ToList());
+
+            public DictionaryReader<MyStringHash, MaterialDef> RawMaterials => _rawMaterials;
+
+            public ListReader<MaterialDef> SortedRawMaterials =>
+                _sortedRawMaterials ?? (_sortedRawMaterials = _materials.Values.OrderBy(x => x.Name).Select(x => (MaterialDef)x).ToList());
 
             public void Add(TMaterial material)
             {
                 _materials[material.Id] = material;
+                _rawMaterials[material.Id] = material;
                 _sortedMaterials = null;
+                _sortedRawMaterials = null;
             }
         }
     }

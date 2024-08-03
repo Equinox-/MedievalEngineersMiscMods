@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition">
-        <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="Default" Merge="Append" Copy="Append" />
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition" Merge="Append" Copy="Append">
+        <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="Default" />
 
         <Checkbox StyleName="ContextMenuCheckbox">
             <IconSize x="32" y="20" />
@@ -19,8 +19,8 @@
         </Combobox>
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition">
-        <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="ModContributions" Merge="Append" />
+    <Definition xsi:type="MyObjectBuilder_GuiSkinDefinition" Merge="Append">
+        <Id Type="MyObjectBuilder_GuiSkinDefinition" Subtype="ModContributions" />
 
         <GuiIcon StyleName="EquinoxPose">
             <Normal>Textures\Equinox\GUI\PoseBrown.png</Normal>

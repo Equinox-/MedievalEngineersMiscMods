@@ -59,9 +59,12 @@
         <Compile Include="Tree\SpeedTree.cs" />
         <Compile Include="Tree\SpeedTreeCli.cs" />
         <Compile Include="Tree\SpeedTreePhysics.cs" />
+        <Compile Include="Tree\SpeedTreeTask.cs" />
         <Compile Include="Util\AnyPrimitive.cs" />
         <Compile Include="Util\BitSetUtils.cs" />
         <Compile Include="Util\CliRegex.cs" />
+        <Compile Include="Util\DirectTextureExt.cs" />
+        <Compile Include="Util\EqualityUtils.cs" />
         <Compile Include="Util\Collider\ConvexHull.cs" />
         <Compile Include="Util\Collider\OptimalShapes.Box.cs" />
         <Compile Include="Util\Collider\OptimalShapes.cs" />
@@ -75,11 +78,14 @@
         <Compile Include="Util\Graph\CondensedGraph.cs" />
         <Compile Include="Util\Graph\Graph.cs" />
         <Compile Include="Util\HavokContext.cs" />
+        <Compile Include="Util\Keen\AlphaMaskTextureTask.cs" />
+        <Compile Include="Util\Keen\ColorMetalTextureTask.cs" />
         <Compile Include="Util\Keen\KeenMaterial.cs" />
         <Compile Include="Util\Keen\KeenMod.cs" />
         <Compile Include="Util\Keen\KeenModel.cs" />
         <Compile Include="Util\Keen\KeenTexture.cs" />
-        <Compile Include="Util\Keen\MaterialTask.cs" />
+        <Compile Include="Util\Keen\TextureTask.cs" />
+        <Compile Include="Util\Keen\TextureUtils.cs" />
         <Compile Include="Util\MiscExt.cs" />
         <Compile Include="Util\Models\GltfUtils.cs" />
         <Compile Include="Util\Models\MeshInstance.cs" />
@@ -105,11 +111,12 @@
         <Compile Include="Util\SteamLibrary.cs" />
         <Compile Include="Util\TaskAvoidance.cs" />
         <Compile Include="Util\Tasks\AssetTask.cs" />
-        <Compile Include="Util\Tasks\AssetTaskMetadata.cs" />
+        <Compile Include="Util\Tasks\AssetTaskExecution.cs" />
+        <Compile Include="Util\Tasks\AssetTaskFingerprint.cs" />
+        <Compile Include="Util\Tasks\AssetTaskIdentifier.cs" />
+        <Compile Include="Util\Tasks\AssetTaskManager.cs" />
         <Compile Include="Util\Tasks\FileFingerprint.cs" />
-        <Compile Include="Util\Tasks\FileProperty.cs" />
         <Compile Include="Util\Tasks\ObjectFingerprint.cs" />
-        <Compile Include="Util\Tasks\Property.cs" />
         <Compile Include="Util\Tasks\PropertyBase.cs" />
         <Compile Include="Util\Tasks\Provider.cs" />
         <Compile Include="Util\Writers\GraphVizWriter.cs" />
@@ -137,6 +144,7 @@
         <PackageReference Include="MIConvexHull" Version="1.1.19.1019" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="SharpGLTF.Core" Version="1.0.0-alpha0030" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.8" />
     </ItemGroup>
     <ItemGroup>
         <Folder Include="Util\Mesh\" />

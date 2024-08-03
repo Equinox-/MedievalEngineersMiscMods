@@ -57,102 +57,112 @@ namespace Equinox76561198048419394.Core.Mesh
             return true;
         }
 
-        public static void BuildLine(in LineData line, MyModelData mesh, Vector3 gravity, Vector3 offset = default)
+        public static void PrepareLine(in LineData line, List<Vector3> points, Vector3 gravity, Vector3 offset)
         {
             var pointA = line.Pt0 + offset;
             var pointB = line.Pt1 + offset;
+            points.EnsureCapacity(line.Segments + 1);
+            if (!TrySolveCatenary(in line, points, gravity, offset))
+                for (var i = 0; i <= line.Segments; i++)
+                    points.Add(Vector3.Lerp(pointA, pointB, i / (float)line.Segments));
+        }
+
+        public static void BuildPreparedLine(in LineData line, MyModelData mesh, List<Vector3> points, Vector3 gravity)
+        {
+            var indexOffset = mesh.Positions.Count;
+
+            var sideSegments = line.HalfSideSegments * 2;
+            var verticesPerRing = sideSegments + 1;
+            var reserveVertexCapacity = indexOffset + verticesPerRing * points.Count;
+            mesh.Positions.EnsureCapacity(reserveVertexCapacity);
+            mesh.TexCoords.EnsureCapacity(reserveVertexCapacity);
+            mesh.Normals.EnsureCapacity(reserveVertexCapacity);
+            mesh.Tangents.EnsureCapacity(reserveVertexCapacity);
+            var biasWithGravity = gravity.LengthSquared() > 0;
+
+            for (var i = 0; i < points.Count; ++i)
+            {
+                var lineTangent = Vector3.Zero;
+                if (i > 0) lineTangent += Vector3.Normalize(points[i] - points[i - 1]);
+                if (i + 1 < points.Count) lineTangent += Vector3.Normalize(points[i + 1] - points[i]);
+                if (i > 0 && i + 1 < points.Count) lineTangent.Normalize();
+                var normal = Vector3.Zero;
+                if (biasWithGravity)
+                {
+                    var biTangent = Vector3.Cross(gravity, lineTangent);
+                    normal = Vector3.Cross(biTangent, lineTangent);
+                }
+
+                if (normal.LengthSquared() < 1e-3)
+                    lineTangent.CalculatePerpendicularVector(out normal);
+                normal.Normalize();
+                Vector3.Cross(ref lineTangent, ref normal, out var binormal);
+
+                var pt = points[i];
+                var fraction = i / (float)line.Segments;
+                var uv = line.UvOffset + fraction * line.UvTangent;
+
+                var halfWidth = MathHelper.Lerp(line.Width0, line.Width1, fraction) / 2;
+                for (var j = 0; j < verticesPerRing; j++)
+                {
+                    var theta = MathHelper.TwoPi * j / sideSegments;
+                    var dir = (float)Math.Cos(theta) * normal + (float)Math.Sin(theta) * binormal;
+
+                    mesh.Positions.Add(pt + dir * halfWidth);
+                    mesh.TexCoords.Add(uv + j * line.UvNormal / sideSegments);
+                    mesh.Normals.Add(dir);
+                    mesh.Tangents.Add(Vector3.Cross(lineTangent, dir));
+                }
+            }
+
+            mesh.Indices.EnsureCapacity(mesh.Indices.Count + 6 * sideSegments * (points.Count - 1) + 3 * (sideSegments - 2));
+            for (var end = 0; end < 2; end++)
+            {
+                var io = indexOffset + verticesPerRing * end * (points.Count - 1);
+                for (var i = 2; i < sideSegments; i++)
+                {
+                    mesh.Indices.Add(io);
+                    if (end == 0)
+                    {
+                        mesh.Indices.Add(io + i - 1);
+                        mesh.Indices.Add(io + i);
+                    }
+                    else
+                    {
+                        mesh.Indices.Add(io + i);
+                        mesh.Indices.Add(io + i - 1);
+                    }
+                }
+            }
+
+            for (var ring = 0; ring < points.Count - 1; ring++)
+            {
+                var io = indexOffset + verticesPerRing * ring;
+                for (var i = 0; i < sideSegments; i++)
+                {
+                    var j = i + 1;
+                    var v00 = io + i;
+                    var v10 = io + verticesPerRing + i;
+                    var v01 = io + j;
+                    var v11 = io + verticesPerRing + j;
+
+                    mesh.Indices.Add(v00);
+                    mesh.Indices.Add(v10);
+                    mesh.Indices.Add(v11);
+
+                    mesh.Indices.Add(v00);
+                    mesh.Indices.Add(v11);
+                    mesh.Indices.Add(v01);
+                }
+            }
+        }
+
+        public static void BuildLine(in LineData line, MyModelData mesh, Vector3 gravity, Vector3 offset = default)
+        {
             using (PoolManager.Get<List<Vector3>>(out var points))
             {
-                points.EnsureCapacity(line.Segments + 1);
-                if (!TrySolveCatenary(in line, points, gravity, offset))
-                    for (var i = 0; i <= line.Segments; i++)
-                        points.Add(Vector3.Lerp(pointA, pointB, i / (float)line.Segments));
-                var indexOffset = mesh.Positions.Count;
-
-                var sideSegments = line.HalfSideSegments * 2;
-                var verticesPerRing = sideSegments + 1;
-                var reserveVertexCapacity = indexOffset + verticesPerRing * points.Count;
-                mesh.Positions.EnsureCapacity(reserveVertexCapacity);
-                mesh.TexCoords.EnsureCapacity(reserveVertexCapacity);
-                mesh.Normals.EnsureCapacity(reserveVertexCapacity);
-                mesh.Tangents.EnsureCapacity(reserveVertexCapacity);
-                var biasWithGravity = gravity.LengthSquared() > 0;
-
-                for (var i = 0; i < points.Count; ++i)
-                {
-                    var lineTangent = Vector3.Zero;
-                    if (i > 0) lineTangent += Vector3.Normalize(points[i] - points[i - 1]);
-                    if (i + 1 < points.Count) lineTangent += Vector3.Normalize(points[i + 1] - points[i]);
-                    if (i > 0 && i + 1 < points.Count) lineTangent.Normalize();
-                    var normal = Vector3.Zero;
-                    if (biasWithGravity)
-                    {
-                        var biTangent = Vector3.Cross(gravity, lineTangent);
-                        normal = Vector3.Cross(biTangent, lineTangent);
-                    }
-
-                    if (normal.LengthSquared() < 1e-3)
-                        lineTangent.CalculatePerpendicularVector(out normal);
-                    normal.Normalize();
-                    Vector3.Cross(ref lineTangent, ref normal, out var binormal);
-
-                    var pt = points[i];
-                    var fraction = i / (float)line.Segments;
-                    var uv = line.UvOffset + fraction * line.UvTangent;
-
-                    var halfWidth = MathHelper.Lerp(line.Width0, line.Width1, fraction) / 2;
-                    for (var j = 0; j < verticesPerRing; j++)
-                    {
-                        var theta = MathHelper.TwoPi * j / sideSegments;
-                        var dir = (float)Math.Cos(theta) * normal + (float)Math.Sin(theta) * binormal;
-
-                        mesh.Positions.Add(pt + dir * halfWidth);
-                        mesh.TexCoords.Add(uv + j * line.UvNormal / sideSegments);
-                        mesh.Normals.Add(dir);
-                        mesh.Tangents.Add(Vector3.Cross(lineTangent, dir));
-                    }
-                }
-
-                mesh.Indices.EnsureCapacity(mesh.Indices.Count + 6 * sideSegments * (points.Count - 1) + 3 * (sideSegments - 2));
-                for (var end = 0; end < 2; end++)
-                {
-                    var io = indexOffset + verticesPerRing * end * (points.Count - 1);
-                    for (var i = 2; i < sideSegments; i++)
-                    {
-                        mesh.Indices.Add(io);
-                        if (end == 0)
-                        {
-                            mesh.Indices.Add(io + i - 1);
-                            mesh.Indices.Add(io + i);
-                        }
-                        else
-                        {
-                            mesh.Indices.Add(io + i);
-                            mesh.Indices.Add(io + i - 1);
-                        }
-                    }
-                }
-
-                for (var ring = 0; ring < points.Count - 1; ring++)
-                {
-                    var io = indexOffset + verticesPerRing * ring;
-                    for (var i = 0; i < sideSegments; i++)
-                    {
-                        var j = i + 1;
-                        var v00 = io + i;
-                        var v10 = io + verticesPerRing + i;
-                        var v01 = io + j;
-                        var v11 = io + verticesPerRing + j;
-
-                        mesh.Indices.Add(v00);
-                        mesh.Indices.Add(v10);
-                        mesh.Indices.Add(v11);
-
-                        mesh.Indices.Add(v00);
-                        mesh.Indices.Add(v11);
-                        mesh.Indices.Add(v01);
-                    }
-                }
+                PrepareLine(in line, points, gravity, offset);
+                BuildPreparedLine(in line, mesh, points, gravity);
             }
         }
 

@@ -1,9 +1,10 @@
 using System;
 using System.IO;
+using Equinox76561198048419394.Core.Cli.Util.Tasks;
 
 namespace Equinox76561198048419394.Core.Cli.Util.Keen
 {
-    public sealed class KeenMod
+    public sealed class KeenMod : AssetTaskManager
     {
         private static readonly char[] InvalidFileName = Path.GetInvalidFileNameChars();
 
@@ -16,29 +17,24 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
             BaseDirectory = Path.GetFullPath(root);
             OriginalContent = Path.GetFullPath(Path.Combine(root, "OriginalContent"));
             Content = Path.GetFullPath(Path.Combine(root, "Content"));
+
+            AddFilePrefix("my_content", Content);
+            AddFilePrefix("my_original_content", OriginalContent);
         }
 
         public string RelativePath(string path, string stripOptionalPrefix = null)
         {
             path = Path.GetFullPath(path);
-            if (TryRelativePathInternal(OriginalContent, stripOptionalPrefix, path, out var result))
-                return result;
-            if (TryRelativePathInternal(Content, stripOptionalPrefix, path, out result))
-                return result;
+            if (TryRelativePathInternal(OriginalContent, path, out var result, stripOptionalPrefix))
+                return $"<original_content>{Path.DirectorySeparatorChar}{result}";
+            if (TryRelativePathInternal(Content, path, out result, stripOptionalPrefix))
+                return $"<content>{Path.DirectorySeparatorChar}{result}";
             throw new Exception("Not relative to content or original content");
         }
 
-        private static bool TryRelativePathInternal(string root, string optionalPrefix, string path, out string result)
+        public bool TryContentPath(string path, out string relativePath)
         {
-            result = default;
-            var stripped = path.AsSpan();
-            if (!stripped.StartsWith(root.AsSpan()) || stripped[root.Length] != Path.DirectorySeparatorChar)
-                return false;
-            stripped = stripped.Slice(root.Length  + 1);
-            if (optionalPrefix != null && stripped.StartsWith(optionalPrefix.AsSpan()) && stripped[optionalPrefix.Length] == Path.DirectorySeparatorChar)
-                stripped = stripped.Slice(optionalPrefix.Length + 1);
-            result = stripped.ToString();
-            return true;
+            return TryRelativePathInternal(Content, Path.GetFullPath(path), out relativePath, null);
         }
 
         public string TaskFingerprint(string taskName, string taskArg = "")
@@ -69,6 +65,14 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
             if (!File.Exists(fingerprintDir))
                 Directory.CreateDirectory(fingerprintDir);
             return Path.Combine(fingerprintDir, fullName.ToString());
+        }
+
+        public override string FingerprintPath(AssetTaskIdentifier id) => TaskFingerprint(id.UniqueId);
+
+        public override bool CanOutputTo(string path)
+        {
+            var fullPath = Path.GetFullPath(path);
+            return TryRelativePathInternal(Content, fullPath, out _, null) || TryRelativePathInternal(OriginalContent, fullPath, out _, null);
         }
     }
 }

@@ -127,17 +127,13 @@ namespace Equinox76561198048419394.Core.Mesh
                 UvBias = args.UvBias ?? DefaultUvBias,
                 UvScale = args.UvScale ?? DefaultUvScale
             };
-            if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
-                RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
+            if (TryAddFeatureInternal(in key, def.Owner, in rpcArgs))
+                RaiseAddFeature_Sync(key, def.Owner.Id, in rpcArgs);
         }
 
         public void RemoveSurface(BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
         {
-            if (!MyMultiplayerModApi.Static.IsServer) return;
-            var key = new FeatureKey(FeatureType.Surface, a, b, c, d);
-            var mp = MyAPIGateway.Multiplayer;
-            if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
+            RemoveFeature(new FeatureKey(FeatureType.Surface, a, b, c, d));
         }
 
         private static void FindUvProjection(UvProjectionMode projection, UvBiasMode bias, Vector3 normal, out Vector3 uvX, out Vector3 uvY)

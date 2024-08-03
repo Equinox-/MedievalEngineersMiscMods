@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Havok;
+using VRage.Logging;
 using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.Cli.Util
@@ -84,8 +86,22 @@ namespace Equinox76561198048419394.Core.Cli.Util
             }
         }
 
+        [ThreadStatic]
+        private static bool _isThreadSetup;
+
+        public static void InitHavok(NamedLogger log)
+        {
+            HkBaseSystem.Init(log);
+            _isThreadSetup = true;
+        }
+
         public static HavokContext Create()
         {
+            if (!_isThreadSetup)
+            {
+                HkBaseSystem.InitThread(Thread.CurrentThread.Name);
+                _isThreadSetup = true;
+            }
             var hkWorld = new HkWorld(true, 50000, float.MaxValue, false, 4, 0.6f);
             HkDestructionStorage destruction = null;
             try

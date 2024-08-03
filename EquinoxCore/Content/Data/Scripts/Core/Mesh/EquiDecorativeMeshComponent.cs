@@ -35,6 +35,8 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         private readonly OffloadedDictionary<FeatureKey, RenderData> _features = new OffloadedDictionary<FeatureKey, RenderData>();
         private readonly MyHashSetDictionary<BlockId, FeatureKey> _featureByBlock = new MyHashSetDictionary<BlockId, FeatureKey>();
+        private readonly Dictionary<ulong, FeatureKey> _featureByMeshObject = new Dictionary<ulong, FeatureKey>();
+        private readonly Dictionary<ulong, FeatureKey> _featureByModelObject = new Dictionary<ulong, FeatureKey>();
 
 #pragma warning disable CS0649
         [Automatic]
@@ -229,6 +231,14 @@ namespace Equinox76561198048419394.Core.Mesh
             feature.Args = args;
         }
 
+        private void RemoveFeature(in FeatureKey key)
+        {
+            if (!MyMultiplayerModApi.Static.IsServer) return;
+            var mp = MyAPIGateway.Multiplayer;
+            if (DestroyFeatureInternal(in key))
+                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
+        }
+
         private bool DestroyFeatureInternal(in FeatureKey triplet)
         {
             if (!_features.TryGetValue(in triplet, out var handle)) return false;
@@ -258,10 +268,12 @@ namespace Equinox76561198048419394.Core.Mesh
                 case FeatureType.Decal:
                 case FeatureType.Line:
                 case FeatureType.Surface:
+                    _featureByMeshObject.Remove(data.RenderId.Value);
                     _dynamicMesh.DestroyObject(data.RenderId.Value);
                     break;
                 case FeatureType.Model:
                     _dynamicModels.DestroyObject(data.RenderId.Value);
+                    _featureByModelObject.Remove(data.RenderId.Value);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -335,7 +347,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 {
                     if (!(feature.Def is EquiDecorativeDecalToolDefinition decalsDef)) return true;
                     if (!decalsDef.Materials.TryGetValue(args.MaterialId, out var decalDef)) return true;
-                    feature.RenderId = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, new DecalArgs<Vector3>
+                    var id = _dynamicMesh.CreateDecal(CreateDecalData(decalDef, new DecalArgs<Vector3>
                     {
                         Position = blockA,
                         Normal = VF_Packer.UnpackNormal(args.DecalNormal),
@@ -343,6 +355,9 @@ namespace Equinox76561198048419394.Core.Mesh
                         Height = args.DecalHeight,
                         Shared = args.Shared,
                     }));
+                    if (id != EquiDynamicMeshComponent.NullId)
+                        _featureByMeshObject[id] = triplet;
+                    feature.RenderId = id;
                     break;
                 }
                 case FeatureType.Line:
@@ -350,7 +365,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     if (!(feature.Def is EquiDecorativeLineToolDefinition lineDef)) return true;
                     if (!lineDef.Materials.TryGetValue(args.MaterialId, out var materialDef)) return true;
                     if (!triplet.B.TryGetGridLocalAnchor(_gridData, out var blockB)) return true;
-                    feature.RenderId = _dynamicMesh.CreateLine(CreateLineData(materialDef, new LineArgs<Vector3>
+                    var id = _dynamicMesh.CreateLine(CreateLineData(materialDef, new LineArgs<Vector3>
                     {
                         A = blockA,
                         B = blockB,
@@ -359,6 +374,9 @@ namespace Equinox76561198048419394.Core.Mesh
                         CatenaryFactor = args.CatenaryFactor,
                         Shared = args.Shared,
                     }));
+                    if (id != EquiDynamicMeshComponent.NullId)
+                        _featureByMeshObject[id] = triplet;
+                    feature.RenderId = id;
                     break;
                 }
                 case FeatureType.Surface:
@@ -378,7 +396,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
                     var gravityWorld = MyGravityProviderSystem.CalculateNaturalGravityInPoint(Entity.GetPosition());
                     var localGravity = Vector3.TransformNormal(gravityWorld, Entity.PositionComp.WorldMatrixNormalizedInv);
-                    feature.RenderId = _dynamicMesh.CreateSurface(CreateSurfaceData(materialDef, new SurfaceArgs<Vector3>
+                    var id = _dynamicMesh.CreateSurface(CreateSurfaceData(materialDef, new SurfaceArgs<Vector3>
                     {
                         A = blockA,
                         B = blockB,
@@ -389,6 +407,9 @@ namespace Equinox76561198048419394.Core.Mesh
                         UvBias = args.UvBias,
                         UvScale = args.UvScale,
                     }, -localGravity));
+                    if (id != EquiDynamicMeshComponent.NullId)
+                        _featureByMeshObject[id] = triplet;
+                    feature.RenderId = id;
                     break;
                 }
                 case FeatureType.Model:
@@ -403,7 +424,10 @@ namespace Equinox76561198048419394.Core.Mesh
                         Scale = args.ModelScale,
                         Shared = args.Shared,
                     });
-                    feature.RenderId = _dynamicModels.Create(in data);
+                    var id = _dynamicModels.Create(in data);
+                    if (id != EquiDynamicMeshComponent.NullId)
+                        _featureByModelObject[id] = triplet;
+                    feature.RenderId = id;
                     break;
                 }
                 default:
@@ -552,7 +576,7 @@ namespace Equinox76561198048419394.Core.Mesh
         [Event, Reliable, Broadcast]
         private void RemoveFeature_Sync(RpcFeatureKey key) => DestroyFeatureInternal(key);
 
-        private void RaiseAddFeature_Sync(FeatureKey key, MyDefinitionId id, FeatureArgs args)
+        private void RaiseAddFeature_Sync(FeatureKey key, MyDefinitionId id, in FeatureArgs args)
         {
             var mp = MyAPIGateway.Multiplayer;
             mp?.RaiseEvent(this, ctx => ctx.AddFeature_Sync,

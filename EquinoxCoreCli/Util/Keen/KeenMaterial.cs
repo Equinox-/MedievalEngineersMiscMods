@@ -192,10 +192,10 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
             KeenProcessingFlags? addFlags = null,
             KeenProcessingFlags? alphaMaskFlags = null)
         {
-            mtl.ColorMetalTexture = mod.ConvertTexture(mtl.ColorMetalTexture, KeenTextureType.ColorMetal, cmFlags ?? defaultFlags);
-            mtl.NormalGlossTexture = mod.ConvertTexture(mtl.NormalGlossTexture, KeenTextureType.NormalGloss, ngFlags ?? defaultFlags);
-            mtl.ExtensionTexture = mod.ConvertTexture(mtl.ExtensionTexture, KeenTextureType.Extension, addFlags ?? defaultFlags);
-            mtl.AlphaMaskTexture = mod.ConvertTexture(mtl.AlphaMaskTexture, KeenTextureType.AlphaMask, alphaMaskFlags ?? defaultFlags);
+            // mtl.ColorMetalTexture = mod.ConvertTexture(mtl.ColorMetalTexture, KeenTextureType.ColorMetal, cmFlags ?? defaultFlags);
+            // mtl.NormalGlossTexture = mod.ConvertTexture(mtl.NormalGlossTexture, KeenTextureType.NormalGloss, ngFlags ?? defaultFlags);
+            // mtl.ExtensionTexture = mod.ConvertTexture(mtl.ExtensionTexture, KeenTextureType.Extension, addFlags ?? defaultFlags);
+            // mtl.AlphaMaskTexture = mod.ConvertTexture(mtl.AlphaMaskTexture, KeenTextureType.AlphaMask, alphaMaskFlags ?? defaultFlags);
         }
 
         public static void ProcessMaterials(this KeenMod mod,

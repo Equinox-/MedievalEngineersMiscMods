@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
   <!--
     This component will provide power and an event based on the voxel environment.
     When the environment changes the component will temporarily enter a "disturbed" mode and send a "VoxelPowerDisturbed" event.  Once it's undisturbed again it will send a "VoxelPowerUndisturbed" event.

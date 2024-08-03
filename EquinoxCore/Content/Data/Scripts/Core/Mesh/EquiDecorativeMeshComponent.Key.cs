@@ -6,7 +6,7 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     public partial class EquiDecorativeMeshComponent
     {
-        private enum FeatureType
+        internal enum FeatureType
         {
             Decal,
             Line,
@@ -14,12 +14,12 @@ namespace Equinox76561198048419394.Core.Mesh
             Model,
         }
 
-        private readonly struct FeatureKey : IEquatable<FeatureKey>
+        public readonly struct FeatureKey : IEquatable<FeatureKey>
         {
-            public readonly FeatureType Type;
-            public readonly BlockAndAnchor A, B, C, D;
+            internal readonly FeatureType Type;
+            internal readonly BlockAndAnchor A, B, C, D;
 
-            public FeatureKey(FeatureType? type, BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
+            internal FeatureKey(FeatureType? type, BlockAndAnchor a, BlockAndAnchor b, BlockAndAnchor c, BlockAndAnchor d)
             {
                 BubbleSort.Sort(ref a, ref b, ref c, ref d, default(BlockAndAnchor.BubbleSorter));
                 A = a;

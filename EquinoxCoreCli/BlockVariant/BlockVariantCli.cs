@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 using CommandLine;
 using Equinox76561198048419394.Core.Cli.Def;
@@ -25,7 +26,7 @@ namespace Equinox76561198048419394.Core.Cli.BlockVariant
             [Option]
             public string ConfigFile { get; set; }
             
-            public override int Run() => BlockVariantCli.Run(this);
+            public override ValueTask<int> Run() => new ValueTask<int>(BlockVariantCli.Run(this));
         }
 
         public static int Run(Options options)

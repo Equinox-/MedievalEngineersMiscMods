@@ -81,12 +81,6 @@ namespace Equinox76561198048419394.Core.Mesh
                         line.WidthRange.Max,
                         () => DecorativeToolSettings.LineWidthB,
                         val => DecorativeToolSettings.LineWidthB = val));
-
-                    if (line.SortedMaterials.Count > 1)
-                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeLineToolDefinition.LineMaterialDef>(
-                            line.SortedMaterials,
-                            () => DecorativeToolSettings.LineMaterialIndex,
-                            val => DecorativeToolSettings.LineMaterialIndex = val));
                     break;
                 case EquiDecorativeSurfaceToolDefinition surf:
                     m_dataSources.Add(SurfaceUvBias, new EnumDataSource<UvBiasMode>(
@@ -103,11 +97,6 @@ namespace Equinox76561198048419394.Core.Mesh
                         surf.TextureScale.Max,
                         () => DecorativeToolSettings.UvScale,
                         val => DecorativeToolSettings.UvScale = val));
-                    if (surf.SortedMaterials.Count > 1)
-                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeSurfaceToolDefinition.SurfaceMaterialDef>(
-                            surf.SortedMaterials,
-                            () => DecorativeToolSettings.SurfaceMaterialIndex,
-                            val => DecorativeToolSettings.SurfaceMaterialIndex = val));
                     break;
                 case EquiDecorativeDecalToolDefinition decal:
                     m_dataSources.Add(DecalRotationDeg, new SimpleBoundedDataSource<float>(
@@ -122,11 +111,6 @@ namespace Equinox76561198048419394.Core.Mesh
                         EquiDecorativeDecalTool.MaxDecalHeight,
                         () => DecorativeToolSettings.DecalHeight,
                         val => DecorativeToolSettings.DecalHeight = val));
-                    if (decal.SortedMaterials.Count > 1)
-                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeDecalToolDefinition.DecalDef>(
-                            decal.SortedMaterials,
-                            () => DecorativeToolSettings.DecalIndex,
-                            val => DecorativeToolSettings.DecalIndex = val));
                     break;
                 case EquiDecorativeModelToolDefinition model:
                     var modelScale = model.ScaleRange;
@@ -136,13 +120,13 @@ namespace Equinox76561198048419394.Core.Mesh
                         modelScale.Max,
                         () => DecorativeToolSettings.ModelScale,
                         val => DecorativeToolSettings.ModelScale = val));
-                    if (model.SortedMaterials.Count > 1)
-                        m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeModelToolDefinition.ModelDef>(
-                            model.SortedMaterials,
-                            () => DecorativeToolSettings.ModelIndex,
-                            val => DecorativeToolSettings.ModelIndex = val));
                     break;
             }
+            if (_definition.RawSortedMaterials.Count > 1)
+                m_dataSources.Add(MaterialDef, new DecorativeMaterialsDataSource<EquiDecorativeToolBaseDefinition.MaterialDef>(
+                    _definition.RawSortedMaterials,
+                    () => DecorativeToolSettings.MaterialIndex % _definition.RawSortedMaterials.Count,
+                    val => DecorativeToolSettings.MaterialIndex = val));
         }
 
         public void ResetColor() => DecorativeToolSettings.HsvShift = null;

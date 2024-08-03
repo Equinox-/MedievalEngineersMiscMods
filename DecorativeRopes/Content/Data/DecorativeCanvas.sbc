@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
     <Definition xsi:type="MyObjectBuilder_CraftingRecipeDefinition">
         <Id Type="MyObjectBuilder_CraftingRecipeDefinition" Subtype="Equi_DecorativeCanvas" />
         <DisplayName>Decorative Canvas</DisplayName>
@@ -7,7 +7,7 @@
         <Icon>Textures\GUI\Icons\Materials\Cloth.dds</Icon>
         <Category>Weaving</Category>
         <Prerequisites>
-            <Component Type="InventoryItem" Subtype="Cloth" Count="4" />
+            <Item Type="InventoryItem" Subtype="Cloth" Amount="4" />
         </Prerequisites>
         <Results>
             <Item Amount="1" Type="HandItem" Subtype="Equi_DecorativeCanvas" />
@@ -30,13 +30,11 @@
         <PhysicalMaterial>Cloth</PhysicalMaterial>
         <Animation>Rope</Animation>
         <MaxStackAmount>1</MaxStackAmount>
-        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
         <MaxDurability>100</MaxDurability>
         <Position>
             <Slot>MainHand</Slot>
         </Position>
         <StanceToBehavior>
-            <StanceName>NormalMode</StanceName>
             <BehaviorId Type="MyObjectBuilder_EquiDecorativeSurfaceToolDefinition" Subtype="Equi_DecorativeCanvas" />
         </StanceToBehavior>
     </Definition>
@@ -44,8 +42,7 @@
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeSurfaceToolDefinition">
         <Id Type="EquiDecorativeSurfaceToolDefinition" Subtype="Equi_DecorativeCanvas" />
 
-        <Variant Id="">
-            <Name>Default</Name>
+        <Variant Id="" Name="Default">
             <UiIcon>Textures/GUI/Icons/buttons/Other.png</UiIcon>
             <Material>
                 <Parameter Name="Technique">MESH</Parameter>

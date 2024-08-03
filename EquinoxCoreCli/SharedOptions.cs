@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using CommandLine;
 using Equinox76561198048419394.Core.Cli.Util.Keen;
 
@@ -20,6 +21,6 @@ namespace Equinox76561198048419394.Core.Cli
             set => Mod = new KeenMod(value);
         }
 
-        public abstract int Run();
+        public abstract ValueTask<int> Run();
     }
 }

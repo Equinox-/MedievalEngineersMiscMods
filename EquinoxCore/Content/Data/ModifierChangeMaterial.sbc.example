@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
         <Id Type="HandItem" Subtype="TestModifierPlaster"/>
         <DisplayName>TestModifierPlaster</DisplayName>

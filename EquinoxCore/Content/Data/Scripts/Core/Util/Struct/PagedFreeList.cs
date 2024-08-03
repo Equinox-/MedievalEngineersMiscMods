@@ -80,6 +80,8 @@ namespace Equinox76561198048419394.Core.Util.Struct
                 _index = index;
             }
 
+            public bool IsValid => _backing != null && _backing._freeRevision == _freeRevision;
+
             // ReSharper disable once ConvertToAutoPropertyWhenPossible
             public uint Index => _index;
 

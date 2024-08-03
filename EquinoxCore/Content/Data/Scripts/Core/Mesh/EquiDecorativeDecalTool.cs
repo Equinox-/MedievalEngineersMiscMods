@@ -40,10 +40,6 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         internal const float MinDecalHeight = .125f / 4;
         internal const float MaxDecalHeight = 5f;
-
-        private EquiDecorativeDecalToolDefinition.DecalDef DecalDef =>
-            Def.SortedMaterials[DecorativeToolSettings.DecalIndex % Def.SortedMaterials.Count];
-
         protected override int RequiredPoints => 1;
 
         private static Vector3 ComputeDecalUp(MyGridDataComponent grid, Vector3 normal)
@@ -80,11 +76,17 @@ namespace Equinox76561198048419394.Core.Mesh
             return result;
         }
 
+        protected override void EyeDropperFeature(in EquiDecorativeMeshComponent.FeatureHandle feature)
+        {
+            base.EyeDropperFeature(in feature);
+            DecorativeToolSettings.DecalHeight = feature.DecalHeight;
+        }
+
         protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
             if (points.Count < 1) return;
             var remove = ActiveAction == MyHandItemActionEnum.Secondary;
-            var decalDef = DecalDef;
+            var decalDef = MaterialDef;
             if (!remove)
             {
                 var area = DecorativeToolSettings.DecalHeight * DecorativeToolSettings.DecalHeight * decalDef.AspectRatio;
@@ -217,15 +219,15 @@ namespace Equinox76561198048419394.Core.Mesh
             DestroyRenderObject();
         }
 
-        protected override void RenderHelper()
+        protected override void RenderHelper(bool hasNextAnchor, in BlockAnchorInteraction nextAnchor)
         {
             SetTarget();
-            var def = DecalDef;
+            var def = MaterialDef;
             MatrixD worldTransform;
             Vector3 localPos;
             Vector3 localNormal;
             Vector3 localUp;
-            if (TryGetAnchor(out var nextAnchor))
+            if (hasNextAnchor)
             {
                 worldTransform = nextAnchor.Grid.Entity.WorldMatrix;
                 localPos = nextAnchor.GridLocalPosition;
@@ -293,11 +295,6 @@ namespace Equinox76561198048419394.Core.Mesh
 
             MyRenderProxy.UpdateRenderEntity(_currentRenderObject, null, PackedHsvShift);
         }
-
-        protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
-        {
-            // Not used...
-        }
     }
 
 
@@ -311,6 +308,8 @@ namespace Equinox76561198048419394.Core.Mesh
         private readonly MaterialHolder<DecalDef> _holder;
         public DictionaryReader<MyStringHash, DecalDef> Materials => _holder.Materials;
         public ListReader<DecalDef> SortedMaterials => _holder.SortedMaterials;
+        public override DictionaryReader<MyStringHash, MaterialDef> RawMaterials => _holder.RawMaterials;
+        public override ListReader<MaterialDef> RawSortedMaterials => _holder.SortedRawMaterials;
 
         public class DecalDef : MaterialDef
         {

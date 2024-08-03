@@ -34,21 +34,24 @@ namespace Equinox76561198048419394.Core.Mesh
     [StaticEventOwner]
     public class EquiDecorativeModelTool : EquiDecorativeToolBase<EquiDecorativeModelToolDefinition, EquiDecorativeModelToolDefinition.ModelDef>
     {
-        private EquiDecorativeModelToolDefinition.ModelDef ModelDef =>
-            Def.SortedMaterials[DecorativeToolSettings.ModelIndex % Def.SortedMaterials.Count];
-
         protected override int RequiredPoints => 1;
+
+        protected override void EyeDropperFeature(in EquiDecorativeMeshComponent.FeatureHandle feature)
+        {
+            base.EyeDropperFeature(in feature);
+            DecorativeToolSettings.ModelScale = feature.ModelScale;
+        }
 
         protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
             if (points.Count < 1) return;
             var remove = ActiveAction == MyHandItemActionEnum.Secondary;
-            var modelDef = ModelDef;
+            var modelDef = MaterialDef;
             var scale = modelDef.Scale.Clamp(DecorativeToolSettings.ModelScale);
             if (!remove)
             {
-                var volume = ModelDef.Volume * scale * scale * scale;
-                var durabilityCost = (int)Math.Ceiling(ModelDef.DurabilityBase + ModelDef.DurabilityPerCubicMeter * volume);
+                var volume = MaterialDef.Volume * scale * scale * scale;
+                var durabilityCost = (int)Math.Ceiling(MaterialDef.DurabilityBase + MaterialDef.DurabilityPerCubicMeter * volume);
                 if (!TryRemovePreReqs(durabilityCost, modelDef))
                     return;
             }
@@ -60,7 +63,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 if (remove)
                     gridDecor.RemoveModel(points[0].Anchor);
                 else
-                    gridDecor.AddModel(ModelDef, new EquiDecorativeMeshComponent.ModelArgs<BlockAndAnchor>
+                    gridDecor.AddModel(MaterialDef, new EquiDecorativeMeshComponent.ModelArgs<BlockAndAnchor>
                     {
                         Position = points[0].Anchor,
                         Forward = localRotation.Forward,
@@ -83,7 +86,7 @@ namespace Equinox76561198048419394.Core.Mesh
             MyMultiplayer.RaiseStaticEvent(x => PerformOp,
                 points[0].Grid.Entity.Id, points[0].RpcAnchor, new ModelRpcArgs
                 {
-                    ModelId = ModelDef.Id,
+                    ModelId = MaterialDef.Id,
                     PackedForward = VF_Packer.PackNormal(localRotation.Forward),
                     PackedUp = VF_Packer.PackNormal(localRotation.Up),
                     Scale = scale,
@@ -176,14 +179,14 @@ namespace Equinox76561198048419394.Core.Mesh
             DestroyRenderObject();
         }
 
-        protected override void RenderHelper()
+        protected override void RenderHelper(bool hasNextAnchor, in BlockAnchorInteraction nextAnchor)
         {
             SetTarget();
-            var def = ModelDef;
+            var def = MaterialDef;
             MatrixD worldTransform;
             MatrixD worldInv;
             Vector3 localPos;
-            if (TryGetAnchor(out var nextAnchor))
+            if (hasNextAnchor)
             {
                 worldTransform = nextAnchor.Grid.Entity.WorldMatrix;
                 worldInv = nextAnchor.Grid.Entity.PositionComp.WorldMatrixNormalizedInv;
@@ -238,11 +241,6 @@ namespace Equinox76561198048419394.Core.Mesh
 
             MyRenderProxy.UpdateRenderEntity(_currentRenderObject, null, PackedHsvShift);
         }
-
-        protected override void RenderShape(MyGridDataComponent grid, ListReader<Vector3> positions)
-        {
-            // Not used...
-        }
     }
 
 
@@ -261,6 +259,8 @@ namespace Equinox76561198048419394.Core.Mesh
         private readonly MaterialHolder<ModelDef> _holder;
         public DictionaryReader<MyStringHash, ModelDef> Materials => _holder.Materials;
         public ListReader<ModelDef> SortedMaterials => _holder.SortedMaterials;
+        public override DictionaryReader<MyStringHash, MaterialDef> RawMaterials => _holder.RawMaterials;
+        public override ListReader<MaterialDef> RawSortedMaterials => _holder.SortedRawMaterials;
 
         public ImmutableRange<float> ScaleRange { get; private set; }
         private ImmutableRange<float> _sizeRange;

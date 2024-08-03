@@ -30,15 +30,20 @@ namespace Equinox76561198048419394.Core.Mesh
     [StaticEventOwner]
     public class EquiDecorativeLineTool : EquiDecorativeToolBase<EquiDecorativeLineToolDefinition, EquiDecorativeLineToolDefinition.LineMaterialDef>
     {
-        private EquiDecorativeLineToolDefinition.LineMaterialDef MaterialDef =>
-            Def.SortedMaterials[DecorativeToolSettings.LineMaterialIndex % Def.SortedMaterials.Count];
-
         protected override int RequiredPoints => 2;
 
         private float CorrectWidth(float width) => width < 0 ? -1 : Def.WidthRange.Clamp(width);
 
         private float WidthA => CorrectWidth(DecorativeToolSettings.LineWidthA);
         private float WidthB => CorrectWidth(DecorativeToolSettings.LineWidthB);
+
+        protected override void EyeDropperFeature(in EquiDecorativeMeshComponent.FeatureHandle feature)
+        {
+            base.EyeDropperFeature(in feature);
+            DecorativeToolSettings.LineCatenaryFactor = feature.LineCatenaryFactory;
+            DecorativeToolSettings.LineWidthA = feature.LineWidthA;
+            DecorativeToolSettings.LineWidthB = feature.LineWidthB;
+        }
 
         protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
         {
@@ -209,6 +214,8 @@ namespace Equinox76561198048419394.Core.Mesh
         private readonly MaterialHolder<LineMaterialDef> _holder;
         public DictionaryReader<MyStringHash, LineMaterialDef> Materials => _holder.Materials;
         public ListReader<LineMaterialDef> SortedMaterials => _holder.SortedMaterials;
+        public override DictionaryReader<MyStringHash, MaterialDef> RawMaterials => _holder.RawMaterials;
+        public override ListReader<MaterialDef> RawSortedMaterials => _holder.SortedRawMaterials;
 
         private const int MaxHalfSideSegments = 8;
 

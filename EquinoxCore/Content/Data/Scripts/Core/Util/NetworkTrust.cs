@@ -17,7 +17,11 @@ namespace Equinox76561198048419394.Core.Util
         /// </summary>
         private const double TrustedDistance = 50d;
 
-        public static bool IsTrusted(MyEntityComponent target, Vector3D? overrideLocation = null)
+
+        public static bool IsTrusted(MyEntityComponent target, Vector3D? overrideLocation = null) => IsTrusted(target,
+            overrideLocation != null ? (BoundingBoxD?) new BoundingBoxD(overrideLocation.Value, overrideLocation.Value) : null);
+
+        public static bool IsTrusted(MyEntityComponent target, BoundingBoxD? overrideLocation = null)
         {
             if (!MyMultiplayerModApi.Static.IsServer)
                 return true;
@@ -33,8 +37,8 @@ namespace Equinox76561198048419394.Core.Util
                 return false;
 
             var playerLoc = playerEntity.WorldMatrix.Translation;
-            var worldAabb = target.Entity.PositionComp.WorldAABB;
-            var loc = overrideLocation ?? Vector3D.Clamp(playerLoc, worldAabb.Min, worldAabb.Max);
+            var worldAabb = overrideLocation ?? target.Entity.PositionComp.WorldAABB;
+            var loc = Vector3D.Clamp(playerLoc, worldAabb.Min, worldAabb.Max);
             if (Vector3D.DistanceSquared(playerEntity.WorldMatrix.Translation, loc) > TrustedDistance * TrustedDistance)
                 return false;
 

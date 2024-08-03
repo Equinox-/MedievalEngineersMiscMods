@@ -138,10 +138,19 @@ namespace Equinox76561198048419394.Core.Cli.Tree
         private static readonly Regex LodPattern = new Regex("LOD([0-9]+)", RegexOptions.IgnoreCase);
         private static readonly int[] FlipWindingOrder = { 0, 2, 1 };
 
+        public static bool TryGetDirectLod(this SpeedTreeRawObjectsObject obj, out int lod)
+        {
+            var match = LodPattern.Match(obj.Name);
+            if (match.Success && int.TryParse(match.Groups[1].Value, out lod))
+                return true;
+            lod = default;
+            return false;
+        }
+
         public static void AddFromScene(
             this SpeedTree tree,
             SpeedTreeRaw scene,
-            SpeedTreeCli.Options options,
+            ISpeedTreeOptions options,
             Matrix transform)
         {
             tree.AddBranchesFromScene(options, scene.Bones, ref transform);
@@ -160,8 +169,7 @@ namespace Equinox76561198048419394.Core.Cli.Tree
                 int lodIndex;
                 while (true)
                 {
-                    var match = LodPattern.Match(lodRoot.Name);
-                    if (match.Success && int.TryParse(match.Groups[1].Value, out lodIndex))
+                    if (lodRoot.TryGetDirectLod(out lodIndex))
                         break;
                     if (objects.TryGetValue(lodRoot.ParentID, out lodRoot))
                         continue;
@@ -212,7 +220,7 @@ namespace Equinox76561198048419394.Core.Cli.Tree
         }
 
 
-        private static void AddBranchesFromScene(this SpeedTree tree, SpeedTreeCli.Options options, SpeedTreeRawBones bones, ref Matrix transform)
+        private static void AddBranchesFromScene(this SpeedTree tree, ISpeedTreeOptions options, SpeedTreeRawBones bones, ref Matrix transform)
         {
             var indexed = bones.Bone.ToDictionary(x => x.ID, x => x);
             var graph = new AlGraph<SpeedTreeRawBonesBone>();

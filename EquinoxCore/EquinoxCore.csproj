@@ -64,9 +64,12 @@
     <Compile Include="Content\Data\Scripts\Core\Inventory\LuckyLoot.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\BlockAnchor.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\BlockAnchorInteraction.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Api.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Decal.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Highlight.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Line.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Model.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Query.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeMeshComponent.Surface.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\DecorativeMaterialsDataSource.cs" />
     <Compile Include="Content\Data\Scripts\Core\Mesh\EquiDecorativeModelTool.cs" />
@@ -191,6 +194,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\Range.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\RootSolver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\EqMath\SahBvhBuilder.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\EqMath\SpatialTree.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\Extensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\FarmingExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\FindFreePlaceUtil.cs" />

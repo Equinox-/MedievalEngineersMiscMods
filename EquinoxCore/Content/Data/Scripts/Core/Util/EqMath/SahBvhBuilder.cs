@@ -51,8 +51,8 @@ namespace Equinox76561198048419394.Core.Util.EqMath
                     var input = _nodes[inputId];
                     if (input.Count > _shapesPerNode && TryPartition(in input, out var lhs, out var rhs))
                     {
-                        var originalScore = input.Count * input.Box.SurfaceArea();
-                        var newScore = lhs.Box.SurfaceArea() * lhs.Count + rhs.Box.SurfaceArea() * rhs.Count;
+                        var originalScore = input.Count * input.Box.SurfaceAreaExt();
+                        var newScore = lhs.Box.SurfaceAreaExt() * lhs.Count + rhs.Box.SurfaceAreaExt() * rhs.Count;
 
                         // Is the split score better than the original score?
                         if (newScore < originalScore)

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using CommandLine;
 using SharpGLTF.Schema2;
 using SharpGLTF.Validation;
@@ -10,7 +11,7 @@ namespace Equinox76561198048419394.Core.Cli.Gltf
         [Verb("gltf-to-mwm", HelpText = "Converts a GLTF file into a MWM file")]
         public class Options : SharedOptions
         {
-            public override int Run() => GltfCli.Run(this);
+            public override ValueTask<int> Run() => new ValueTask<int>(GltfCli.Run(this));
         }
 
 

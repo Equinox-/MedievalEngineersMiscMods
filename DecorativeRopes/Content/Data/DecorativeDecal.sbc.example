@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
     <Definition xsi:type="MyObjectBuilder_HandItemDefinition">
         <Id Type="HandItem" Subtype="Equi_DecorativeDecals" />
         <DisplayName>Decorative Decals</DisplayName>
@@ -15,13 +15,11 @@
         <PhysicalMaterial>Cloth</PhysicalMaterial>
         <Animation>Rope</Animation>
         <MaxStackAmount>1</MaxStackAmount>
-        <BearerDefinition Type="MyObjectBuilder_EntityEquipmentComponent" Subtype="Humanoid" />
         <MaxDurability>100</MaxDurability>
         <Position>
             <Slot>MainHand</Slot>
         </Position>
         <StanceToBehavior>
-            <StanceName>NormalMode</StanceName>
             <BehaviorId Type="MyObjectBuilder_EquiDecorativeDecalToolDefinition" Subtype="Equi_DecorativeDecals" />
         </StanceToBehavior>
     </Definition>
@@ -29,8 +27,7 @@
     <Definition xsi:type="MyObjectBuilder_EquiDecorativeDecalToolDefinition">
         <Id Type="EquiDecorativeDecalToolDefinition" Subtype="Equi_DecorativeDecals" />
 
-        <Decal Id="Tea">
-            <Name>Tea Decal</Name>
+        <Decal Id="Tea" Name="Tea Decal">
             <TopLeftUv x="0" y="0" />
             <BottomRightUv x="1" y="1" />
             <AspectRatio>1</AspectRatio>

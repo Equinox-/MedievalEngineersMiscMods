@@ -202,8 +202,6 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
         private static volatile bool _deviceInitialized;
         private static volatile Device _device;
 
-        public static bool HasFlags(this KeenProcessingFlags bitset, KeenProcessingFlags flags) => (bitset & flags) == flags;
-
         private static Device Device
         {
             get
@@ -230,6 +228,8 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
                 }
             }
         }
+
+        public static bool HasFlags(this KeenProcessingFlags bitset, KeenProcessingFlags flags) => (bitset & flags) == flags;
 
         public static string ConvertTexture(this KeenMod mod, KeenTexture texture)
         {
@@ -294,8 +294,8 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
                 LoadImages();
                 CreateScratch();
                 using var mipChain = _scratch.GenerateMipMaps(_texture.MipGenerationFlags, 0);
-                if (_texture.Flags.HasFlags(KeenProcessingFlags.AlphaMaskCoveragePreserving))
-                    PreserveCoverage(mipChain);
+                // if (_texture.Flags.HasFlags(KeenProcessingFlags.AlphaMaskCoveragePreserving))
+                //     TextureUtils.PreserveCoverage(mipChain);
                 return Compress(mipChain, _texture.CompressedFormat);
             }
 
@@ -345,86 +345,15 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
         private static unsafe ScratchImage LoadSpecialFile(this TexHelper helper, KeenBand.SpecialFile special)
         {
             var image = helper.Initialize2D(DXGI_FORMAT.R8G8B8A8_UNORM, 1, 1, 1, 0, CP_FLAGS.NONE);
-            ref var pixel = ref ((RgbaPixel<byte>*)image.GetImage(0).Pixels.ToPointer())[0];
+            /*ref var pixel = ref ((RgbaPixel<byte>*)image.GetImage(0).Pixels.ToPointer())[0];
             pixel.Red = pixel.Green = pixel.Blue = pixel.Alpha = special switch
             {
                 KeenBand.SpecialFile.AllWhite => byte.MaxValue,
                 KeenBand.SpecialFile.AllBlack => byte.MinValue,
                 _ => throw new ArgumentOutOfRangeException(nameof(special), special, null)
-            };
+            };*/
 
             return image;
-        }
-
-        /// <summary>
-        /// Preserves the percentage of pixels that pass an alpha clip across all mip masks.
-        /// </summary>
-        private static void PreserveCoverage(ScratchImage image)
-        {
-            var data = new PreserveCoverageData(image.GetImage(0));
-            for (var img = 1; img < image.GetImageCount(); img++)
-                data.ApplyCoverage(image.GetImage(img));
-        }
-
-        /// <summary>
-        /// Preserves the percentage of pixels that pass an alpha clip across all mip masks.
-        /// </summary>
-        private class PreserveCoverageData
-        {
-            private const byte AlphaClip = 128;
-            private readonly int[] _counts = new int[256];
-            private readonly float _coverage;
-
-            internal PreserveCoverageData(Image root)
-            {
-                AnalyzeImage(root, _counts);
-                var coveredPixels = 0;
-                for (int i = AlphaClip; i < _counts.Length; i++)
-                    coveredPixels += _counts[i];
-                _coverage = coveredPixels / (root.Width * (float)root.Height);
-            }
-
-            public void ApplyCoverage(Image target)
-            {
-                _counts.AsSpan().Fill(0);
-                AnalyzeImage(target, _counts);
-                byte adjustedClip = 255;
-                var temp = _coverage * target.Width * target.Height;
-                while (adjustedClip > 0)
-                {
-                    temp -= _counts[adjustedClip];
-                    if (temp < 0)
-                        break;
-                    --adjustedClip;
-                }
-
-                if (adjustedClip == AlphaClip)
-                    return;
-
-                for (var y = 0; y < target.Height; y++)
-                    foreach (ref var b in RowSpan(target, y))
-                        if (adjustedClip == 0)
-                            b = byte.MaxValue;
-                        else if (b != byte.MaxValue)
-                            b = (byte)MathHelper.Clamp(b * AlphaClip / adjustedClip, 0, byte.MaxValue);
-            }
-
-            private static void AnalyzeImage(Image img, Span<int> target)
-            {
-                for (var y = 0; y < img.Height; y++)
-                    foreach (var b in RowSpan(img, y))
-                        target[b]++;
-            }
-
-            private static Span<byte> RowSpan(Image img, int y)
-            {
-                if (img.Format != DXGI_FORMAT.R8_UNORM)
-                    throw new Exception("Bad image format");
-                unsafe
-                {
-                    return new Span<byte>((byte*)img.Pixels.ToPointer() + img.RowPitch * y, (int)img.RowPitch);
-                }
-            }
         }
 
         private static ScratchImage Compress(ScratchImage image, DXGI_FORMAT format)
@@ -437,36 +366,37 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
 
         private static ScratchImage ConvertToStandard(Dictionary<string, ScratchImage> images, KeenTexture texture)
         {
-            var dest = TexHelper.Instance.Initialize2D();
-
-            var filterFlags = default(TEX_FILTER_FLAGS);
-            if (texture.Flags.HasFlags(KeenProcessingFlags.AssumeInputSrgb))
-                filterFlags |= TEX_FILTER_FLAGS.SRGB_IN;
-            switch (texture)
-            {
-                case KeenTexture.NormalGloss ng:
-                    return image.Convert(DXGI_FORMAT.R8G8B8A8_UNORM, filterFlags, default);
-                case KeenTexture.ColorMetal cm:
-                case KeenTexture.Extension ext:
-                    filterFlags |= TEX_FILTER_FLAGS.SRGB_OUT;
-                    return image.Convert(DXGI_FORMAT.R8G8B8A8_UNORM_SRGB, filterFlags, default);
-                case KeenTexture.AlphaMask alpha:
-                    filterFlags |= TEX_FILTER_FLAGS.RGB_COPY_RED;
-                    return image.Convert(DXGI_FORMAT.R8_UNORM, filterFlags, default);
-                case KeenTexture.UserInterface ui:
-                {
-                    filterFlags |= TEX_FILTER_FLAGS.SRGB_OUT;
-                    using var srgb = image.Convert(DXGI_FORMAT.R8G8B8A8_UNORM_SRGB, filterFlags, default);
-                    return srgb.PremultiplyAlpha(TEX_PMALPHA_FLAGS.DEFAULT);
-                }
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(texture), texture.GetType(), null);
-            }
+            // var dest = TexHelper.Instance.Initialize2D();
+            //
+            // var filterFlags = default(TEX_FILTER_FLAGS);
+            // if (texture.Flags.HasFlags(KeenProcessingFlags.AssumeInputSrgb))
+            //     filterFlags |= TEX_FILTER_FLAGS.SRGB_IN;
+            // switch (texture)
+            // {
+            //     case KeenTexture.NormalGloss ng:
+            //         return image.Convert(DXGI_FORMAT.R8G8B8A8_UNORM, filterFlags, default);
+            //     case KeenTexture.ColorMetal cm:
+            //     case KeenTexture.Extension ext:
+            //         filterFlags |= TEX_FILTER_FLAGS.SRGB_OUT;
+            //         return image.Convert(DXGI_FORMAT.R8G8B8A8_UNORM_SRGB, filterFlags, default);
+            //     case KeenTexture.AlphaMask alpha:
+            //         filterFlags |= TEX_FILTER_FLAGS.RGB_COPY_RED;
+            //         return image.Convert(DXGI_FORMAT.R8_UNORM, filterFlags, default);
+            //     case KeenTexture.UserInterface ui:
+            //     {
+            //         filterFlags |= TEX_FILTER_FLAGS.SRGB_OUT;
+            //         using var srgb = image.Convert(DXGI_FORMAT.R8G8B8A8_UNORM_SRGB, filterFlags, default);
+            //         return srgb.PremultiplyAlpha(TEX_PMALPHA_FLAGS.DEFAULT);
+            //     }
+            //     default:
+            //         throw new ArgumentOutOfRangeException(nameof(texture), texture.GetType(), null);
+            // }
+            return null;
         }
 
         private static ScratchImage Preprocess(ScratchImage image, KeenTexture texture)
         {
-            switch (texture)
+            /*switch (texture)
             {
                 case KeenTexture.ColorMetal _:
                 case KeenTexture.NormalGloss _:
@@ -491,30 +421,8 @@ namespace Equinox76561198048419394.Core.Cli.Util.Keen
                     return null;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(texture), texture.GetType(), null);
-            }
-        }
-
-        private delegate void TransformImageTyped(Span<RgbaPixel<float>> output, ReadOnlySpan<RgbaPixel<float>> input, int row);
-
-        private static ScratchImage TransformImage(this ScratchImage image, TransformImageTyped transform)
-        {
-            return image.TransformImage((outPixels, inPixels, width, y) =>
-            {
-                unsafe
-                {
-                    var output = new Span<RgbaPixel<float>>(outPixels.ToPointer(), (int)width);
-                    var input = new ReadOnlySpan<RgbaPixel<float>>(inPixels.ToPointer(), (int)width);
-                    transform(output, input, (int)y);
-                }
-            });
-        }
-
-        private struct RgbaPixel<T>
-        {
-            public T Red;
-            public T Green;
-            public T Blue;
-            public T Alpha;
+            }*/
+            return null;
         }
     }
 }

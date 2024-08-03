@@ -57,17 +57,13 @@ namespace Equinox76561198048419394.Core.Mesh
                 DecalHeight = args.Height,
                 Shared = args.Shared,
             };
-            if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
-                RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
+            if (TryAddFeatureInternal(in key, def.Owner, in rpcArgs))
+                RaiseAddFeature_Sync(key, def.Owner.Id, in rpcArgs);
         }
 
         public void RemoveDecal(BlockAndAnchor a)
         {
-            if (!MyMultiplayerModApi.Static.IsServer) return;
-            var key = new FeatureKey(FeatureType.Decal, a, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var mp = MyAPIGateway.Multiplayer;
-            if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
+            RemoveFeature(new FeatureKey(FeatureType.Decal, a, BlockAndAnchor.Null, BlockAndAnchor.Null, BlockAndAnchor.Null));
         }
     }
 

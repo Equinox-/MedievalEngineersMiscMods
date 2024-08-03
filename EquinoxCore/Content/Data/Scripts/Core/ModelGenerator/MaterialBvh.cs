@@ -27,7 +27,6 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             _strings = table;
         }
 
-
         public static MaterialBvh Create(Dictionary<string, object> tags, int shapesPerNode = 8)
         {
             var verts = (Vector3[]) tags.GetValueOrDefault(MyImporterConstants.TAG_VERTICES);
@@ -112,20 +111,14 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         {
             var bestTriId = -1;
             var bestTriDist = distanceLimit;
-            using (var itr = _bvh.IntersectRayOrdered(in ray))
+            using (var itr = _bvh.IntersectRayProxiesOrdered(in ray, new TriangleProxyTest(_triangles)))
             {
                 while (itr.MoveNext())
                 {
                     if (itr.CurrentDist > bestTriDist)
                         break;
-                    foreach (var triId in _bvh.GetProxies(itr.Current))
-                    {
-                        ref var tri = ref _triangles[triId];
-                        if (!tri.Triangle.Intersects(in ray, out var triDist) || triDist > bestTriDist)
-                            continue;
-                        bestTriId = triId;
-                        bestTriDist = triDist;
-                    }
+                    bestTriId = itr.Current;
+                    bestTriDist = itr.CurrentDist;
                 }
             }
 
@@ -142,6 +135,15 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             material = null;
             dist = float.MaxValue;
             return false;
+        }
+
+        private readonly struct TriangleProxyTest : PackedBvh.IProxyTest
+        {
+            private readonly TriangleData[] _triangles;
+
+            public TriangleProxyTest(TriangleData[] triangles) => _triangles = triangles;
+
+            public float? Intersects(int proxy, in Ray ray) => _triangles[proxy].Triangle.Intersects(in ray, out var d) ? (float?) d : null;
         }
 
         private struct TriangleData

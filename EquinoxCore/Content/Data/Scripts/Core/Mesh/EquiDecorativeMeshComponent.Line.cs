@@ -75,18 +75,11 @@ namespace Equinox76561198048419394.Core.Mesh
                 WidthA = args.WidthA >= 0 ? args.WidthA.Value : -1,
                 WidthB = args.WidthB >= 0 ? args.WidthB.Value : -1,
             };
-            if (TryAddFeatureInternal(in key, def.Owner, rpcArgs))
-                RaiseAddFeature_Sync(key, def.Owner.Id, rpcArgs);
+            if (TryAddFeatureInternal(in key, def.Owner, in rpcArgs))
+                RaiseAddFeature_Sync(key, def.Owner.Id, in rpcArgs);
         }
 
-        public void RemoveLine(BlockAndAnchor a, BlockAndAnchor b)
-        {
-            if (!MyMultiplayerModApi.Static.IsServer) return;
-            var key = new FeatureKey(FeatureType.Line, a, b, BlockAndAnchor.Null, BlockAndAnchor.Null);
-            var mp = MyAPIGateway.Multiplayer;
-            if (DestroyFeatureInternal(in key))
-                mp?.RaiseEvent(this, ctx => ctx.RemoveFeature_Sync, (RpcFeatureKey)key);
-        }
+        public void RemoveLine(BlockAndAnchor a, BlockAndAnchor b) => RemoveFeature(new FeatureKey(FeatureType.Line, a, b, BlockAndAnchor.Null, BlockAndAnchor.Null));
     }
 
     public partial class MyObjectBuilder_EquiDecorativeMeshComponent

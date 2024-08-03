@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Equinox76561198048419394.Core.Cli.Util;
 using Havok;
 using Sandbox.Game.Localization;
 using VRage.FileSystem;
@@ -17,7 +19,7 @@ namespace Equinox76561198048419394.Core.Cli
 {
     public static class ProgramBootstrapped
     {
-        public static int SetupEngineAndRun(SharedOptions options)
+        public static async Task<int> SetupEngineAndRun(SharedOptions options)
         {
             MyLog.Default = new MyLog();
             MyFileSystem.Init(Path.Combine(options.GameDirectory, "Content"), "./");
@@ -59,9 +61,9 @@ namespace Equinox76561198048419394.Core.Cli
                 "MedievalEngineers.Game"
             }.Select(Assembly.Load));
 
-            HkBaseSystem.Init(new NamedLogger(MyLog.Default));
+            HavokContext.InitHavok(MyLog.DefaultLogger);
 
-            var result = options.Run();
+            var result = await options.Run();
 
             MyLog.Default.Dispose();
             return result;
