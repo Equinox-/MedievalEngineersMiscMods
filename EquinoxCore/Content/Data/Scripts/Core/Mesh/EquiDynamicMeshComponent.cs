@@ -377,7 +377,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             bvhEntries.Add(new PackedBvhEntry(obj,
                                 center + decalData.Up + decalData.Left,
                                 center - decalData.Up + decalData.Left,
-                                center + decalData.Up - decalData.Left,
+                                center - decalData.Up - decalData.Left,
                                 center + decalData.Up - decalData.Left));
                             if (mesh != null)
                                 EquiMeshHelpers.BuildDecal(in decalData, mesh, offset);

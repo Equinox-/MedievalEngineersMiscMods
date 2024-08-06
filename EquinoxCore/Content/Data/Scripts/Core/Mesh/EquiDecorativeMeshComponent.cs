@@ -158,6 +158,8 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var otherMesh = otherGridData.Container.Get<EquiDecorativeMeshComponent>();
             if (otherMesh == null || otherMesh._features.Count == 0) return;
+
+            var otherToFinal = (Matrix)(otherGridData.Entity.PositionComp.WorldMatrix * finalGridData.Entity.PositionComp.WorldMatrixInvScaled);
             // Move all features to new grid
             var finalMesh = finalGridData.Container.GetOrAdd<EquiDecorativeMeshComponent>();
             foreach (var kv in otherMesh._features)
@@ -165,6 +167,23 @@ namespace Equinox76561198048419394.Core.Mesh
                 // Destroy feature on old grid.
                 ref var otherFeature = ref kv.Value;
                 otherMesh.DestroyRendererInternal(in kv.Key, ref otherFeature);
+                // Remap vector data on the feature
+                switch (kv.Key.Type)
+                {
+                    case FeatureType.Decal:
+                        otherFeature.Args.DecalNormal = TransformPackedNormal(otherFeature.Args.DecalNormal, ref otherToFinal);
+                        otherFeature.Args.DecalUp = TransformPackedNormal(otherFeature.Args.DecalUp, ref otherToFinal);
+                        break;
+                    case FeatureType.Line:
+                    case FeatureType.Surface:
+                        break;
+                    case FeatureType.Model:
+                        otherFeature.Args.ModelForward = TransformPackedNormal(otherFeature.Args.ModelForward, ref otherToFinal);
+                        otherFeature.Args.ModelUp = TransformPackedNormal(otherFeature.Args.ModelUp, ref otherToFinal);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
                 // Copy feature data to new grid.
                 finalMesh._features.Add(in kv.Key, in otherFeature);
             }
@@ -175,6 +194,14 @@ namespace Equinox76561198048419394.Core.Mesh
 
             otherMesh._features.Clear();
             otherMesh._featureByBlock.Clear();
+            return;
+
+            uint TransformPackedNormal(uint packedNormal, ref Matrix mat)
+            {
+                var norm = VF_Packer.UnpackNormal(packedNormal);
+                Vector3.TransformNormal(ref norm, ref mat, out norm);
+                return VF_Packer.PackNormal(norm);
+            }
         }
 
         private static void AfterMerge(MyGridDataComponent finalGridData, MyGridDataComponent otherGridData, List<MyBlock> thisBlocks,
@@ -653,6 +680,7 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var ob = (MyObjectBuilder_EquiDecorativeMeshComponent)base.Serialize(copy);
             ob.CopyProtection = Entity.EntityId;
+
             // Purposefully NOT using ListDictionary since the lists in that are pooled and we have to transfer ownership of these lists out
             // of this method to the returned object builder.
             using (PoolManager.Get<Dictionary<SharedGroupKey, List<MyObjectBuilder_EquiDecorativeMeshComponent.DecalBuilder>>>(out var decals))
@@ -910,8 +938,10 @@ namespace Equinox76561198048419394.Core.Mesh
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public partial class MyObjectBuilder_EquiDecorativeMeshComponent : MyObjectBuilder_EntityComponent, IMyRemappable
     {
-        // Entity ID of the owner.  Do NOT remap this value, because it is used to detect when the entity
-        // is copied/blueprinted and convert the decorative objects into ghosts.
+        /// <summary>
+        /// Entity ID of the owner.  Do NOT remap this value, because it is used to detect when the entity
+        /// is copied/blueprinted and convert the decorative objects into ghosts.
+        /// </summary>
         public long? CopyProtection;
 
         public abstract class DecorativeGroup : IMyRemappable
