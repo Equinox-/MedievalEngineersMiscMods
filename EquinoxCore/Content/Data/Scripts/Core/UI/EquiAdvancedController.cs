@@ -200,6 +200,53 @@ namespace Equinox76561198048419394.Core.UI
             /// </summary>
             [XmlElement]
             public int LabelDecimalPlaces;
+
+            #region XML Support
+
+            /// <inheritdoc cref="Min"/>
+            [XmlAttribute(nameof(Min))]
+            public float MinAttr
+            {
+                get => Read(Min);
+                set => Min = Write(value);
+            }
+
+            /// <inheritdoc cref="Max"/>
+            [XmlAttribute(nameof(Max))]
+            public float MaxAttr
+            {
+                get => Read(Max);
+                set => Max = Write(value);
+            }
+
+            /// <inheritdoc cref="Default"/>
+            [XmlAttribute(nameof(Default))]
+            public float DefaultAttr
+            {
+                get => Read(Default);
+                set => Default = Write(value);
+            }
+
+            /// <inheritdoc cref="Exponent"/>
+            [XmlAttribute(nameof(Exponent))]
+            public float ExponentAttr
+            {
+                get => Read(Exponent);
+                set => Exponent = Write(value);
+            }
+
+            /// <inheritdoc cref="LabelDecimalPlaces"/>
+            [XmlAttribute(nameof(LabelDecimalPlaces))]
+            public int LabelDecimalPlacesAttr
+            {
+                get => LabelDecimalPlaces;
+                set => LabelDecimalPlaces = value;
+            }
+
+            private static float Read(float? val) => val ?? float.NaN;
+            private static float? Write(float val) => float.IsNaN(val) ? (float?) null : val;
+
+            #endregion
         }
 
         public class Dropdown : ControlBase
