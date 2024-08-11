@@ -31,6 +31,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CartographyBaker", "Cartogr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelResetTool", "VoxelResetTool\VoxelResetTool.csproj", "{113971A2-CC29-4171-A9C8-857E4D42E17F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VisualPlayerInventory", "VisualPlayerInventory", "{4A954BCD-7A32-4C0D-B29A-BA6E560864A0}"
+	ProjectSection(SolutionItems) = preProject
+		VisualPlayerInventory\Content\Data\VisualPlayerInventory.sbc = VisualPlayerInventory\Content\Data\VisualPlayerInventory.sbc
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64

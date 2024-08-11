@@ -11,7 +11,6 @@ namespace Equinox76561198048419394.Core.Debug
 {
     public class GuiScreenDebugMods : MyGuiScreenDebugBase
     {
-        private MyGuiScreenDebugBase _activeScreen;
         private readonly ModDebugScreenRegistration _container;
 
         public GuiScreenDebugMods(ModDebugScreenRegistration container)
@@ -37,11 +36,12 @@ namespace Equinox76561198048419394.Core.Debug
             m_currentPosition = -m_size.Value / 2.0f + new Vector2(0.03f, 0.1f);
 
             var checkboxList = new List<MyGuiControlBase>();
-            foreach (var screen in MySession.Static.Components.GetAll<ModDebugScreenComponent>())
+            foreach (var component in MySession.Static.Components.GetAll<ModDebugScreenComponent>())
+            foreach (var screen in component.Screens)
                 AddGroupBox(screen.FriendlyName, screen, checkboxList);
         }
 
-        private void AddGroupBox(string text, ModDebugScreenComponent screenType, List<MyGuiControlBase> controlGroup)
+        private void AddGroupBox(string text, ModDebugScreenComponent.DebugScreen screenType, List<MyGuiControlBase> controlGroup)
         {
             var box = AddCheckBox(text, true, null, controlGroup: controlGroup);
             box.IsChecked = false;
@@ -56,14 +56,14 @@ namespace Equinox76561198048419394.Core.Debug
 
                     var newScreen = screenType.Construct();
                     newScreen.Closed += source => box.IsChecked = false;
-                    _activeScreen?.CloseScreen();
-                    _container.AddScreen(newScreen);
-                    _activeScreen = newScreen;
+                    _container.ActiveDebugScreen?.CloseScreen();
+                    _container.ActiveDebugScreen = newScreen;
+                    MyGuiSandbox.AddScreen(newScreen);
                 }
-                else if (_activeScreen != null && _activeScreen.GetType() == screenType.ScreenType)
+                else if (_container.ActiveDebugScreen != null && _container.ActiveDebugScreen.GetType() == screenType.ScreenType)
                 {
-                    _container.RemoveScreen(_activeScreen);
-                    _activeScreen = null;
+                    _container.ActiveDebugScreen?.CloseScreen();
+                    _container.ActiveDebugScreen = null;
                 }
             };
         }
@@ -75,19 +75,6 @@ namespace Equinox76561198048419394.Core.Debug
             base.HandleInput(receivedFocusInThisUpdate);
 
             if (MyAPIGateway.Input != null && MyAPIGateway.Input.IsKeyPressed(MyKeys.F12)) CloseScreen();
-        }
-
-        private void RemoveActiveScreen()
-        {
-            if (_activeScreen == null) return;
-            _container.RemoveScreen(_activeScreen);
-            _activeScreen = null;
-        }
-
-        public override void OnRemoved()
-        {
-            base.OnRemoved();
-            RemoveActiveScreen();
         }
     }
 }

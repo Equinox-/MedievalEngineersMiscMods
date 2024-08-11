@@ -50,13 +50,16 @@
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiCoreDebugDraw.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\DebugFlags.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\EquiDebugDefinition.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Debug\FacadeEditorDebug.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\GuiScreenDebugMods.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\ModDebugScreenComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Debug\ModDebugScreenRegistration.cs" />
     <Compile Include="Content\Data\Scripts\Core\Harvest\EquiHarvestableComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Harvest\EquiHarvesterToolBehavior.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Inventory\EquiInvertedVisualInventoryComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\EquiItemGeneratorComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\EquiOpenInventoryComponent.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Inventory\EquiInvertedVisualInventoryDebug.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryAction.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryActionApplier.cs" />
     <Compile Include="Content\Data\Scripts\Core\Inventory\InventoryDropper.cs" />

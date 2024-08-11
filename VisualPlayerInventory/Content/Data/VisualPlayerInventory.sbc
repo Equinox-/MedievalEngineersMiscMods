@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append">
+        <Id Type="EntityBase" Subtype="PlayableCharacter" />
+
+        <Component Type="MyObjectBuilder_EquiEntityControllerComponent" />
+
+        <Component Type="MyObjectBuilder_EquiInvertedVisualInventoryComponent" Subtype="PlayableCharacter" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ModelAttachmentComponentDefinition" Merge="Append">
+        <Id Type="ModelAttachmentComponent" Subtype="Humanoid" />
+        <Attachment Name="ItemBack1" Bone="ME_RigSpine4" />
+        <Attachment Name="ItemBack2" Bone="ME_RigSpine4" />
+
+        <Attachment Name="ItemBag1" Bone="ME_RigPelvis" />
+        <Attachment Name="ItemBag2" Bone="ME_RigPelvis" />
+        <Attachment Name="ItemBag3" Bone="ME_RigPelvis" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition" Merge="Append">
+        <Id Type="MyObjectBuilder_EquiInvertedVisualInventoryComponent" Subtype="PlayableCharacter" />
+
+        <Attachment Group="ItemBack" Point="ItemBack1">
+            <Rotation x="70" y="0" z="90" />
+            <Offset x="0.137" y="-.135" z=".1" />
+        </Attachment>
+
+        <Attachment Group="ItemBag" Point="ItemBag1">
+            <Offset x=".035" y="0" z=".185" />
+            <Rotation y="90" z="90" />
+            <Scale>0.5</Scale>
+        </Attachment>
+        <Attachment Group="ItemBag" Point="ItemBag2">
+            <Offset x=".035" y=".08" z=".15" />
+            <Rotation y="90" z="90" />
+            <Scale>0.5</Scale>
+        </Attachment>
+
+        <Mapping Group="ItemBack" FacadeTag="BackItemFacade" RecentlyEquipped="true" />
+        <Mapping Group="ItemBag" FacadeTag="BagItemFacade" />
+    </Definition>
+
+    <!-- back tools and weapons -->
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="BackToolFacade" />
+        <Tag>BackItemFacade</Tag>
+        <Match Tag="Pickaxe" />
+        <Match Tag="AxeCutting" />
+        <Match Tag="HammerBuilding" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="BackToolShovel" />
+        <Tag>BackItemFacade</Tag>
+        <Match Tag="Shovel" />
+        <Offset z=".1" />
+        <Rotation z="90" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="BackToolPlow" />
+        <Tag>BackItemFacade</Tag>
+        <Match Tag="Plow" />
+        <Offset z=".333" />
+        <Rotation z="-140" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="BackWeaponSword" />
+        <Tag>BackItemFacade</Tag>
+        <Match Tag="WeaponMelee" />
+        <Rotation x="173" />
+        <Offset x=".025" z="-.55" />
+    </Definition>
+
+    <!-- Bag items -->
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="BagItemSeedBag" />
+        <Tag>BagItemFacade</Tag>
+        <Match Tag="SeedBag" />
+    </Definition>
+</Definitions>

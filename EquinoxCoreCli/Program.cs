@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Xml.Serialization;
 using CommandLine;
 using DirectXTexNet;
 using Equinox76561198048419394.Core.Cli.BlockVariant;
@@ -15,43 +16,22 @@ using Equinox76561198048419394.Core.Cli.Util.Tasks;
 using Newtonsoft.Json;
 using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities.Planet;
+using Sandbox.ModAPI;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
+using VRage.Game.ModAPI;
 
 namespace Equinox76561198048419394.Core.Cli
 {
     public static class Program
     {
-        private static void Test()
+        [XmlRoot("Test")]
+        public class Test2
         {
-const int size = 1024;
-const float r = 16_000;
-using var image = SixLabors.ImageSharp.Image.LoadPixelData(new SixLabors.ImageSharp.PixelFormats.La32[size * size], size, size);
-for (var y = 0; y < size; y++)
-{
-    for (var x = 0; x < size; x++)
-    {
-        var px = default(SixLabors.ImageSharp.PixelFormats.La32);
-        px.L = Sample(x);
-        px.A = Sample(size - y);
-        image[x, y] = px;
-    }
-}
-
-ushort Sample(int pt) => (ushort)(r + r * MyCubemapHelpers.ProjectionToUniform(-1 + 2 * pt / (float)size));
-
-image.SaveAsPng(@"C:\Tmp\me-geolocation-reverse-16k.png", new PngEncoder()
-{
-    BitDepth = PngBitDepth.Bit16,
-    ColorType = PngColorType.GrayscaleWithAlpha,
-    Gamma = 1,
-});
+            public float Temp;
         }
         public static async Task<int> Main(string[] args)
         {
-            Test();
-            return 0;
-
             var result = Parser.Default.ParseArguments<BlockVariantCli.Options, SpeedTreeCli.Options, GltfCli.Options>(args);
             int code;
             if (result is Parsed<object> parsed && parsed.Value is SharedOptions opts)

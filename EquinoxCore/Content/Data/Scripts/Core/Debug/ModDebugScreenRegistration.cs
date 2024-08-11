@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Text;
+using Sandbox.Game.Gui;
 using Sandbox.Game.GUI;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
+using VRage.Components;
 using VRage.Game.Input;
-using VRage.Input;
 using VRage.Session;
 using VRage.Utils;
 
@@ -13,7 +15,6 @@ namespace Equinox76561198048419394.Core.Debug
     public class ModDebugScreenRegistration : MySessionComponent
     {
         private MyInputContext _ctx;
-        private readonly List<MyGuiScreenBase> _screens = new List<MyGuiScreenBase>();
 
         protected override void OnSessionReady()
         {
@@ -29,19 +30,18 @@ namespace Equinox76561198048419394.Core.Debug
             base.OnUnload();
             if (_screen != null)
             {
-                RemoveScreen(_screen);
+                _screen.CloseScreen();
                 _screen = null;
+            }
+
+            if (ActiveDebugScreen != null)
+            {
+                ActiveDebugScreen.CloseScreen();
+                ActiveDebugScreen = null;
             }
 
             if (_ctx != null && _ctx.InStack)
                 _ctx.Pop();
-
-            foreach (var screen in _screens)
-            {
-                screen.CloseScreenNow();
-                MyGuiSandbox.RemoveScreen(screen);
-            }
-            _screens.Clear();
         }
 
         private GuiScreenDebugMods _screen;
@@ -57,7 +57,7 @@ namespace Equinox76561198048419394.Core.Debug
 
             if (_screen != null)
             {
-                RemoveScreen(_screen);
+                _screen.CloseScreen();
                 _screen = null;
                 return;
             }
@@ -70,7 +70,7 @@ namespace Equinox76561198048419394.Core.Debug
                     MyCommonTexts.MessageBoxF12Question,
                     MyMessageBoxButtons.YesNo,
                     MyMessageBoxIcon.Question,
-                    callback: (result) =>
+                    callback: result =>
                     {
                         if (result == MyDialogResult.Yes)
                             ShowModDebugScreenInternal();
@@ -80,26 +80,33 @@ namespace Equinox76561198048419394.Core.Debug
         private void ShowModDebugScreenInternal()
         {
             _screen = new GuiScreenDebugMods(this);
-            AddScreen(_screen);
+            MyGuiSandbox.AddScreen(_screen);
             _screen.Closed += (screen) => _screen = null;
         }
 
-        public void AddScreen(MyGuiScreenBase screen)
-        {
-            if (!Loaded)
-                return;
-            MyGuiSandbox.AddScreen(screen);
-            _screens.Add(screen);
-        }
+        internal MyGuiScreenDebugBase ActiveDebugScreen;
 
-        public void RemoveScreen(MyGuiScreenBase screen)
+        [FixedUpdate(true)]
+        public void UpdateTextBoxes()
         {
-            Scheduler.AddScheduledCallback(dt =>
+            var active = ActiveDebugScreen;
+            if (active == null || !active.Visible) return;
+            if (!(active.FocusedControl is MyGuiControlTextbox textBox)) return;
+            if (textBox.HasFocus) return;
+            if (!textBox.CheckMouseOver()) return;
+            var delta = MyAPIGateway.Input?.TextInput ?? default;
+            if (delta.Count == 0) return;
+
+            var text = new StringBuilder(textBox.Text);
+            foreach (var ch in delta)
             {
-                screen.CloseScreenNow();
-                MyGuiSandbox.RemoveScreen(screen);
-            }, 0);
-            _screens.Remove(screen);
+                if (!char.IsControl(ch))
+                    text.Append(ch);
+                else if (ch == '\b' && text.Length > 0)
+                    text = text.Remove(text.Length - 1, 1);
+            }
+
+            textBox.SetText(text);
         }
     }
 }

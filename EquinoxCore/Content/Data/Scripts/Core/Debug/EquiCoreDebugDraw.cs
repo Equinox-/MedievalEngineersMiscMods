@@ -1,4 +1,5 @@
-using System;
+using System.Collections.Generic;
+using Equinox76561198048419394.Core.Inventory;
 using Equinox76561198048419394.Core.Mesh;
 using Equinox76561198048419394.Core.Modifiers.Storage;
 using Sandbox.Game.Gui;
@@ -11,11 +12,14 @@ namespace Equinox76561198048419394.Core.Debug
     [MySessionComponent]
     public class EquiCoreDebugDrawRegistration : ModDebugScreenComponent
     {
-        public override string FriendlyName => "Equinox Core Debug Draw";
-        public override Type ScreenType => typeof(EquiCoreDebugDraw);
-        public override MyGuiScreenDebugBase Construct() => new EquiCoreDebugDraw();
+        protected override IEnumerable<DebugScreen> ScreensInternal => new[]
+        {
+            CreateDebugScreen<EquiCoreDebugDraw>("Equinox Core Debug Draw"),
+            CreateDebugScreen<FacadeEditorDebug>("Facade Editor"),
+            CreateDebugScreen<EquiInvertedVisualInventoryDebug>("Inverted Visual Inventory"),
+        };
     }
-    
+
     public class EquiCoreDebugDraw : MyGuiScreenDebugBase
     {
         public override string GetFriendlyName() => "EquiCoreDebugDraw";
