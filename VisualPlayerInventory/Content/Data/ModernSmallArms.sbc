@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <!-- long guns -->
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Rifle_Kar98k" />
+        <Tag>PlayerBack</Tag>
+        <Match Type="HandItem" Subtype="Kar98k" />
+        <Offset x="-.025" y=".035" z=".425" />
+        <Rotation x="165" y="-110" z="10" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Rifle_Mosin" />
+        <Tag>PlayerBack</Tag>
+        <Match Type="HandItem" Subtype="Mosin" />
+        <Offset x="-.05" y=".08" z=".435" />
+        <Rotation x="-100" y="175" z="-72" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Rifle_Carbine" />
+        <Tag>PlayerBack</Tag>
+        <Match Type="HandItem" Subtype="M1_Carbine" />
+        <Offset x="-.035" y=".08" z=".35" />
+        <Rotation x="165" y="-110" z="10" />
+    </Definition>
+
+    <!-- Subtype="MP-40" -->
+    <!-- Subtype="PPSh-41" -->
+    <!-- Subtype="VG-1" -->
+    <!-- Needs some sort of under arm sling -->
+
+    <!-- Subtype="PAX_Panzerfaust" -->
+    <!-- https://www.quora.com/How-did-German-troops-carry-the-Panzerfaust-in-addition-to-a-main-rifle-weapon -->
+
+    <!-- Subtype="PTRD_20mm" -->
+    <!--Subtype="PAX_MetalDetectorTool" -->
+    <!-- It's wayyyyy too long -->
+
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Pistol" />
+        <Tag>PlayerWaistRight</Tag>
+        <Match Type="HandItem" Subtype="P-08" />
+        <Match Type="HandItem" Subtype="TT-33" />
+        <Offset x=".035" y=".235" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Grenandes" />
+        <Tag>PlayerWaistCenter</Tag>
+        <Match Type="HandItem" Subtype="Stielhandgranate_AP" />
+        <Rotation x="14" y="126" />
+    </Definition>
+</Definitions>

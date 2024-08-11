@@ -11,73 +11,83 @@
 
     <Definition xsi:type="MyObjectBuilder_ModelAttachmentComponentDefinition" Merge="Append">
         <Id Type="ModelAttachmentComponent" Subtype="Humanoid" />
-        <Attachment Name="ItemBack1" Bone="ME_RigSpine4" />
-        <Attachment Name="ItemBack2" Bone="ME_RigSpine4" />
+        <Attachment Name="VIBack" Bone="ME_RigSpine4" />
 
-        <Attachment Name="ItemBag1" Bone="ME_RigPelvis" />
-        <Attachment Name="ItemBag2" Bone="ME_RigPelvis" />
+        <Attachment Name="VIWaistRight1" Bone="ME_RigPelvis" />
+        <Attachment Name="VIWaistRight2" Bone="ME_RigPelvis" />
+
+        <Attachment Name="VIWaistCenter1" Bone="ME_RigPelvis" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition" Merge="Append">
         <Id Type="MyObjectBuilder_EquiInvertedVisualInventoryComponent" Subtype="PlayableCharacter" />
 
-        <Attachment Group="ItemBack" Point="ItemBack1">
+        <Attachment Group="Back" Point="VIBack">
             <Rotation x="70" y="0" z="90" />
-            <Offset x="0.137" y="-.135" z=".1" />
+            <Offset x="-.26" y="-.135" z="-.05" />
         </Attachment>
 
-        <Attachment Group="ItemBag" Point="ItemBag1">
-            <Offset x=".035" y="0" z=".185" />
-            <Rotation y="90" z="90" />
-            <Scale>0.5</Scale>
+        <Attachment Group="WaistRight" Point="VIWaistRight1">
+            <Offset x="-.08" y="0" z=".185" />
+            <Rotation y="90" z="95" />
         </Attachment>
-        <Attachment Group="ItemBag" Point="ItemBag2">
-            <Offset x=".035" y=".08" z=".15" />
-            <Rotation y="90" z="90" />
-            <Scale>0.5</Scale>
+        <Attachment Group="WaistRight" Point="VIWaistRight2">
+            <Offset x="-.08" y=".08" z=".15" />
+            <Rotation y="45" z="95" />
         </Attachment>
 
-        <Mapping Group="ItemBack" FacadeTag="BackItemFacade" RecentlyEquipped="true" />
-        <Mapping Group="ItemBag" FacadeTag="BagItemFacade" />
+        <Attachment Group="WaistCenter" Point="VIWaistCenter1">
+            <Offset x="-.065" y=".15" z="0" />
+            <Rotation z="95" />
+        </Attachment>
+
+        <Mapping Group="Back" FacadeTag="PlayerBack" RecentlyEquipped="true" Priority="1" />
+        <Mapping Group="Back" FacadeTag="PlayerBack" Priority="0" />
+
+        <Mapping Group="WaistRight" FacadeTag="PlayerWaistRight" />
+
+        <Mapping Group="WaistCenter" FacadeTag="PlayerWaistCenter" />
     </Definition>
 
     <!-- back tools and weapons -->
     <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
-        <Id Type="ItemFacadeDefinition" Subtype="BackToolFacade" />
-        <Tag>BackItemFacade</Tag>
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_Back_Tool" />
+        <Tag>PlayerBack</Tag>
         <Match Tag="Pickaxe" />
         <Match Tag="AxeCutting" />
         <Match Tag="HammerBuilding" />
+        <Offset z=".5" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
-        <Id Type="ItemFacadeDefinition" Subtype="BackToolShovel" />
-        <Tag>BackItemFacade</Tag>
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_Back_Shovel" />
+        <Tag>PlayerBack</Tag>
         <Match Tag="Shovel" />
-        <Offset z=".1" />
+        <Offset z=".6" />
         <Rotation z="90" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
-        <Id Type="ItemFacadeDefinition" Subtype="BackToolPlow" />
-        <Tag>BackItemFacade</Tag>
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_Back_Plow" />
+        <Tag>PlayerBack</Tag>
         <Match Tag="Plow" />
-        <Offset z=".333" />
+        <Offset z=".833" />
         <Rotation z="-140" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
-        <Id Type="ItemFacadeDefinition" Subtype="BackWeaponSword" />
-        <Tag>BackItemFacade</Tag>
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_Back_Sword" />
+        <Tag>PlayerBack</Tag>
         <Match Tag="WeaponMelee" />
         <Rotation x="173" />
-        <Offset x=".025" z="-.55" />
+        <Offset x=".025" z="-.05" />
     </Definition>
 
     <!-- Bag items -->
     <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
-        <Id Type="ItemFacadeDefinition" Subtype="BagItemSeedBag" />
-        <Tag>BagItemFacade</Tag>
+        <Id Type="ItemFacadeDefinition" Subtype="PVI_WaistRight_SeedBag" />
+        <Tag>PlayerWaistRight</Tag>
         <Match Tag="SeedBag" />
+        <Offset y="-.235" />
     </Definition>
 </Definitions>

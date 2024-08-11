@@ -34,6 +34,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VisualPlayerInventory", "VisualPlayerInventory", "{4A954BCD-7A32-4C0D-B29A-BA6E560864A0}"
 	ProjectSection(SolutionItems) = preProject
 		VisualPlayerInventory\Content\Data\VisualPlayerInventory.sbc = VisualPlayerInventory\Content\Data\VisualPlayerInventory.sbc
+		VisualPlayerInventory\Content\Data\ModernSmallArms.sbc = VisualPlayerInventory\Content\Data\ModernSmallArms.sbc
 	EndProjectSection
 EndProject
 Global

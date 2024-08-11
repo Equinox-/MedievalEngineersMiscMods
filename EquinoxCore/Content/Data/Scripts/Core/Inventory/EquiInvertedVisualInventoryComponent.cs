@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Debug;
+using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.Inventory;
 using Medieval.GameSystems;
 using Sandbox.Entities.Components;
@@ -13,6 +14,8 @@ using VRage;
 using VRage.Collections;
 using VRage.Components;
 using VRage.Components.Entity;
+using VRage.Components.Entity.Animations;
+using VRage.Definitions.Components;
 using VRage.Definitions.Inventory;
 using VRage.Entity.EntityComponents;
 using VRage.Game;
@@ -25,6 +28,7 @@ using VRage.Library.Collections;
 using VRage.ObjectBuilders;
 using VRage.Utils;
 using VRageMath;
+using VRageRender;
 
 namespace Equinox76561198048419394.Core.Inventory
 {
@@ -33,8 +37,9 @@ namespace Equinox76561198048419394.Core.Inventory
     [MyDependency(typeof(MyInventoryBase))]
     [MyDependency(typeof(MyEntityEquipmentComponent))]
     [MyDependency(typeof(MyComponentEventBus))]
+    [MyDependency(typeof(MySkeletonComponent))]
     [MyDefinitionRequired(typeof(EquiInvertedVisualInventoryComponentDefinition))]
-    public class EquiInvertedVisualInventoryComponent : MyEntityComponent, IMyComponentEventProvider
+    public class EquiInvertedVisualInventoryComponent : MyEntityComponent, IMyComponentEventProvider, IComponentDebugDraw
     {
         [Automatic]
         private readonly MyModelAttachmentComponent _modelAttachment = null;
@@ -44,6 +49,9 @@ namespace Equinox76561198048419394.Core.Inventory
 
         [Automatic]
         private readonly MyEntityEquipmentComponent _equipment = null;
+
+        [Automatic]
+        private readonly MySkeletonComponent _skeleton = null;
 
         private readonly Dictionary<MyStringHash, MyInventoryBase> _trackedInventories = new Dictionary<MyStringHash, MyInventoryBase>();
 
@@ -376,6 +384,40 @@ namespace Equinox76561198048419394.Core.Inventory
         }
 
         #endregion
+
+        private bool _modelAttachmentsInitialized;
+        private IReadOnlyDictionary<MyStringHash, MyModelAttachmentComponentDefinition.AttachmentPoint> _modelAttachmentDef;
+
+        public void DebugDraw()
+        {
+            if (!_modelAttachmentsInitialized)
+            {
+                var def = Entity?.DefinitionId;
+                if (def.HasValue && MyDefinitionManager.TryGet(def.Value, out MyContainerDefinition container))
+                    _modelAttachmentDef = container.Get<MyModelAttachmentComponentDefinition>()?.AttachmentPoints;
+                _modelAttachmentsInitialized = true;
+            }
+
+            if (_modelAttachmentDef == null || Entity == null) return;
+            foreach (var group in _definition.AttachmentPoints)
+            foreach (var slot in group.Value.AttachmentPoints)
+                if (_modelAttachmentDef.TryGetValue(slot.Name, out var slotDef))
+                {
+                    var matrix = (MatrixD)slot.Transform;
+                    matrix *= slotDef.Offset;
+                    if (_skeleton != null)
+                    {
+                        var bone = _skeleton.FindBone(slotDef.Bone, out var boneIndex);
+                        if (bone != null)
+                        {
+                            matrix *= _skeleton.RootBoneMatrixInv.GetOrientation() * _skeleton.BoneAbsoluteTransforms[boneIndex];
+                        }
+                    }
+
+                    matrix *= Entity.WorldMatrix;
+                    MyRenderProxy.DebugDrawAxis(matrix, 0.25f, depthRead: false);
+                }
+        }
     }
 
     [MyObjectBuilderDefinition]

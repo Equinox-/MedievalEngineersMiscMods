@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Equinox76561198048419394.Core.Debug;
+using Equinox76561198048419394.Core.Mesh;
 using Sandbox.Game.Gui;
+using VRage.Components;
 using VRage.Game;
 using VRageMath;
 
@@ -36,6 +38,10 @@ namespace Equinox76561198048419394.Core.Inventory
 
             AddCaption("Facade Editor", Color.Yellow.ToVector4());
             AddShareFocusHint();
+
+            AddCheckBox("Debug Draw",
+                () => DebugDraw<EquiInvertedVisualInventoryComponent>.Enabled,
+                val => DebugDraw<EquiInvertedVisualInventoryComponent>.Enabled = val);
 
             AddLabel("Select", Color.Yellow, 1);
             var facades = AddCombo();
