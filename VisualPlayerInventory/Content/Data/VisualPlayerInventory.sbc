@@ -16,7 +16,6 @@
 
         <Attachment Name="ItemBag1" Bone="ME_RigPelvis" />
         <Attachment Name="ItemBag2" Bone="ME_RigPelvis" />
-        <Attachment Name="ItemBag3" Bone="ME_RigPelvis" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition" Merge="Append">

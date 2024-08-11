@@ -218,9 +218,8 @@ namespace Equinox76561198048419394.Core.Inventory
                         // Equipment is already visible, so don't show it again.
                         if (item is MyEquipmentItem equipmentItem && _equipment.IsEquipped(equipmentItem)) continue;
                         var facade = mapping.TryGetFacade(item.GetDefinition());
-                        if (facade == null) continue;
-                        target.Add(new MappingResult(mapping, facade, inv, item));
-                        break;
+                        if (facade != null)
+                            target.Add(new MappingResult(mapping, facade, inv, item));
                     }
                 }
             }
