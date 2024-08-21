@@ -14,7 +14,7 @@
         <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Rifle_Mosin" />
         <Tag>PlayerBack</Tag>
         <Match Type="HandItem" Subtype="Mosin" />
-        <Offset x="-.05" y=".08" z=".435" />
+        <Offset x="-.012" y=".08" z=".435" />
         <Rotation x="-100" y="175" z="-72" />
     </Definition>
 
@@ -35,9 +35,8 @@
     <!-- https://www.quora.com/How-did-German-troops-carry-the-Panzerfaust-in-addition-to-a-main-rifle-weapon -->
 
     <!-- Subtype="PTRD_20mm" -->
-    <!--Subtype="PAX_MetalDetectorTool" -->
+    <!-- Subtype="PAX_MetalDetectorTool" -->
     <!-- It's wayyyyy too long -->
-
 
     <Definition xsi:type="MyObjectBuilder_ItemFacadeDefinition">
         <Id Type="ItemFacadeDefinition" Subtype="PVI_MSA_Pistol" />

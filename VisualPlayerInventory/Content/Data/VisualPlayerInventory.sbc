@@ -16,7 +16,9 @@
         <Attachment Name="VIWaistRight1" Bone="ME_RigPelvis" />
         <Attachment Name="VIWaistRight2" Bone="ME_RigPelvis" />
 
-        <Attachment Name="VIWaistCenter1" Bone="ME_RigPelvis" />
+        <Attachment Name="VIWaistCenter" Bone="ME_RigPelvis" />
+
+        <Attachment Name="VIChestCenter" Bone="ME_RigRibcage" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition" Merge="Append">
@@ -30,15 +32,24 @@
         <Attachment Group="WaistRight" Point="VIWaistRight1">
             <Offset x="-.08" y="0" z=".185" />
             <Rotation y="90" z="95" />
+            <Scale>0.75</Scale>
         </Attachment>
         <Attachment Group="WaistRight" Point="VIWaistRight2">
             <Offset x="-.08" y=".08" z=".15" />
             <Rotation y="45" z="95" />
+            <Scale>0.75</Scale>
         </Attachment>
 
-        <Attachment Group="WaistCenter" Point="VIWaistCenter1">
+        <Attachment Group="WaistCenter" Point="VIWaistCenter">
             <Offset x="-.065" y=".15" z="0" />
             <Rotation z="95" />
+            <Scale>0.75</Scale>
+        </Attachment>
+
+        <Attachment Group="ChestCenter" Point="VIChestCenter">
+            <Offset x=".1" y=".18" z="0" />
+            <Rotation z="90" />
+            <Scale>0.75</Scale>
         </Attachment>
 
         <Mapping Group="Back" FacadeTag="PlayerBack" RecentlyEquipped="true" Priority="1" />
@@ -47,6 +58,8 @@
         <Mapping Group="WaistRight" FacadeTag="PlayerWaistRight" />
 
         <Mapping Group="WaistCenter" FacadeTag="PlayerWaistCenter" />
+
+        <Mapping Group="ChestCenter" FacadeTag="PlayerChestCenter" />
     </Definition>
 
     <!-- back tools and weapons -->

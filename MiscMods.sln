@@ -1,6 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlayerAttachmentComponent", "PlayerAttachmentComponent\PlayerAttachmentComponent.csproj", "{96967E8C-611F-4272-81BE-00C1885E8FD5}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PlayerAttachmentComponent", "PlayerAttachmentComponent", "{96967E8C-611F-4272-81BE-00C1885E8FD5}"
+	ProjectSection(SolutionItems) = preProject
+		PlayerAttachmentComponent\Content\metadata.mod = PlayerAttachmentComponent\Content\metadata.mod
+		PlayerAttachmentComponent\Content\Data\AnimationController_Female.sbc = PlayerAttachmentComponent\Content\Data\AnimationController_Female.sbc
+		PlayerAttachmentComponent\Content\Data\AnimationController_Male.sbc = PlayerAttachmentComponent\Content\Data\AnimationController_Male.sbc
+		PlayerAttachmentComponent\Content\Data\ChairBed.sbc.example = PlayerAttachmentComponent\Content\Data\ChairBed.sbc.example
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EquinoxCore", "EquinoxCore\EquinoxCore.csproj", "{50FF4E1A-040F-4733-9B89-1A55F800E5D3}"
 EndProject
@@ -35,6 +41,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VisualPlayerInventory", "Vi
 	ProjectSection(SolutionItems) = preProject
 		VisualPlayerInventory\Content\Data\VisualPlayerInventory.sbc = VisualPlayerInventory\Content\Data\VisualPlayerInventory.sbc
 		VisualPlayerInventory\Content\Data\ModernSmallArms.sbc = VisualPlayerInventory\Content\Data\ModernSmallArms.sbc
+		VisualPlayerInventory\Content\Data\MiscMods.sbc = VisualPlayerInventory\Content\Data\MiscMods.sbc
 	EndProjectSection
 EndProject
 Global
