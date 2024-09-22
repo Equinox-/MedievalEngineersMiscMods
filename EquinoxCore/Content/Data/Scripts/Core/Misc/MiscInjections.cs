@@ -20,7 +20,6 @@ namespace Equinox76561198048419394.Core.Misc
             AddScheduledCallback(FirstUpdate);
         }
 
-
         [Update(false)]
         private void FirstUpdate(long dt)
         {
