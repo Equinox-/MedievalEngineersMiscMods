@@ -439,9 +439,10 @@ namespace Equinox76561198048419394.Core.Inventory
         private readonly HashSet<string> _facadeOutgoingEvents = new HashSet<string>();
 
         public HashSetReader<MyStringHash> Inventories => _inventories;
+        public bool AllInventories => _inventories.Contains(MyStringHash.NullOrEmpty);
+
         public HashSetReader<string> FacadeIncomingEvents => _facadeIncomingEvents;
         public HashSetReader<string> FacadeOutgoingEvents => _facadeOutgoingEvents;
-        public bool AllInventories => _inventories.Contains(MyStringHash.NullOrEmpty);
         public DictionaryReader<MyStringHash, AttachmentGroup> AttachmentPoints => _attachmentPoints;
 
         private FacadeLookup _recentlyEquippedFacades;
@@ -489,9 +490,12 @@ namespace Equinox76561198048419394.Core.Inventory
             public readonly bool RecentlyEquipped;
             private readonly FacadeLookup _facades;
 
-            public Mapping(MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition.Mapping ob, List<MyItemFacadeDefinition> facades)
+            public Mapping(
+                MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition.Mapping ob,
+                List<MyItemFacadeDefinition> facades,
+                string defaultInventory)
             {
-                Inventory = MyStringHash.GetOrCompute(ob.Inventory);
+                Inventory = MyStringHash.GetOrCompute(string.IsNullOrEmpty(ob.Inventory) ? defaultInventory : ob.Inventory);
                 _facades = new FacadeLookup(facades);
                 Entity = ob.Entity;
                 RecentlyEquipped = ob.RecentlyEquipped;
@@ -528,7 +532,6 @@ namespace Equinox76561198048419394.Core.Inventory
         {
             base.Init(def);
             var ob = (MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition)def;
-
             var recentlyEquipped = new List<MyItemFacadeDefinition>();
 
             var sorted = new List<MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition.Mapping>();
@@ -551,7 +554,7 @@ namespace Equinox76561198048419394.Core.Inventory
                 if (facadesList.Count == 0)
                     continue;
 
-                var built = new Mapping(mapping, facadesList);
+                var built = new Mapping(mapping, facadesList, ob.DefaultInventory);
                 mappingByGroup.Add(attachmentPoint, built);
                 _inventories.Add(built.Inventory);
 
@@ -652,7 +655,7 @@ namespace Equinox76561198048419394.Core.Inventory
             public string FacadeTag;
 
             /// <summary>
-            /// Subtype of the inventory to watch, or null to watch all.
+            /// Subtype of the inventory to watch, or null to watch the default inventory.
             /// </summary>
             [XmlAttribute]
             public string Inventory;
@@ -674,6 +677,12 @@ namespace Equinox76561198048419394.Core.Inventory
             [XmlAttribute]
             public bool RecentlyEquipped;
         }
+
+        /// <summary>
+        /// Default inventory to watch for mappings, or empty string to watch all by default.
+        /// </summary>
+        [XmlElement("DefaultInventory")]
+        public string DefaultInventory;
 
         /// <summary>
         /// Associate a new attachment point and transformation with an attachment group. 

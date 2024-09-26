@@ -24,6 +24,8 @@
     <Definition xsi:type="MyObjectBuilder_EquiInvertedVisualInventoryComponentDefinition" Merge="Append">
         <Id Type="MyObjectBuilder_EquiInvertedVisualInventoryComponent" Subtype="PlayableCharacter" />
 
+        <DefaultInventory>Internal</DefaultInventory>
+
         <Attachment Group="Back" Point="VIBack">
             <Rotation x="70" y="0" z="90" />
             <Offset x="-.26" y="-.135" z="-.05" />
