@@ -14,8 +14,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SleepThroughTheNight", "Sle
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EquinoxCoreTests", "EquinoxCoreTests\EquinoxCoreTests.csproj", "{82A54A44-B13C-4195-B48E-40144C707511}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EquinoxCoreCli", "EquinoxCoreCli\EquinoxCoreCli.csproj", "{CBEEBF84-49E1-4AC4-952B-5C144684BD74}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DecorativeRopes", "DecorativeRopes", "{71BF0CA4-71A8-4057-925A-586E26CE29E8}"
 	ProjectSection(SolutionItems) = preProject
 		DecorativeRopes\Content\Data\DecorativeRope.sbc = DecorativeRopes\Content\Data\DecorativeRope.sbc
@@ -62,10 +60,6 @@ Global
 		{82A54A44-B13C-4195-B48E-40144C707511}.Release|x64.Build.0 = Release|Any CPU
 		{82A54A44-B13C-4195-B48E-40144C707511}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{82A54A44-B13C-4195-B48E-40144C707511}.Debug|x64.Build.0 = Debug|Any CPU
-		{CBEEBF84-49E1-4AC4-952B-5C144684BD74}.Release|x64.ActiveCfg = Release|Any CPU
-		{CBEEBF84-49E1-4AC4-952B-5C144684BD74}.Release|x64.Build.0 = Release|Any CPU
-		{CBEEBF84-49E1-4AC4-952B-5C144684BD74}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{CBEEBF84-49E1-4AC4-952B-5C144684BD74}.Debug|x64.Build.0 = Debug|Any CPU
 		{50FF4E1A-040F-4733-9B89-1A55F800E5D3}.Release|x64.ActiveCfg = Release|Any CPU
 		{50FF4E1A-040F-4733-9B89-1A55F800E5D3}.Release|x64.Build.0 = Release|Any CPU
 		{50FF4E1A-040F-4733-9B89-1A55F800E5D3}.Debug|x64.ActiveCfg = Debug|Any CPU

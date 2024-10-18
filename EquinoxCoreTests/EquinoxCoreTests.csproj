@@ -41,8 +41,6 @@
         <Reference Include="System.Xml" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="CondensedGraphTest.cs" />
-        <Compile Include="OptimalShapesTest.cs" />
         <Compile Include="TestArrayPool.cs" />
         <Compile Include="TestBoundedVec30.cs" />
         <Compile Include="TestBubbleSorter.cs" />
