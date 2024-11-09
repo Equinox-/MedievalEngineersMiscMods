@@ -43,13 +43,13 @@ namespace Equinox76561198048419394.Core.Controller
         public override void Init(MyEntityComponentDefinition def)
         {
             base.Init(def);
-            _definition = (EquiPlayerAttachmentComponentDefinition) def;
+            _definition = (EquiPlayerAttachmentComponentDefinition)def;
 
             _states.Clear();
             foreach (var k in _definition.Attachments)
                 _states.Add(k.Name, new Slot(this, k));
         }
-        
+
         public IEnumerable<Slot> GetSlots()
         {
             return _states.Values;
@@ -96,6 +96,7 @@ namespace Equinox76561198048419394.Core.Controller
                 else
                     c.ChangeSlotInternal(null, 0f, false);
             }
+
             base.OnRemovedFromScene();
         }
 
@@ -128,7 +129,7 @@ namespace Equinox76561198048419394.Core.Controller
             }
         }
 
-        private static readonly MyActionDescription InvalidActionDesc = new MyActionDescription {Text = MyStringId.GetOrCompute("Bad action")};
+        private static readonly MyActionDescription InvalidActionDesc = new MyActionDescription { Text = MyStringId.GetOrCompute("Bad action") };
 
         public MyActionDescription GetActionInfo(string dummyName, UseActionEnum actionEnum)
         {
@@ -162,7 +163,7 @@ namespace Equinox76561198048419394.Core.Controller
         public UseActionEnum PrimaryAction => UseActionEnum.Manipulate;
         public UseActionEnum SecondaryAction => UseActionEnum.OpenTerminal;
         public bool ContinuousUsage => false;
-        
+
         public bool AppliesTo(string dummyName)
         {
             return dummyName != null && _definition.AttachmentForDummy(dummyName) != null;
@@ -188,7 +189,8 @@ namespace Equinox76561198048419394.Core.Controller
             private float _leanTransitionVisualAngle;
             private float _leanTransitionLastTime;
 
-            public bool UpdateShift(Vector3? linear, Vector3? angular, float? leanAngle = null) {
+            public bool UpdateShift(Vector3? linear, Vector3? angular, float? leanAngle = null)
+            {
                 LinearShift = Vector3.Clamp(linear ?? LinearShift, Definition.MinLinearShift, Definition.MaxLinearShift);
                 var angularShift = Vector3.Clamp(angular ?? AngularShift, Definition.MinAngularShift, Definition.MaxAngularShift);
                 if (Definition.MaxAngularShift.Y - Definition.MinAngularShift.Y >= MathHelper.TwoPi)
@@ -261,7 +263,7 @@ namespace Equinox76561198048419394.Core.Controller
             public MatrixD RawAttachMatrix => Definition.Anchor.GetMatrix() * Controllable.Entity.WorldMatrix;
 
             private float LeanTargetAngle => LeanState ? LeanAngle : 0;
-            
+
             private float LeanVisualAngle
             {
                 get
@@ -275,7 +277,7 @@ namespace Equinox76561198048419394.Core.Controller
                     return _leanTransitionVisualAngle += delta;
                 }
             }
-            
+
             public MatrixD AttachMatrix
             {
                 get
@@ -366,12 +368,17 @@ namespace Equinox76561198048419394.Core.Controller
             }
         }
 
+        private static bool IsSlotSerialized(Slot slot) => slot.LinearShift != Vector3.Zero
+                                                           || slot.AngularShift != Vector3.Zero
+                                                           || slot.LeanAngle != 0
+                                                           || slot.ForceAnimationId.HasValue;
+
         public override bool IsSerialized
         {
             get
             {
                 foreach (var slot in _states.Values)
-                    if (slot.LinearShift != Vector3.Zero || slot.AngularShift != Vector3.Zero || slot.LeanAngle != 0 || slot.ForceAnimationId.HasValue)
+                    if (IsSlotSerialized(slot))
                         return true;
                 return false;
             }
@@ -379,10 +386,10 @@ namespace Equinox76561198048419394.Core.Controller
 
         public override MyObjectBuilder_EntityComponent Serialize(bool copy = false)
         {
-            var ob = (MyObjectBuilder_EquiPlayerAttachmentComponent) base.Serialize(copy);
+            var ob = (MyObjectBuilder_EquiPlayerAttachmentComponent)base.Serialize(copy);
             ob.Attached = new List<MyObjectBuilder_EquiPlayerAttachmentComponent.AttachmentData>();
             foreach (var slot in _states)
-                if (slot.Value.LinearShift != Vector3.Zero || slot.Value.AngularShift != Vector3.Zero || slot.Value.ForceAnimationId.HasValue)
+                if (IsSlotSerialized(slot.Value))
                     ob.Attached.Add(new MyObjectBuilder_EquiPlayerAttachmentComponent.AttachmentData
                     {
                         Name = slot.Key,
@@ -430,7 +437,7 @@ namespace Equinox76561198048419394.Core.Controller
 
             public float LeanAngle;
 
-            public bool ShouldSerializeLeanAngle() => LeanAngle != default;
+            public bool ShouldSerializeLeanAngle() => LeanAngle != 0;
 
             public int? Pose;
         }
