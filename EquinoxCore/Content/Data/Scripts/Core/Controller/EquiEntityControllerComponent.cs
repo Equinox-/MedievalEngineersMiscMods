@@ -150,12 +150,14 @@ namespace Equinox76561198048419394.Core.Controller
             PerformAnimationTransition(oldAnimData, newAnimData);
 
             // Handle restoring character's position
-            if (slot == null && old?.Controllable?.Entity != null && old.Controllable.Entity.InScene)
+            var setLeavePosition = slot == null && old?.Controllable?.Entity != null && old.Controllable.Entity.InScene;
+            MatrixD outPos = default;
+            if (setLeavePosition)
             {
                 var relMatrix = _saveData.RelativeOrientation.GetMatrix();
                 if (relMatrix.Scale.AbsMax() < 1)
                     relMatrix = MatrixD.Identity;
-                var outPos = relMatrix * old.RawAttachMatrix;
+                outPos = relMatrix * old.RawAttachMatrix;
                 var gravity = Vector3.Normalize(MyGravityProviderSystem.CalculateTotalGravityInPoint(outPos.Translation));
                 var rightCandidate = Vector3.Cross(gravity, (Vector3)outPos.Forward);
                 if (rightCandidate.LengthSquared() < 0.5f)
@@ -188,12 +190,16 @@ namespace Equinox76561198048419394.Core.Controller
             {
                 var wantsPhysicsEnabled = slot == null;
                 if (wantsPhysicsEnabled && !Entity.Physics.Enabled)
+                {
                     Entity.Physics.Activate();
+                    // Force the position update a second time so the new position gets respected even when the physics cluster has changed.
+                    if (setLeavePosition) Entity.PositionComp.SetWorldMatrix(outPos, Entity.Parent, true);
+                }
                 else if (!wantsPhysicsEnabled && Entity.Physics.Enabled)
                     Entity.Physics.Deactivate();
                 if (slot == null)
                 {
-                    var oldPhys = old?.Controllable?.Entity.ParentedPhysics();
+                    var oldPhys = old?.Controllable?.Entity?.ParentedPhysics();
                     if (oldPhys != null)
                         Entity.Physics.LinearVelocity = oldPhys.GetVelocityAtPoint(old.Controllable.Entity.WorldMatrix.Translation);
                 }
