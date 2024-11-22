@@ -1,8 +1,5 @@
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.GUI;
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.Attributes;

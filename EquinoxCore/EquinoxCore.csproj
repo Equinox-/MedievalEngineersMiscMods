@@ -251,6 +251,12 @@
     <Content Include="Content\Data\SolarObservation.sbc.example" />
     <Content Include="Content\Data\VoxelEffect.sbc.example" />
     <Content Include="Content\Data\VoxelPower.sbc.example" />
+    <Content Include="Content\Textures\Equinox\GUI\PoseBrown.png" />
+    <Content Include="Content\Textures\Equinox\GUI\PoseWhite.png" />
+    <Content Include="Content\Textures\Equinox\GUI\RotateBrown.png" />
+    <Content Include="Content\Textures\Equinox\GUI\RotateWhite.png" />
+    <Content Include="Content\Textures\Equinox\GUI\TranslateBrown.png" />
+    <Content Include="Content\Textures\Equinox\GUI\TranslateWhite.png" />
     <Content Include="Content\Textures\Lights\reflector_white.dds" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

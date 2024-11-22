@@ -4,16 +4,52 @@
         <Id Type="MyObjectBuilder_ContextMenu" Subtype="DecorativeMeshMenu" />
         <StyleName>ContextMenuDefault</StyleName>
         <Position x="0.35" y="0.32" />
-        <MainController>
-            <TypeId>MyObjectBuilder_EquiAdvancedController</TypeId>
-            <SubtypeId>DecorativeMeshController</SubtypeId>
-        </MainController>
+        <MainController Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
         <ContextType>MyObjectBuilder_EquiDecorativeToolContext</ContextType>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
+        <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
+        <Title>Decorative Mesh</Title>
+        <Columns>3</Columns>
+        <Rows>1</Rows>
+        <ButtonStyleId>ButtonListDefault</ButtonStyleId>
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <Text />
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Settings</Tooltip>
+                <Icon>ContextMenuCogs</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiAdvancedController" Subtype="DecorativeMeshController" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text />
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Color</Tooltip>
+                <Icon>ContextMenuColorFill</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="Color" Reason="Not supported" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" />
+                </Action>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text />
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>Change Material</Tooltip>
+                <Icon>ContextMenuPattern</Icon>
+                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="MaterialDef" Reason="Not supported" />
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiIconGridController" Subtype="DecorativeMeshSelectMaterial" />
+                </Action>
+            </Button>
+        </Buttons>
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiAdvancedControllerDefinition">
         <Id Type="MyObjectBuilder_EquiAdvancedController" Subtype="DecorativeMeshController" />
-        <Title>Decorative Mesh</Title>
+        <Title>Decorative Mesh: Settings</Title>
         <AutoCommit>true</AutoCommit>
 
         <!-- Lines -->
@@ -64,11 +100,10 @@
             <Exponent>2</Exponent>
             <Tooltip>Controls the vertical size of the decal</Tooltip>
         </Slider>
-        <Slider DataId="DecalRotationDeg">
+        <Slider DataId="DecalRotationDeg" IsInteger="true">
             <Text>Rotation</Text>
             <TextFormat>{0}°</TextFormat>
             <Tooltip>Controls the rotation of the decal</Tooltip>
-            <IsInteger>true</IsInteger>
         </Slider>
         
         <!-- Models -->
@@ -92,44 +127,11 @@
             <Text>Mesh Snapping</Text>
             <Tooltip>Mesh primitives to snap to</Tooltip>
         </Dropdown>
-
-        <Embedded>
-            <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
-        </Embedded>
-    </Definition>
-
-    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
-        <Id Type="MyObjectBuilder_ButtonListController" Subtype="DecorativeMeshButtons" />
-        <Columns>2</Columns>
-        <Rows>1</Rows>
-        <ButtonStyleId>ButtonListDefault</ButtonStyleId>
-        <Buttons>
-            <Button StyleName="ContextButtonSliced">
-                <Text />
-                <ButtonGroup>1</ButtonGroup>
-                <Tooltip>Change Color</Tooltip>
-                <Icon>ContextMenuColorFill</Icon>
-                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="Color" Reason="Not supported" />
-                <Action xsi:type="MyObjectBuilder_CMA_AddController">
-                    <Controller Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" />
-                </Action>
-            </Button>
-            <Button StyleName="ContextButtonSliced">
-                <Text />
-                <ButtonGroup>1</ButtonGroup>
-                <Tooltip>Change Material</Tooltip>
-                <Icon>ContextMenuPattern</Icon>
-                <EnabledCondition xsi:type="MyObjectBuilder_EquiDataSourceExistsCondition" DataSource="MaterialDef" Reason="Not supported" />
-                <Action xsi:type="MyObjectBuilder_CMA_AddController">
-                    <Controller Type="MyObjectBuilder_EquiIconGridController" Subtype="DecorativeMeshSelectMaterial" />
-                </Action>
-            </Button>
-        </Buttons>
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_SliderControllerDefinition">
         <Id Type="MyObjectBuilder_SliderController" Subtype="DecorativeMeshColor" />
-        <Title>ContextMenu_PickColor</Title>
+        <Title>Decorative Mesh: Color</Title>
         <DataId>Color</DataId>
         <AutoCommit>true</AutoCommit>
         <SliderSize x="330" y="75" />
@@ -163,7 +165,7 @@
 
     <Definition xsi:type="MyObjectBuilder_EquiIconGridControllerDefinition">
         <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="DecorativeMeshSelectMaterial" />
-        <Title>Select material</Title>
+        <Title>Decorative Mesh: Material</Title>
         <DataId>MaterialDef</DataId>
         <GridSize x="320" y="400" />
         <Grid StyleName="ContextMenuInventoryGrid" Columns="4" Rows="5" MaxItems="20" />

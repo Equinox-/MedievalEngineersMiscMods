@@ -29,7 +29,7 @@ namespace Equinox76561198048419394.Core.Misc
                 EquiItemGeneratorComponent.HandleCommand,
                 "Edits item generator tasks");
             chat.RegisterChatCommand(
-                "/teleportWithGrids",
+                "/teleport-with-grids",
                 HandleTeleportWithGrids,
                 "Teleports a player and their grids"
             );
