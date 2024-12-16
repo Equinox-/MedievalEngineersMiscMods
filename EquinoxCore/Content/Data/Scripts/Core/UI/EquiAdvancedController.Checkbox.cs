@@ -7,26 +7,36 @@ using VRageMath;
 
 namespace Equinox76561198048419394.Core.UI
 {
-    internal sealed class CheckboxData : IControlHolder
+    internal sealed class CheckboxData : ControlHolder<MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox>
     {
-        private bool _commitPermitted;
-        public DataSourceValueAccessor<bool> DataSource;
-        public MyGuiControlCheckbox Checkbox;
-        public MyGuiControlBase Root { get; set; }
+        private readonly DataSourceValueAccessor<bool> _dataSource;
+        private readonly MyGuiControlCheckbox _checkbox;
 
-        public void SyncToControl()
+        internal CheckboxData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner,
+            MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox def) : base(ctl, owner, def)
         {
-            _commitPermitted = false;
-            var value = DataSource.GetValue();
-            Checkbox.IsChecked = value ?? false;
-            Root.Enabled = value.HasValue;
-            _commitPermitted = true;
+            _dataSource = new DataSourceValueAccessor<bool>(ctl, def.DataId, def.DataIndex);
+            _checkbox = new MyGuiControlCheckbox(toolTip: MyTexts.GetString(def.TooltipId));
+            _checkbox.ApplyStyle(ContextMenuStyles.CheckboxStyle(def.StyleNameId));
+            _checkbox.OnCheckedChanged += _ =>
+            {
+                if (Owner.AutoCommit)
+                    _dataSource.SetValue(_checkbox.IsChecked);
+            };
+            _checkbox.LayoutStyle = MyGuiControlLayoutStyle.Fixed;
+            MakeHorizontalRoot(_checkbox);
         }
 
-        public void SyncFromControl()
+        protected override void SyncToControlInternal()
         {
-            if (!_commitPermitted || !Root.Enabled) return;
-            DataSource.SetValue(Checkbox.IsChecked);
+            var value = _dataSource.GetValue();
+            _checkbox.IsChecked = value ?? false;
+            Root.Enabled = value.HasValue;
+        }
+
+        protected override void SyncFromControlInternal()
+        {
+            _dataSource.SetValue(_checkbox.IsChecked);
         }
     }
 
@@ -41,35 +51,6 @@ namespace Equinox76561198048419394.Core.UI
             _checkDef = checkDef;
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl)
-        {
-            var ds = new DataSourceValueAccessor<bool>(ctl, _checkDef.DataId, _checkDef.DataIndex);
-            var label = new MyGuiControlLabel(text: MyTexts.GetString(_checkDef.TextId));
-            label.SetToolTip(_checkDef.Tooltip);
-            label.ApplyStyle(ContextMenuStyles.LabelStyle());
-            label.LayoutStyle = MyGuiControlLayoutStyle.DynamicX;
-
-            var checkbox = new MyGuiControlCheckbox(toolTip: MyTexts.GetString(_checkDef.TooltipId));
-            checkbox.ApplyStyle(ContextMenuStyles.CheckboxStyle(_checkDef.StyleNameId));
-            checkbox.OnCheckedChanged += _ =>
-            {
-                if (_owner.AutoCommit)
-                    ds.SetValue(checkbox.IsChecked);
-            };
-            checkbox.LayoutStyle = MyGuiControlLayoutStyle.Fixed;
-
-            var containerSize = new Vector2(checkbox.Size.X + ctl.Margin.X + label.Size.X, Math.Max(checkbox.Size.Y, label.Size.Y));
-            var labeledCheckbox = new MyGuiControlParent(size: containerSize);
-            labeledCheckbox.Layout = new MyHorizontalLayoutBehavior(spacing: ctl.Margin.X);
-            labeledCheckbox.Controls.Add(checkbox);
-            labeledCheckbox.Controls.Add(label);
-
-            return new CheckboxData
-            {
-                DataSource = ds,
-                Root = labeledCheckbox,
-                Checkbox = checkbox
-            };
-        }
+        public override IControlHolder Create(MyContextMenuController ctl) => new CheckboxData(ctl, _owner, _checkDef);
     }
 }

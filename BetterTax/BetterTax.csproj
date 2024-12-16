@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="$(SolutionDir)\Config\MedievalEngineers.props" />
+    <PropertyGroup>
+        <RootNamespace>Equinox76561198048419394</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\EquinoxCore\EquinoxCore.csproj" />
+    </ItemGroup>
+</Project>

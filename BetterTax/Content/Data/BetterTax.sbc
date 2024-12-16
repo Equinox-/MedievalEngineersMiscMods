@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
+        <Id Type="MyObjectBuilder_ContextMenu" Subtype="ClaimBlockMenu" />
+        <StyleName>ContextMenuDefault</StyleName>
+        <MainController>
+            <TypeId>MyObjectBuilder_ButtonListController</TypeId>
+            <SubtypeId>ClaimBlockMain</SubtypeId>
+        </MainController>
+        <ContextType>MyObjectBuilder_EquiBetterClaimBlockInteractionContext</ContextType>
+    </Definition>
+
+
+    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
+        <Id Type="MyObjectBuilder_ButtonListController" Subtype="ClaimBlockMain" />
+        <Title>ContextMenu_ClaimBlockMain</Title>
+        <Columns>3</Columns>
+        <Rows>1</Rows>
+        <ButtonStyleId>ButtonListDefault</ButtonStyleId>
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_ClaimedAreaSettings_Tooltip</Tooltip>
+                <Icon>ContextMenuCastle</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_ButtonListController" Subtype="ClaimBlockAreaOptions" />
+                </Action>
+                <EnabledCondition xsi:type="MyObjectBuilder_IsClaimblockOwnerCondition">
+                    <DisabledDescription>You need to be the owner of this block.</DisabledDescription>
+                </EnabledCondition>
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_PayTaxes_Tooltip</Tooltip>
+                <Icon>ContextMenuBag</Icon>
+                <!-- <editor-fold desc="modification for better taxes"> -->
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_EquiAdvancedController" Subtype="EquiClaimBlockTaxes" />
+                </Action>
+                <EnabledCondition xsi:type="MyObjectBuilder_IsHouseMemberOfOwnerCondition">
+                    <DisabledDescription>You need to be the owner of this block, or a house member.</DisabledDescription>
+                </EnabledCondition>
+                <!-- </editor-fold> -->
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <ButtonGroup>1</ButtonGroup>
+                <Tooltip>ContextMenu_ChangeAreaSharing_Tooltip</Tooltip>
+                <Icon>ContextMenuHands</Icon>
+                <Action xsi:type="MyObjectBuilder_CMA_AddController">
+                    <Controller Type="MyObjectBuilder_ButtonListController" Subtype="ClaimBlockShareOptions" />
+                </Action>
+                <EnabledCondition xsi:type="MyObjectBuilder_CombinedCondition">
+                    <DisabledDescription>ContextMenu_Condition_NotOffline</DisabledDescription>
+                    <Operator>Or</Operator>
+                    <Conditions>
+                        <ConditionItem xsi:type="MyObjectBuilder_OnlineModeCondition">
+                            <OnlineMode>PRIVATE</OnlineMode>
+                        </ConditionItem>
+                        <ConditionItem xsi:type="MyObjectBuilder_OnlineModeCondition">
+                            <OnlineMode>PUBLIC</OnlineMode>
+                        </ConditionItem>
+                        <ConditionItem xsi:type="MyObjectBuilder_OnlineModeCondition">
+                            <OnlineMode>FRIENDS</OnlineMode>
+                        </ConditionItem>
+                    </Conditions>
+                </EnabledCondition>
+            </Button>
+        </Buttons>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiAdvancedControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiAdvancedController" Subtype="EquiClaimBlockTaxes" />
+        <Title>ContextMenu_TaxPaymentTitle</Title>
+        <Width>320</Width>
+        <AutoCommit>true</AutoCommit>
+
+        <Dropdown DataId="SelectMode">
+            <Text>Selection Mode</Text>
+        </Dropdown>
+        <Checkbox DataId="SelectFaction">
+            <Text>Faction Claims</Text>
+            <Tooltip>Select claims owned by any member of your faction.</Tooltip>
+        </Checkbox>
+        <Label>
+            <Line>{0} claims selected,</Line>
+            <Parameter Id="AreaCount" />
+            <Line>first expires in:</Line>
+            <Line>{1}</Line>
+            <Parameter Id="AreaMinExpiry" />
+            <Line>total required:</Line>
+            <Line>{2}</Line>
+            <Parameter Id="AreaMaxPayable" />
+        </Label>
+        <Embedded>
+            <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="EquiClaimBlockTaxItems" />
+        </Embedded>
+        <Embedded>
+            <Id Type="MyObjectBuilder_ButtonListController" Subtype="EquiClaimBlockPay" />
+        </Embedded>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiIconGridControllerDefinition">
+        <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="EquiClaimBlockTaxItems" />
+        <DataId>TaxItems</DataId>
+        <Grid Rows="2" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
+        <Id Type="MyObjectBuilder_ButtonListController" Subtype="EquiClaimBlockPay" />
+        <Columns>2</Columns>
+        <Rows>1</Rows>
+        <ButtonStyleId>ButtonListWide</ButtonStyleId>
+        <Buttons>
+            <Button StyleName="ContextButtonSliced">
+                <Text>ContextMenu_TaxPayment</Text>
+                <Tooltip>ContextMenu_TaxPayment_Tooltip</Tooltip>
+                <Action xsi:type="MyObjectBuilder_CMA_ContextMethod" Name="PayBetterTaxes" />
+            </Button>
+            <Button StyleName="ContextButtonSliced">
+                <Text>ContextMenu_Close</Text>
+                <Tooltip>ContextMenu_Close_Tooltip</Tooltip>
+                <Action xsi:type="MyObjectBuilder_CMA_CloseController" />
+            </Button>
+        </Buttons>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemRendererMappingDefinition" Merge="Append">
+        <Id Type="MyObjectBuilder_ItemRendererMappingDefinition" Subtype="Default" />
+        <Mappings>
+            <Mapping Type="MyObjectBuilder_EquiBetterTaxItem" Renderer="EquiBetterTaxItem" />
+        </Mappings>
+    </Definition>
+</Definitions>

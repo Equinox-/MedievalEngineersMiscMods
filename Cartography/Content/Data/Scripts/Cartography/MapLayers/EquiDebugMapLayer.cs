@@ -1,12 +1,8 @@
 using System;
 using System.Xml.Serialization;
-using Equinox76561198048419394.Cartography.Derived.Contours;
-using Medieval.GameSystems;
 using Medieval.GUI.Ingame.Map;
 using Medieval.GUI.Ingame.Map.RenderLayers;
 using ObjectBuilders.GUI.Map;
-using Sandbox.Game.Entities;
-using Sandbox.Graphics;
 using Sandbox.Graphics.GUI;
 using Sandbox.Gui.Utility;
 using Sandbox.ModAPI;

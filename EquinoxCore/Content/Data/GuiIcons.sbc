@@ -45,5 +45,10 @@
             <ActiveHighlight>Textures\Equinox\GUI\TranslateWhite.png</ActiveHighlight>
             <Disabled>Textures\Equinox\GUI\TranslateBrown.png</Disabled>
         </GuiIcon>
+
+        <ButtonList StyleName="ButtonListWide">
+            <ButtonSize x="150" y="75" />
+            <ButtonMargin x="10" y="10" />
+        </ButtonList>
     </Definition>
 </Definitions>

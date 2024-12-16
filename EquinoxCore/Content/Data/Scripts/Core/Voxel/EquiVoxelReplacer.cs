@@ -27,6 +27,7 @@ using VRage.Utils;
 using VRage.Voxels;
 using VRageMath;
 
+// ReSharper disable once CheckNamespace
 namespace Equinox76561198048419394.Core.Misc
 {
     [MyComponent(typeof(MyObjectBuilder_EquiVoxelReplacer))]

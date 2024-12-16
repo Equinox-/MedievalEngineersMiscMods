@@ -5,43 +5,49 @@ using VRage.Game;
 
 namespace Equinox76561198048419394.Core.UI
 {
-    internal sealed class EmbeddedControllerData : IControlHolder
+    internal sealed class EmbeddedControllerData : ControlHolder<MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded>
     {
-        public MyContextMenuController EmbeddedController;
-        public MyGuiControlBase Root { get; set; }
+        private readonly MyContextMenuController _controller;
 
-        public void SyncToControl()
+        public EmbeddedControllerData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded def,
+            MyDefinitionId id) : base(ctl, owner, def)
         {
-            EmbeddedController.Update();
+            _controller = MyContextMenuFactory.CreateContextMenuController(id);
+            _controller.BeforeAddedToMenu(ctl.Menu, 0);
+            Root = _controller.CreateControl();
         }
 
-        public void SyncFromControl()
+        protected override void SyncToControlInternal()
         {
-            if (EmbeddedController is IMyCommitableController committable)
+            _controller.Update();
+        }
+
+        protected override void SyncFromControlInternal()
+        {
+            if (_controller is IMyCommitableController committable)
                 committable.CommitDataSource();
+        }
+
+        public override void DetachFromMenu()
+        {
+            _controller.AfterRemovedFromMenu(Ctl.Menu);
+            base.DetachFromMenu();
         }
     }
 
     internal sealed class EmbeddedControllerFactory : ControlFactory
     {
         private readonly EquiAdvancedControllerDefinition _owner;
+        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded _def;
         private readonly MyDefinitionId _id;
 
         public EmbeddedControllerFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded def)
         {
             _owner = owner;
+            _def = def;
             _id = def.Id;
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl)
-        {
-            var controller = MyContextMenuFactory.CreateContextMenuController(_id);
-            controller.BeforeAddedToMenu(ctl.Menu, 0);
-            return new EmbeddedControllerData
-            {
-                Root = controller.CreateControl(),
-                EmbeddedController = controller
-            };
-        }
+        public override IControlHolder Create(MyContextMenuController ctl) => new EmbeddedControllerData(ctl, _owner, _def, _id);
     }
 }

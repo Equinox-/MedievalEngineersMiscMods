@@ -167,10 +167,5 @@
         <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="DecorativeMeshSelectMaterial" />
         <Title>Decorative Mesh: Material</Title>
         <DataId>MaterialDef</DataId>
-        <GridSize x="320" y="400" />
-        <Grid StyleName="ContextMenuInventoryGrid" Columns="4" Rows="5" MaxItems="20" />
-        <PagingButtonSize x="32" y="32" />
-        <PagingButtonStyle>ContextButtonPage</PagingButtonStyle>
-        <LabelStyle>ContextMenuLabel</LabelStyle>
     </Definition>
 </Definitions>

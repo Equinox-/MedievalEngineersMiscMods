@@ -123,7 +123,6 @@
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiFlareDefinition.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiLightComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\EquiPhysicsTweakerComponent.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Misc\EquiVoxelReplacer.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedOwnershipComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\ParentedSkeletonComponent.cs" />
     <Compile Include="Content\Data\Scripts\Core\Misc\MiscInjections.cs" />
@@ -174,6 +173,7 @@
     <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedController.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedController.Dropdown.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedController.Factory.cs" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedController.Label.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedController.Slider.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiAdvancedSliderController.cs" />
     <Compile Include="Content\Data\Scripts\Core\UI\EquiDataSourceCondition.cs" />
@@ -218,6 +218,7 @@
     <Compile Include="Content\Data\Scripts\Core\Util\MultiComponentReference.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\NetworkTrust.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PackedHsvShift.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Util\PlanetAreasExtensions.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\PowerObserver.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ReturnHandle.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\SerializableOrientedBoundingBoxD.cs" />
@@ -229,8 +230,9 @@
     <Compile Include="Content\Data\Scripts\Core\Util\Struct\PagedFreeList.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ToolWithBuilding.cs" />
     <Compile Include="Content\Data\Scripts\Core\Util\ToolWithMenu.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Util\VoxelMiningBuffer.cs" />
-    <Compile Include="Content\Data\Scripts\Core\Util\VoxelPlacementBuffer.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Voxel\EquiVoxelReplacer.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Voxel\VoxelMiningBuffer.cs" />
+    <Compile Include="Content\Data\Scripts\Core\Voxel\VoxelPlacementBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Data\Characters.sbc" />

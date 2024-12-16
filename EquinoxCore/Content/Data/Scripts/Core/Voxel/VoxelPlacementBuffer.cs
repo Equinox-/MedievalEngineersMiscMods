@@ -3,16 +3,14 @@ using System.Collections.Generic;
 using Sandbox.Game.Entities.Inventory;
 using VRage.Collections;
 using VRage.Definitions;
-using VRage.Entities.Gravity;
 using VRage.Game;
 using VRage.Game.Entity;
 using VRage.Logging;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders.Definitions;
 using VRage.Utils;
-using VRageMath;
-using VRageRender;
 
+// ReSharper disable once CheckNamespace
 namespace Equinox76561198048419394.Core.Util
 {
     public class VoxelPlacementBuffer

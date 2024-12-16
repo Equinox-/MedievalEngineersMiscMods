@@ -47,7 +47,6 @@ namespace Equinox76561198048419394.Core.UI
 
     #endregion
 
-
     #region Bonus Pattern
 
     [MyContextMenuControllerType(typeof(MyObjectBuilder_EquiBonusPatternController))]

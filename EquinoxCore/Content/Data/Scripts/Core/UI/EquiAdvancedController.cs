@@ -11,6 +11,7 @@ using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.ObjectBuilders;
+using VRage.Utils;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.UI
@@ -78,6 +79,13 @@ namespace Equinox76561198048419394.Core.UI
             if (_autoCommit)
                 SyncToControls();
         }
+
+        public override void AfterRemovedFromMenu(MyContextMenu menu)
+        {
+            foreach (var control in _controls)
+                control.DetachFromMenu();
+            base.AfterRemovedFromMenu(menu);
+        }
     }
 
     [MyObjectBuilderDefinition]
@@ -119,6 +127,9 @@ namespace Equinox76561198048419394.Core.UI
                         case MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded embedded:
                             controls.Add(new EmbeddedControllerFactory(this, embedded));
                             break;
+                        case MyObjectBuilder_EquiAdvancedControllerDefinition.Label label:
+                            controls.Add(new LabelFactory(this, label));
+                            break;
                     }
 
             Controls = controls;
@@ -133,6 +144,7 @@ namespace Equinox76561198048419394.Core.UI
         [XmlElement("Dropdown", typeof(Dropdown))]
         [XmlElement("Checkbox", typeof(Checkbox))]
         [XmlElement("Embedded", typeof(Embedded))]
+        [XmlElement("Label", typeof(Label))]
         public List<ControlBase> Controls;
 
         /// <summary>
@@ -144,6 +156,27 @@ namespace Equinox76561198048419394.Core.UI
         /// Should the datasource be updated after every change.
         /// </summary>
         public bool? AutoCommit;
+
+        public class DataSourceReference
+        {
+            public MyStringId Id;
+
+            /// <summary>
+            /// Data source ID in the menu context.
+            /// </summary>
+            [XmlAttribute(nameof(Id))]
+            public string IdForXml
+            {
+                get => Id.String;
+                set => Id = MyStringId.GetOrCompute(value);
+            }
+
+            /// <summary>
+            /// Index in a vector / array data source.
+            /// </summary>
+            [XmlAttribute]
+            public int Index;
+        }
 
         public class ControlBase : LabelDefinition
         {
@@ -158,6 +191,35 @@ namespace Equinox76561198048419394.Core.UI
             /// </summary>
             [XmlElement]
             public string DisabledReason;
+        }
+
+        public class Label : ControlBase
+        {
+            /// <summary>
+            /// Format parameters for the TextId of this label.
+            /// </summary>
+            [XmlElement("Parameter")]
+            public DataSourceReference[] Parameters;
+
+            /// <summary>
+            /// Multiple lines of text.
+            /// </summary>
+            [XmlElement("Line")]
+            public string[] Lines
+            {
+                get => Text?.Split('\n');
+                set
+                {
+                    if (value?.Length > 0)
+                        Text = string.Join("\n", value);
+                }
+            }
+
+            /// <summary>
+            /// Apply word wrapping to text.
+            /// </summary>
+            [XmlElement]
+            public bool WordWrapping;
         }
 
         public class Slider : ControlBase

@@ -47,6 +47,18 @@ namespace Equinox76561198048419394.Core.UI
             _index = index;
         }
 
+        public DataSourceValueAccessor(MyContextMenuController controller, MyObjectBuilder_EquiAdvancedControllerDefinition.DataSourceReference dsr)
+        {
+            _ds = new DataSourceAccessor<IMyContextMenuDataSource>(controller, dsr.Id);
+            _index = dsr.Index;
+        }
+
+        public DataSourceValueAccessor(DataSourceAccessor<IMyContextMenuDataSource> ds, int index)
+        {
+            _ds = ds;
+            _index = index;
+        }
+
         public T? GetValue()
         {
             switch (_ds.DataSource)

@@ -21,6 +21,12 @@ namespace Equinox76561198048419394.Core.UI
         bool Test(string query);
     }
 
+    public interface IEquiIconGridItemTooltip : IEquiIconGridItem
+    {
+        bool DynamicTooltip { get; }
+        void BindTooltip(MyTooltip tooltip);
+    }
+
     [MyContextMenuControllerType(typeof(MyObjectBuilder_EquiIconGridController))]
     public class EquiIconGridController : EquiIconGridControllerBase<IEquiIconGridItem>
     {
@@ -32,11 +38,30 @@ namespace Equinox76561198048419394.Core.UI
 
         protected override void ItemData(in IEquiIconGridItem item, MyGrid.Item target)
         {
-            target.Enabled = true;
+            target.Enabled = item != null;
             target.UserData = item;
-            target.Icons = item.UiIcons ?? FallbackIcons;
-            target.Text = item.UiIcons?.Length > 0 ? "" : item.Name;
-            target.Tooltip = new MyTooltip(item.Name);
+            target.Icons = item?.UiIcons ?? FallbackIcons;
+            target.Text = item?.UiIcons?.Length > 0 ? "" : item?.Name ?? "";
+            if (item is IEquiIconGridItemTooltip withTooltip)
+            {
+                target.Tooltip = new MyTooltip();
+                using (target.Tooltip.OpenBatch(true))
+                {
+                    withTooltip.BindTooltip(target.Tooltip);
+                }
+            }
+            else if (!string.IsNullOrEmpty(item?.Name))
+                target.Tooltip = new MyTooltip(item.Name);
+        }
+
+        protected override void RefreshTooltip(in IEquiIconGridItem item, MyGrid.Item target)
+        {
+            if (!(item is IEquiIconGridItemTooltip withTooltip) || !withTooltip.DynamicTooltip) return;
+            if (target.Tooltip == null) target.Tooltip = new MyTooltip();
+            using (target.Tooltip.OpenBatch(true))
+            {
+                withTooltip.BindTooltip(target.Tooltip);
+            }
         }
 
         public static string NameFromId(MyStringHash id)

@@ -56,4 +56,8 @@
             <HintPath>$(SolutionDir)\GameBinaries\SharpDX.DXGI.dll</HintPath>
         </Reference>
     </ItemGroup>
+    <PropertyGroup>
+        <PlatformTarget>x64</PlatformTarget>
+        <TargetFramework>net461</TargetFramework>
+    </PropertyGroup>
 </Project>

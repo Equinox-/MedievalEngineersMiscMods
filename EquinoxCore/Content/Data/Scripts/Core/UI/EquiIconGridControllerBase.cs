@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Medieval.Definitions.GUI.Controllers;
 using Medieval.GUI.ContextMenu;
@@ -27,8 +28,28 @@ namespace Equinox76561198048419394.Core.UI
         public override bool BeforeAddedToMenu(MyContextMenu menu, int position)
         {
             var result = base.BeforeAddedToMenu(menu, position);
-            m_dataSource = new SearchableGridDataSource(this, m_menu.Context.GetDataSource<IMyGridDataSource<T>>(EquiDef.DataId));
+            var backing = m_menu.Context.GetDataSource<IMyGridDataSource<T>>(EquiDef.DataId);
+            if (m_dataSource is IEquiDataSourceWithChangeEvent dscOld) dscOld.OnChange -= OnChange;
+            m_dataSource = new SearchableGridDataSource(this, backing);
+            if (m_dataSource is IEquiDataSourceWithChangeEvent dscNew) dscNew.OnChange += OnChange;
             return result;
+        }
+
+        private void OnChange()
+        {
+            RecreatePaging();
+            EnforceSelection(DataSource.SelectedIndex ?? 0, true);
+        }
+
+        public override void AfterRemovedFromMenu(MyContextMenu menu)
+        {
+            if (m_dataSource is IEquiDataSourceWithChangeEvent dscOld) dscOld.OnChange -= OnChange;
+            if (m_dataSource is SearchableGridDataSource searchable)
+            {
+                searchable.Close();
+                m_dataSource = null;
+            }
+            base.AfterRemovedFromMenu(menu);
         }
 
         public override MyGuiControlParent CreateControl()
@@ -54,28 +75,30 @@ namespace Equinox76561198048419394.Core.UI
         protected abstract bool Filter(in T item, string query);
         protected abstract void ItemData(in T item, MyGrid.Item target);
 
-        private void Filter(string query)
+        protected virtual void RefreshTooltip(in T item, MyGrid.Item target)
         {
-            if (!(m_dataSource is SearchableGridDataSource search))
-                return;
-            var upstreamIndex = search.FilteredToUpstream(_appliedIndex);
-            var changed = search.Filter(query);
-            if (changed)
-                RecreatePaging();
-            var selected = search.UpstreamToFiltered(upstreamIndex);
-            LoadPage((selected ?? 0) / m_grid.MaxItemCount, changed);
-            m_grid.SelectedIndex = selected % m_grid.MaxItemCount;
         }
+
+        private void Filter(string query) => (m_dataSource as SearchableGridDataSource)?.Filter(query);
 
         public override void Update()
         {
-            base.Update();
+            // Don't call base.Update(), it has weird WASD navigation of the grid that isn't compatible with the search bar.
+            // base.Update();
+
+            var hoveredItem = m_grid.TryGetItemAt(m_grid.MouseOverIndex);
+            if (hoveredItem?.UserData is T val)
+                RefreshTooltip(in val, hoveredItem);
             var selected = DataSource.SelectedIndex;
-            if (!selected.HasValue || _appliedIndex == selected)
-                return;
-            _appliedIndex = selected.Value;
-            LoadPage(selected.Value / m_grid.MaxItemCount);
-            m_grid.SelectedIndex = selected.Value % m_grid.MaxItemCount;
+            if (!selected.HasValue || _appliedIndex == selected) return;
+            EnforceSelection(selected.Value, false);
+        }
+
+        private void EnforceSelection(int selected, bool refresh)
+        {
+            _appliedIndex = selected;
+            LoadPage(selected / m_grid.MaxItemCount, refresh);
+            m_grid.SelectedIndex = selected % m_grid.MaxItemCount;
         }
 
         protected override MyGrid.Item CreateGridItem(int index)
@@ -89,18 +112,22 @@ namespace Equinox76561198048419394.Core.UI
             return target;
         }
 
-        private class SearchableGridDataSource : IMyGridDataSource<T>
+        private class SearchableGridDataSource : IMyGridDataSource<T>, IEquiDataSourceWithChangeEvent
         {
             private readonly EquiIconGridControllerBase<T> _owner;
             private readonly IMyGridDataSource<T> _upstream;
-            private bool _filtered;
+            private string _filter;
             private readonly Dictionary<int, int> _upstreamToFiltered = new Dictionary<int, int>();
             private readonly List<FilterResult> _filterResults = new List<FilterResult>();
 
-            public SearchableGridDataSource(EquiIconGridControllerBase<T> owner, IMyGridDataSource<T> upstream)
+            private bool Filtered => !string.IsNullOrEmpty(_filter);
+
+            public SearchableGridDataSource(EquiIconGridControllerBase<T> owner, /* will not close */ IMyGridDataSource<T> upstream)
             {
                 _upstream = upstream;
                 _owner = owner;
+                if (_upstream is IEquiDataSourceWithChangeEvent dsc)
+                    dsc.OnChange += OnUpstreamChanged;
             }
 
             /// <summary>
@@ -109,10 +136,17 @@ namespace Equinox76561198048419394.Core.UI
             /// <returns>true if the data source changed</returns>
             public bool Filter(string query)
             {
+                var result = ApplyFilter(query);
+                if (result) OnChange?.Invoke();
+                return result;
+            }
+
+            private bool ApplyFilter(string query)
+            {
                 if (string.IsNullOrEmpty(query))
                 {
-                    var changed = _filtered;
-                    _filtered = false;
+                    var changed = Filtered;
+                    _filter = query;
                     _upstreamToFiltered.Clear();
                     _filterResults.Clear();
                     return changed;
@@ -120,9 +154,9 @@ namespace Equinox76561198048419394.Core.UI
 
                 using (PoolManager.Get<HashSet<int>>(out var prevVisible))
                 {
-                    var changed = !_filtered;
+                    var changed = !Filtered;
 
-                    _filtered = true;
+                    _filter = query;
                     _filterResults.Clear();
                     foreach (var prev in _upstreamToFiltered.Keys)
                         prevVisible.Add(prev);
@@ -140,23 +174,26 @@ namespace Equinox76561198048419394.Core.UI
                         _filterResults.Add(new FilterResult { UpstreamIndex = i, Value = item });
                         changed = changed || !prevVisible.Contains(i);
                     }
-
                     return changed;
                 }
             }
 
-            public void Close() => _upstream.Close();
+            public void Close()
+            {
+                if (_upstream is IEquiDataSourceWithChangeEvent dsc)
+                    dsc.OnChange -= OnUpstreamChanged;
+            }
 
             public T GetData(int index)
             {
-                if (!_filtered)
+                if (!Filtered)
                     return _upstream.GetData(index);
                 return index < _filterResults.Count ? _filterResults[index].Value : default;
             }
 
             public void SetData(int index, T value)
             {
-                if (!_filtered)
+                if (!Filtered)
                 {
                     _upstream.SetData(index, value);
                     return;
@@ -170,11 +207,11 @@ namespace Equinox76561198048419394.Core.UI
                 _filterResults[index] = result;
             }
 
-            public int Length => _filtered ? _filterResults.Count : _upstream.Length;
+            public int Length => Filtered ? _filterResults.Count : _upstream.Length;
 
             public int? FilteredToUpstream(int? index)
             {
-                if (!_filtered)
+                if (!Filtered)
                     return index;
                 if (index == null || index < 0 || index >= _filterResults.Count)
                     return null;
@@ -183,7 +220,7 @@ namespace Equinox76561198048419394.Core.UI
 
             public int? UpstreamToFiltered(int? index)
             {
-                if (!_filtered || index == null)
+                if (!Filtered || index == null)
                     return index;
                 return _upstreamToFiltered.TryGetValue(index.Value, out var filteredIndex) ? (int?)filteredIndex : null;
             }
@@ -199,6 +236,14 @@ namespace Equinox76561198048419394.Core.UI
                 public int UpstreamIndex;
                 public T Value;
             }
+
+            public event Action OnChange;
+
+            private void OnUpstreamChanged()
+            {
+                ApplyFilter(_filter);
+                OnChange?.Invoke();
+            }
         }
     }
 
@@ -211,6 +256,11 @@ namespace Equinox76561198048419394.Core.UI
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
             var ob = (MyObjectBuilder_EquiIconGridControllerBaseDefinition)builder;
+            ob.Grid = ob.Grid ?? new MyObjectBuilder_ContextMenuControllerDefinition.GridDefinition();
+            if (ob.Grid.StyleName == null) ob.Grid.StyleName = "ContextMenuInventoryGrid";
+            if (ob.Grid.Columns == 0) ob.Grid.Columns = 4;
+            if (ob.Grid.Rows == 0) ob.Grid.Rows = 5;
+            if (ob.Grid.MaxItems == 0) ob.Grid.MaxItems = ob.Grid.Columns * ob.Grid.Rows;
             base.Init(new MyObjectBuilder_GridControllerDefinition
             {
                 Id = ob.Id,
@@ -220,10 +270,10 @@ namespace Equinox76561198048419394.Core.UI
                 Margin = ob.Margin,
                 DataId = ob.DataId,
                 Grid = ob.Grid,
-                GridSize = ob.GridSize,
-                PagingButtonSize = ob.PagingButtonSize,
-                PagingButtonStyle = ob.PagingButtonStyle,
-                LabelStyle = ob.LabelStyle,
+                GridSize = ob.GridSize ?? new SerializableVector2(320, 400),
+                PagingButtonSize = ob.PagingButtonSize ?? new SerializableVector2(32, 32),
+                PagingButtonStyle = ob.PagingButtonStyle ?? "ContextButtonPage",
+                LabelStyle = ob.LabelStyle ?? "ContextMenuLabel",
             });
         }
     }
@@ -232,8 +282,8 @@ namespace Equinox76561198048419394.Core.UI
     {
         public string DataId;
         public GridDefinition Grid;
-        public SerializableVector2 GridSize;
-        public SerializableVector2 PagingButtonSize;
+        public SerializableVector2? GridSize;
+        public SerializableVector2? PagingButtonSize;
         public string PagingButtonStyle;
         public string LabelStyle;
     }

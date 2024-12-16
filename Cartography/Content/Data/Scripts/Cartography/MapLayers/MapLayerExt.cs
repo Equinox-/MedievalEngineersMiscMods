@@ -69,20 +69,7 @@ namespace Equinox76561198048419394.Cartography.MapLayers
         public static RectangleF GetEnvironmentMapViewport(this MyPlanetMapControl control, out int face)
         {
             var view = control.CurrentView;
-            var planet = control.Planet;
-            var areas = planet.Get<MyPlanetAreasComponent>();
-            int scalingCount;
-            switch (view.Zoom)
-            {
-                case MyPlanetMapZoomLevel.Kingdom:
-                    scalingCount = areas.RegionCount;
-                    break;
-                case MyPlanetMapZoomLevel.Region:
-                    scalingCount = areas.AreaCount;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            var scalingCount = ScalingCount();
 
             var counts = view.Size;
             MyPlanetAreasComponent.UnpackAreaId(view[0, 0], out face, out var minCellX, out var minCellY);
@@ -91,6 +78,57 @@ namespace Equinox76561198048419394.Cartography.MapLayers
             var minTexCoord = (2 * new Vector2(minCellX, minCellY) - scalingCount) / scalingCount;
             var maxTexCoord = (2 * new Vector2(maxCellX + 1, maxCellY + 1) - scalingCount) / scalingCount;
             return new RectangleF(minTexCoord, maxTexCoord - minTexCoord);
+
+            int ScalingCount()
+            {
+                var areas = control.Planet.Get<MyPlanetAreasComponent>();
+                switch (control.CurrentZoomLevel)
+                {
+                    case MyPlanetMapZoomLevel.Kingdom:
+                        return areas.RegionCount;
+                    case MyPlanetMapZoomLevel.Region:
+                        return areas.AreaCount;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
+
+        public static RectangleF? GetAreaViewport(this MyPlanetMapControl control, long areaId)
+        {
+            var view = control.CurrentView;
+            MyPlanetAreasComponent.UnpackAreaId(areaId, out int areaFace, out var x, out var y);;
+            MyPlanetAreasComponent.UnpackAreaId(view[0, 0], out int viewFace, out var minCellX, out var minCellY);
+            if (viewFace != areaFace) return null;
+            if (x < minCellX || y < minCellY) return null;
+
+            int maxCellX, maxCellY;
+            switch (control.CurrentZoomLevel)
+            {
+                case MyPlanetMapZoomLevel.Kingdom:
+                {
+                    var areas = control.Planet.Get<MyPlanetAreasComponent>();
+                    maxCellX = maxCellY = areas.AreaCount - 1;
+                    break;
+                }
+                case MyPlanetMapZoomLevel.Region:
+                {
+                    var counts = view.Size;
+                    MyPlanetAreasComponent.UnpackAreaId(view[counts.X - 1, counts.Y - 1], out _, out maxCellX, out maxCellY);
+                    if (x > maxCellX || y > maxCellY) return null;
+                    break;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            var normSize = new Vector2(1 / (float)(maxCellX + 1 - minCellX), 1 / (float)(maxCellY + 1 - minCellY));
+            var normOffset = new Vector2(x - minCellX, y - minCellY) * normSize;
+
+            var mapSize = control.MapSize;
+            return new RectangleF(
+                control.GetPositionAbsoluteTopLeft() + control.MapOffset + mapSize * normOffset,
+                mapSize * normSize);
         }
 
         public static RectangleF GetScreenViewport(this MyPlanetMapControl control)

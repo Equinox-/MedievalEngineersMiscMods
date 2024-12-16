@@ -9,53 +9,62 @@ using VRageMath;
 
 namespace Equinox76561198048419394.Core.UI
 {
-    internal sealed class SliderData : IControlHolder
+    internal sealed class SliderData : ControlHolder<MyObjectBuilder_EquiAdvancedControllerDefinition.Slider>
     {
-        public MyObjectBuilder_EquiAdvancedControllerDefinition.Slider SliderDef;
-        private bool _commitPermitted;
-        public DataSourceValueAccessor<float> DataSource;
-        public MyGuiControlSlider Slider;
-        public MyGuiControlBase Root { get; set; }
+        private readonly DataSourceValueAccessor<float> _dataSource;
+        private readonly MyGuiControlSlider _slider;
 
-        public void SyncToControl()
+        internal SliderData(MyContextMenuController ctl,
+            EquiAdvancedControllerDefinition owner,
+            MyObjectBuilder_EquiAdvancedControllerDefinition.Slider def) : base(ctl, owner, def)
         {
-            _commitPermitted = false;
-            var value = DataSource.GetValue();
-            Root.Enabled = false;
-            if (value.HasValue)
+            _dataSource = new DataSourceValueAccessor<float>(ctl, def.DataId, def.DataIndex);
+            ContextMenuStyles.SliderStyles(def.StyleNameId, out var sliderStyle, out var sliderValueStyle);
+            var valueLabel = new MyGuiControlLabel();
+            valueLabel.ApplyStyle(sliderValueStyle);
+            _slider = new MyGuiControlSlider(
+                width: owner.Width,
+                labelDecimalPlaces: def.LabelDecimalPlaces,
+                toolTip: MyTexts.GetString(def.TooltipId),
+                minValue: _dataSource.Min ?? def.Min ?? 0,
+                maxValue: _dataSource.Max ?? def.Max ?? 0)
             {
-                var minVal = DataSource.Min ?? SliderDef.Min ?? float.PositiveInfinity;
-                var maxVal = DataSource.Max ?? SliderDef.Max ?? float.NegativeInfinity;
-                if (minVal < maxVal)
-                {
-                    Root.Enabled = true;
-                    Slider.DefaultValue = DataSource.Default ?? SliderDef.Default ?? (minVal + maxVal) / 2;
-                    var newValue = value.Value;
-                    var tolerance = Math.Max(Math.Abs(minVal), Math.Abs(maxVal)) / 1000;
-                    if (Math.Abs(newValue - Slider.Value) > tolerance)
-                        Slider.Value = newValue;
-                }
-            }
+                Properties = CreateProperties(_dataSource)
+            };
 
-            _commitPermitted = true;
+            _slider.ApplyStyle(sliderStyle);
+            _slider.ValueChanged += _ =>
+            {
+                var value = _slider.Value;
+                if (owner.AutoCommit)
+                    _dataSource.SetValue(value);
+                valueLabel.Text = FormatLabel(value, def.LabelDecimalPlaces, def.TextFormat);
+            };
+            _slider.SliderClicked += SliderClicked;
+            valueLabel.Text = FormatLabel(_slider.Value, def.LabelDecimalPlaces, def.TextFormat);
+
+            MakeVerticalRoot(_slider, valueLabel);
         }
 
-        public void SyncFromControl()
+        protected override void SyncToControlInternal()
         {
-            if (!_commitPermitted || !Root.Enabled) return;
-            DataSource.SetValue(Slider.ValueNormalized);
+            var value = _dataSource.GetValue();
+            Root.Enabled = false;
+            if (!value.HasValue) return;
+            var minVal = _dataSource.Min ?? Def.Min ?? float.PositiveInfinity;
+            var maxVal = _dataSource.Max ?? Def.Max ?? float.NegativeInfinity;
+            if (minVal >= maxVal) return;
+            Root.Enabled = true;
+            _slider.DefaultValue = _dataSource.Default ?? Def.Default ?? (minVal + maxVal) / 2;
+            var newValue = value.Value;
+            var tolerance = Math.Max(Math.Abs(minVal), Math.Abs(maxVal)) / 1000;
+            if (Math.Abs(newValue - _slider.Value) > tolerance)
+                _slider.Value = newValue;
         }
-    }
 
-    internal sealed class SliderFactory : ControlFactory
-    {
-        private readonly EquiAdvancedControllerDefinition _owner;
-        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Slider _sliderDef;
-
-        public SliderFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Slider sliderDef)
+        protected override void SyncFromControlInternal()
         {
-            _owner = owner;
-            _sliderDef = sliderDef;
+            _dataSource.SetValue(_slider.ValueNormalized);
         }
 
         private MyGuiSliderProperties CreateProperties(DataSourceValueAccessor<float> ds)
@@ -65,7 +74,7 @@ namespace Equinox76561198048419394.Core.UI
                 RatioToValue = ratio =>
                 {
                     var value = RatioToValue(Min(), Max(), Exponent(), MathHelper.Clamp(ratio, 0, 1));
-                    if (_sliderDef.IsInteger)
+                    if (Def.IsInteger)
                         value = (float)Math.Round(value);
                     return value;
                 },
@@ -73,7 +82,7 @@ namespace Equinox76561198048419394.Core.UI
                 RatioFilter = ratio =>
                 {
                     ratio = MathHelper.Clamp(ratio, 0, 1);
-                    if (!_sliderDef.IsInteger)
+                    if (!Def.IsInteger)
                         return ratio;
                     var minVal = Min();
                     var maxVal = Max();
@@ -82,11 +91,11 @@ namespace Equinox76561198048419394.Core.UI
                     value = (float)Math.Round(value);
                     return ValueToRatio(minVal, maxVal, exponentVal, value);
                 },
-                FormatLabel = _value => ""
+                FormatLabel = _ => ""
             };
-            float Min() => ds.Min ?? _sliderDef.Min ?? float.PositiveInfinity;
-            float Max() => ds.Max ?? _sliderDef.Max ?? float.NegativeInfinity;
-            float Exponent() => _sliderDef.Exponent ?? 1;
+            float Min() => ds.Min ?? Def.Min ?? float.PositiveInfinity;
+            float Max() => ds.Max ?? Def.Max ?? float.NegativeInfinity;
+            float Exponent() => Def.Exponent ?? 1;
 
             float ValueToRatio(float min, float max, float exponent, float value)
             {
@@ -112,62 +121,32 @@ namespace Equinox76561198048419394.Core.UI
             return string.Format(textFormat, value.ToString("N" + decimalPlaces));
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl)
+        private bool SliderClicked(MyGuiControlSliderBase _)
         {
-            var ds = new DataSourceValueAccessor<float>(ctl, _sliderDef.DataId, _sliderDef.DataIndex);
-            ContextMenuStyles.SliderStyles(_sliderDef.StyleNameId, out var sliderStyle, out var sliderValueStyle);
-            var label = new MyGuiControlLabel(text: MyTexts.GetString(_sliderDef.TextId));
-            label.SetToolTip(_sliderDef.Tooltip);
-            label.ApplyStyle(ContextMenuStyles.LabelStyle());
-            var valueLabel = new MyGuiControlLabel();
-            valueLabel.ApplyStyle(sliderValueStyle);
-            var slider = new MyGuiControlSlider(
-                width: _owner.Width,
-                labelDecimalPlaces: _sliderDef.LabelDecimalPlaces,
-                toolTip: MyTexts.GetString(_sliderDef.TooltipId),
-                minValue: ds.Min ?? _sliderDef.Min ?? 0,
-                maxValue: ds.Max ?? _sliderDef.Max ?? 0)
-            {
-                Properties = CreateProperties(ds)
-            };
-
-            slider.ApplyStyle(sliderStyle);
-            slider.ValueChanged += _ =>
-            {
-                var value = slider.Value;
-                if (_owner.AutoCommit)
-                    ds.SetValue(value);
-                valueLabel.Text = FormatLabel(value, _sliderDef.LabelDecimalPlaces, _sliderDef.TextFormat);
-            };
-            slider.SliderClicked += SliderClicked;
-            valueLabel.Text = FormatLabel(slider.Value, _sliderDef.LabelDecimalPlaces, _sliderDef.TextFormat);
-            var labeledSlider = new MyGuiControlParent(size: slider.Size + new Vector2(0.0f, label.Size.Y));
-#pragma warning disable CS0618 // Type or member is obsolete
-            var layout = new MyLayoutVertical(labeledSlider, ctl.MarginPx.X);
-#pragma warning restore CS0618 // Type or member is obsolete
-            layout.Add(label, valueLabel);
-            layout.Add(slider, MyAlignH.Center);
-            return new SliderData
-            {
-                SliderDef = _sliderDef,
-                DataSource = ds,
-                Root = labeledSlider,
-                Slider = slider
-            };
-
-            bool SliderClicked(MyGuiControlSliderBase _)
-            {
-                if (!MyAPIGateway.Input.IsAnyCtrlKeyDown() || !slider.Enabled)
-                    return false;
-                var minVal = ds.Min ?? _sliderDef.Min ?? float.PositiveInfinity;
-                var maxVal = ds.Max ?? _sliderDef.Max ?? float.NegativeInfinity;
-                var dialog = new MyFloatInputDialog(
-                    MyTexts.GetString(MyCommonTexts.DialogAmount_SetValueCaption),
-                    minVal, maxVal, slider.Value);
-                dialog.ResultCallback += v => slider.Value = v;
-                MyGuiSandbox.AddScreen(dialog);
-                return true;
-            }
+            if (!MyAPIGateway.Input.IsAnyCtrlKeyDown() || !_slider.Enabled)
+                return false;
+            var minVal = _dataSource.Min ?? Def.Min ?? float.PositiveInfinity;
+            var maxVal = _dataSource.Max ?? Def.Max ?? float.NegativeInfinity;
+            var dialog = new MyFloatInputDialog(
+                MyTexts.GetString(MyCommonTexts.DialogAmount_SetValueCaption),
+                minVal, maxVal, _slider.Value);
+            dialog.ResultCallback += v => _slider.Value = v;
+            MyGuiSandbox.AddScreen(dialog);
+            return true;
         }
+    }
+
+    internal sealed class SliderFactory : ControlFactory
+    {
+        private readonly EquiAdvancedControllerDefinition _owner;
+        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Slider _sliderDef;
+
+        public SliderFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Slider sliderDef)
+        {
+            _owner = owner;
+            _sliderDef = sliderDef;
+        }
+
+        public override IControlHolder Create(MyContextMenuController ctl) => new SliderData(ctl, _owner, _sliderDef);
     }
 }

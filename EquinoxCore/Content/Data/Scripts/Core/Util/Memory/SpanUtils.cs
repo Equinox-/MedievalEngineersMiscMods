@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using VRage.Utils;
 
@@ -7,6 +8,7 @@ namespace Equinox76561198048419394.Core.Util.Memory
     {
         public static EqSpan<T> AsEqSpan<T>(this List<T> list) => new EqSpan<T>(list.GetInternalArray(), 0, list.Count);
         public static EqSpan<T> AsEqSpan<T>(this T[] array) => new EqSpan<T>(array, 0, array.Length);
+        public static EqSpan<T> AsEqSpan<T>(this ArraySegment<T> array) => new EqSpan<T>(array.Array, array.Offset, array.Count);
 
         public static void AddSpan<T>(this List<T> list, EqReadOnlySpan<T> span)
         {

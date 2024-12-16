@@ -42,6 +42,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VisualPlayerInventory", "Vi
 		VisualPlayerInventory\Content\Data\MiscMods.sbc = VisualPlayerInventory\Content\Data\MiscMods.sbc
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DisablePreloading", "DisablePreloading\DisablePreloading.csproj", "{0DF88110-5BF1-4203-AE8E-D23E65350384}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterTax", "BetterTax\BetterTax.csproj", "{07C5986D-926B-44D7-8E62-2E4F6ABDA52B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64
@@ -76,5 +80,13 @@ Global
 		{113971A2-CC29-4171-A9C8-857E4D42E17F}.Release|x64.Build.0 = Release|Any CPU
 		{113971A2-CC29-4171-A9C8-857E4D42E17F}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{113971A2-CC29-4171-A9C8-857E4D42E17F}.Debug|x64.Build.0 = Debug|Any CPU
+		{0DF88110-5BF1-4203-AE8E-D23E65350384}.Release|x64.ActiveCfg = Release|Any CPU
+		{0DF88110-5BF1-4203-AE8E-D23E65350384}.Release|x64.Build.0 = Release|Any CPU
+		{0DF88110-5BF1-4203-AE8E-D23E65350384}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0DF88110-5BF1-4203-AE8E-D23E65350384}.Debug|x64.Build.0 = Debug|Any CPU
+		{07C5986D-926B-44D7-8E62-2E4F6ABDA52B}.Release|x64.ActiveCfg = Release|Any CPU
+		{07C5986D-926B-44D7-8E62-2E4F6ABDA52B}.Release|x64.Build.0 = Release|Any CPU
+		{07C5986D-926B-44D7-8E62-2E4F6ABDA52B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{07C5986D-926B-44D7-8E62-2E4F6ABDA52B}.Debug|x64.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

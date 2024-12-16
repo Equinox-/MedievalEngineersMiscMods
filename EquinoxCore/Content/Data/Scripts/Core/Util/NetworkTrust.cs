@@ -21,6 +21,18 @@ namespace Equinox76561198048419394.Core.Util
         public static bool IsTrusted(MyEntityComponent target, Vector3D? overrideLocation = null) => IsTrusted(target,
             overrideLocation != null ? (BoundingBoxD?) new BoundingBoxD(overrideLocation.Value, overrideLocation.Value) : null);
 
+        public static bool IsTrusted(in Vector3D playerLoc, in BoundingBoxD worldAabb)
+        {
+            var loc = Vector3D.Clamp(playerLoc, worldAabb.Min, worldAabb.Max);
+            return Vector3D.DistanceSquared(in playerLoc, in loc) <= TrustedDistance * TrustedDistance;
+        }
+
+        public static bool IsTrusted(in Vector3D playerLoc, in BoundingSphereD worldSphere)
+        {
+            var dist = TrustedDistance + worldSphere.Radius;
+            return Vector3D.DistanceSquared(in playerLoc, in worldSphere.Center) <= dist * dist;
+        }
+
         public static bool IsTrusted(MyEntityComponent target, BoundingBoxD? overrideLocation = null)
         {
             if (!MyMultiplayerModApi.Static.IsServer)
@@ -39,7 +51,7 @@ namespace Equinox76561198048419394.Core.Util
             var playerLoc = playerEntity.WorldMatrix.Translation;
             var worldAabb = overrideLocation ?? target.Entity.PositionComp.WorldAABB;
             var loc = Vector3D.Clamp(playerLoc, worldAabb.Min, worldAabb.Max);
-            if (Vector3D.DistanceSquared(playerEntity.WorldMatrix.Translation, loc) > TrustedDistance * TrustedDistance)
+            if (!IsTrusted(playerLoc, worldAabb))
                 return false;
 
             var access = target.Container.Get<MyAccessPermissionComponent>();

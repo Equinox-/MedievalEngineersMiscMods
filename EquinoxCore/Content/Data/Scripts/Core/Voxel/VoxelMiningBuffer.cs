@@ -8,6 +8,7 @@ using VRage.Game.Models;
 using VRage.Session;
 using VRageMath;
 
+// ReSharper disable once CheckNamespace
 namespace Equinox76561198048419394.Core.Util
 {
     public class VoxelMiningBuffer
