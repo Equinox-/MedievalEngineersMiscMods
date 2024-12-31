@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
+        <Id Type="MyObjectBuilder_ContextMenu" Subtype="EquiPayTaxesMenu" />
+        <StyleName>ContextMenuDefault</StyleName>
+        <MainController>
+            <TypeId>MyObjectBuilder_EquiAdvancedController</TypeId>
+            <SubtypeId>EquiClaimBlockTaxes</SubtypeId>
+        </MainController>
+        <ContextType>MyObjectBuilder_EquiPayTaxesInteractionContext</ContextType>
+    </Definition>
+</Definitions>

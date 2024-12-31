@@ -20,30 +20,28 @@ namespace Equinox76561198048419394.Core.UI
     {
         protected readonly MyContextMenuController Ctl;
         protected readonly EquiAdvancedControllerDefinition Owner;
-        protected readonly T Def;
+        protected readonly ControlFactory<T> Factory;
+        private readonly TemplatedLabel _label;
+
+        protected T Def => Factory.Def;
         private bool _commitPermitted;
 
-        internal ControlHolder(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, T def)
+        internal ControlHolder(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, ControlFactory<T> factory)
         {
             Ctl = ctl;
             Owner = owner;
-            Def = def;
+            Factory = factory;
+            _label = factory.Label.Create(ctl);
         }
 
         public MyGuiControlBase Root { get; protected set; }
-
-        public void SyncToControl()
-        {
-            _commitPermitted = false;
-            SyncToControlInternal();
-            _commitPermitted = true;
-        }
 
         private MyGuiControlLabel CreateLabel()
         {
             var label = new MyGuiControlLabel(text: MyTexts.GetString(Def.TextId));
             label.SetToolTip(Def.Tooltip);
             label.ApplyStyle(ContextMenuStyles.LabelStyle());
+            _label.BindTo(label);
             return label;
         }
 
@@ -82,6 +80,14 @@ namespace Equinox76561198048419394.Core.UI
             Root = vertical;
         }
 
+        public void SyncToControl()
+        {
+            _commitPermitted = false;
+            _label.UpdateBound();
+            SyncToControlInternal();
+            _commitPermitted = true;
+        }
+
         protected abstract void SyncToControlInternal();
 
         public void SyncFromControl()
@@ -100,5 +106,17 @@ namespace Equinox76561198048419394.Core.UI
     internal abstract class ControlFactory
     {
         public abstract IControlHolder Create(MyContextMenuController ctl);
+    }
+
+    internal abstract class ControlFactory<T> : ControlFactory where T : MyObjectBuilder_EquiAdvancedControllerDefinition.ControlBase
+    {
+        public readonly T Def;
+        public readonly TemplatedLabelFactory Label;
+
+        protected ControlFactory(T def, DataSourceReference[] positionalLabelArgs = null)
+        {
+            Def = def;
+            Label = new TemplatedLabelFactory(def.Text, positionalLabelArgs);
+        }
     }
 }

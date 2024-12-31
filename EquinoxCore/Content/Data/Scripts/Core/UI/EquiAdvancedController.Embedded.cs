@@ -1,6 +1,5 @@
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.Controllers;
-using Sandbox.Graphics.GUI;
 using VRage.Game;
 
 namespace Equinox76561198048419394.Core.UI
@@ -9,10 +8,9 @@ namespace Equinox76561198048419394.Core.UI
     {
         private readonly MyContextMenuController _controller;
 
-        public EmbeddedControllerData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded def,
-            MyDefinitionId id) : base(ctl, owner, def)
+        public EmbeddedControllerData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, EmbeddedControllerFactory factory) : base(ctl, owner, factory)
         {
-            _controller = MyContextMenuFactory.CreateContextMenuController(id);
+            _controller = MyContextMenuFactory.CreateContextMenuController(factory.Id);
             _controller.BeforeAddedToMenu(ctl.Menu, 0);
             Root = _controller.CreateControl();
         }
@@ -35,19 +33,17 @@ namespace Equinox76561198048419394.Core.UI
         }
     }
 
-    internal sealed class EmbeddedControllerFactory : ControlFactory
+    internal sealed class EmbeddedControllerFactory : ControlFactory<MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded>
     {
         private readonly EquiAdvancedControllerDefinition _owner;
-        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded _def;
-        private readonly MyDefinitionId _id;
+        public readonly MyDefinitionId Id;
 
-        public EmbeddedControllerFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded def)
+        public EmbeddedControllerFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded def) : base(def)
         {
             _owner = owner;
-            _def = def;
-            _id = def.Id;
+            Id = def.Id;
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl) => new EmbeddedControllerData(ctl, _owner, _def, _id);
+        public override IControlHolder Create(MyContextMenuController ctl) => new EmbeddedControllerData(ctl, _owner, this);
     }
 }

@@ -13,8 +13,9 @@ namespace Equinox76561198048419394.Core.UI
         private readonly MyGuiControlCombobox _dropdown;
         private int _lastVersion;
 
-        public DropdownData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Dropdown def) : base(ctl, owner, def)
+        public DropdownData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, DropdownFactory factory) : base(ctl, owner, factory)
         {
+            var def = factory.Def;
             _dataSource = new DataSourceAccessor<ContextMenuDropdownDataSource>(ctl, def.DataId);
             _dropdown = new MyGuiControlCombobox(toolTip: MyTexts.GetString(def.TooltipId));
             _dropdown.SetSize(new Vector2(owner.Width, _dropdown.Size.Y));
@@ -28,6 +29,13 @@ namespace Equinox76561198048419394.Core.UI
             var impl = _dataSource.DataSource;
             if (impl == null || impl.Count == 0)
             {
+                Root.Enabled = false;
+                return;
+            }
+
+            if (impl.Count == 1)
+            {
+                _dataSource.DataSource.Selected = 0;
                 Root.Enabled = false;
                 return;
             }
@@ -63,17 +71,15 @@ namespace Equinox76561198048419394.Core.UI
         }
     }
 
-    internal sealed class DropdownFactory : ControlFactory
+    internal sealed class DropdownFactory : ControlFactory<MyObjectBuilder_EquiAdvancedControllerDefinition.Dropdown>
     {
         private readonly EquiAdvancedControllerDefinition _owner;
-        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Dropdown _checkDef;
 
-        public DropdownFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Dropdown checkDef)
+        public DropdownFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Dropdown checkDef) : base(checkDef)
         {
             _owner = owner;
-            _checkDef = checkDef;
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl) => new DropdownData(ctl, _owner, _checkDef);
+        public override IControlHolder Create(MyContextMenuController ctl) => new DropdownData(ctl, _owner, this);
     }
 }

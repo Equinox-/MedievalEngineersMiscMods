@@ -1,38 +1,29 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Serialization;
 using Equinox76561198048419394.Core.UI;
 using Medieval;
 using Medieval.Entities.Components.Planet;
-using Medieval.GameSystems;
-using Medieval.GUI.ContextMenu.Attributes;
-using Medieval.GUI.ContextMenu.Contexts;
-using Medieval.ObjectBuilders.Components;
-using ObjectBuilders.GUI;
-using Sandbox.Game.Entities;
+using Medieval.GUI.ContextMenu;
 using Sandbox.Game.GUI;
 using Sandbox.Game.GUI.Dialogs;
 using Sandbox.Game.Players;
 using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using VRage;
-using VRage.Definitions.Inventory;
-using VRage.Input;
+using VRage.Game.Entity;
 using VRage.Library.Collections;
-using VRage.Logging;
-using VRage.ObjectBuilders;
 using VRage.Session;
 using VRage.Utils;
 
-namespace Equinox76561198048419394.BetterTax
+namespace Equinox76561198048419394.BetterTax.UI
 {
-    [MyContextMenuContextType(typeof(MyObjectBuilder_EquiBetterClaimBlockInteractionContext))]
-    public class EquiBetterClaimBlockInteractionContext : MyClaimBlockInteractionContext
+    internal class BetterTaxesContext
     {
-        private static readonly SimpleDropdownDataSourceFactory<EquiBetterTaxAreaSelection.SelectionMode> ModeDropdown =
-            SimpleDataSources.DropdownEnum<EquiBetterTaxAreaSelection.SelectionMode>(mode =>
+        private static SimpleDropdownDataSourceFactory<EquiBetterTaxAreaSelection.SelectionMode> ModeDropdownFactory(
+            Predicate<EquiBetterTaxAreaSelection.SelectionMode> supported) => SimpleDataSources.DropdownEnum<EquiBetterTaxAreaSelection.SelectionMode>(
+            mode =>
             {
+                if (!supported(mode)) return null;
                 switch (mode)
                 {
                     case EquiBetterTaxAreaSelection.SelectionMode.Local:
@@ -48,25 +39,39 @@ namespace Equinox76561198048419394.BetterTax
                 }
             });
 
+        private readonly EquiBetterTaxComponentDefinition _definition;
         private readonly EquiBetterTaxAreaSelection _selection = new EquiBetterTaxAreaSelection();
-
-        private MyPlanetAreaOwnershipComponent _planetOwnership;
-        private MyPlanetAreaUpkeepComponent _planetUpkeep;
+        private readonly MyPlanetAreaOwnershipComponent _planetOwnership;
+        private readonly MyPlanetAreaUpkeepComponent _planetUpkeep;
+        private readonly EquiBetterTaxSystem _tax;
+        private readonly MyIdentity _identity;
         private HashSet<long> _selectedAreas;
-        private EquiBetterTaxComponent _tax;
 
         private TaxItem _taxItem;
 
-        public override void Init(object[] contextParams)
+        public BetterTaxesContext(
+            MyEntity entity,
+            MyPlanetAreaOwnershipComponent planetOwnership,
+            long areaId,
+            MyIdentity identity,
+            Dictionary<MyStringId, IMyContextMenuDataSource> dataSources,
+            MyInventoryBase inventory)
         {
-            base.Init(contextParams);
-            _planetOwnership = (MyPlanetAreaOwnershipComponent)contextParams[1];
+            var definition = entity?.Get<EquiBetterTaxComponent>()?.Definition ?? EquiBetterTaxComponentDefinition.Default;
+            _definition = definition;
+            _planetOwnership = planetOwnership;
             _planetUpkeep = _planetOwnership.Container?.Get<MyPlanetAreaUpkeepComponent>();
-            _tax = MySession.Static.Components.Get<EquiBetterTaxComponent>();
-            _selection.AreaId = AreaId;
-            _selection.PlanetId = PlanetId;
+            _tax = MySession.Static.Components.Get<EquiBetterTaxSystem>();
+            _identity = identity;
+            _selection.PaymentEntityId = entity?.EntityId ?? 0L;
+            _selection.AreaId = areaId;
+            _selection.PlanetId = planetOwnership.Entity.EntityId;
+            PoolManager.Get(out _selectedAreas);
 
-            m_dataSources[MyStringId.GetOrCompute("SelectMode")] = ModeDropdown.Create(
+            var isOwned = planetOwnership.GetAreaOwner(areaId) != 0;
+
+            dataSources[MyStringId.GetOrCompute("SelectMode")] = ModeDropdownFactory(mode =>
+                definition.SupportedModes.Contains(mode) && (mode == EquiBetterTaxAreaSelection.SelectionMode.All || isOwned)).Create(
                 () => _selection.Mode,
                 val =>
                 {
@@ -74,7 +79,7 @@ namespace Equinox76561198048419394.BetterTax
                     _selection.Mode = val;
                     RefreshSelectedAreas();
                 });
-            m_dataSources[MyStringId.GetOrCompute("SelectFaction")] = new SimpleDataSource<bool>(
+            dataSources[MyStringId.GetOrCompute("SelectFaction")] = new SimpleDataSource<bool>(
                 () => _selection.IncludeFaction,
                 val =>
                 {
@@ -82,8 +87,8 @@ namespace Equinox76561198048419394.BetterTax
                     _selection.IncludeFaction = val;
                     RefreshSelectedAreas();
                 });
-            m_dataSources[MyStringId.GetOrCompute("AreaCount")] = SimpleDataSources.SimpleReadOnly(() => _selectedAreas.Count);
-            m_dataSources[MyStringId.GetOrCompute("AreaMinExpiry")] = SimpleDataSources.SimpleReadOnly(() =>
+            dataSources[MyStringId.GetOrCompute("AreaCount")] = SimpleDataSources.SimpleReadOnly(() => _selectedAreas.Count);
+            dataSources[MyStringId.GetOrCompute("AreaMinExpiry")] = SimpleDataSources.SimpleReadOnly(() =>
             {
                 TimeSpan? minExpiry = null;
                 foreach (var area in _selectedAreas)
@@ -95,14 +100,16 @@ namespace Equinox76561198048419394.BetterTax
 
                 return minExpiry.HasValue ? FormatExpiry(minExpiry.Value) : "n/a";
             });
-            m_dataSources[MyStringId.GetOrCompute("AreaMaxPayable")] = SimpleDataSources.SimpleReadOnly(() =>
+            dataSources[MyStringId.GetOrCompute("AreaMaxPayable")] = SimpleDataSources.SimpleReadOnly(() =>
             {
                 var maxPayable = MaxPayableTime();
                 return maxPayable > TimeSpan.Zero ? FormatTime(maxPayable) : "n/a";
             });
-            m_dataSources[MyStringId.GetOrCompute("TaxItems")] = new TaxItemsDataSource(
+            dataSources[MyStringId.GetOrCompute("ValueMultiplier")] = SimpleDataSources.SimpleReadOnly(() => _definition.ValueMultiplier);
+            dataSources[MyStringId.GetOrCompute("TaxItems")] = new TaxItemsDataSource(
                 _tax,
-                MySession.Static?.PlayerEntity?.GetInventory(),
+                _definition,
+                inventory,
                 () => _taxItem,
                 val => _taxItem = val,
                 MaxPayableTime);
@@ -121,9 +128,7 @@ namespace Equinox76561198048419394.BetterTax
         {
             if (_selectedAreas == null) PoolManager.Get(out _selectedAreas);
             _selectedAreas.Clear();
-            var localPlayer = MyPlayers.Static.GetControllingPlayer(MySession.Static.PlayerEntity);
-            if (localPlayer?.Identity == null) return;
-            _selection.SelectedAreas(_planetOwnership, localPlayer.Identity, _selectedAreas);
+            _selection.SelectedAreas(_planetOwnership, _identity, _selectedAreas);
         }
 
         private static string FormatExpiry(TimeSpan expiresAt)
@@ -148,6 +153,7 @@ namespace Equinox76561198048419394.BetterTax
                 PayBetterTaxesInternal(available);
                 return;
             }
+
             var screen = new MyIntInputDialog(MyTexts.GetString(MyCommonTexts.DialogAmount_AddAmountCaption), 0, available);
             screen.ResultCallback += amount =>
             {
@@ -171,16 +177,9 @@ namespace Equinox76561198048419394.BetterTax
                 });
         }
 
-        public override void Close()
+        public void Close()
         {
-            base.Close();
             PoolManager.Return(ref _selectedAreas);
         }
-    }
-
-    [MyObjectBuilderDefinition]
-    [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
-    public class MyObjectBuilder_EquiBetterClaimBlockInteractionContext : MyObjectBuilder_ClaimBlockInteractionContext
-    {
     }
 }

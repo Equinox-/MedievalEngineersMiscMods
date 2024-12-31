@@ -1,9 +1,31 @@
+using System.Xml.Serialization;
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.DataSources;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.UI
 {
+    public class DataSourceReference
+    {
+        public MyStringId Id;
+
+        /// <summary>
+        /// Data source ID in the menu context.
+        /// </summary>
+        [XmlAttribute(nameof(Id))]
+        public string IdForXml
+        {
+            get => Id.String;
+            set => Id = MyStringId.GetOrCompute(value);
+        }
+
+        /// <summary>
+        /// Index in a vector / array data source.
+        /// </summary>
+        [XmlAttribute]
+        public int Index;
+    }
+
     public readonly struct DataSourceAccessor<T> where T : class, IMyContextMenuDataSource
     {
         private readonly object _raw;
@@ -47,7 +69,7 @@ namespace Equinox76561198048419394.Core.UI
             _index = index;
         }
 
-        public DataSourceValueAccessor(MyContextMenuController controller, MyObjectBuilder_EquiAdvancedControllerDefinition.DataSourceReference dsr)
+        public DataSourceValueAccessor(MyContextMenuController controller, DataSourceReference dsr)
         {
             _ds = new DataSourceAccessor<IMyContextMenuDataSource>(controller, dsr.Id);
             _index = dsr.Index;

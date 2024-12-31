@@ -249,6 +249,7 @@
     <Content Include="Content\Data\ComponentEffect.sbc.example" />
     <Content Include="Content\Data\ModifierChangeModel.sbc.example" />
     <Content Include="Content\Data\ModifiersGrid.sbc" />
+    <Compile Include="Content\Data\Scripts\Core\UI\EquiTemplatedLabel.cs" />
     <Content Include="Content\Data\SearchableVanillaGrids.sbc" />
     <Content Include="Content\Data\SolarObservation.sbc.example" />
     <Content Include="Content\Data\VoxelEffect.sbc.example" />

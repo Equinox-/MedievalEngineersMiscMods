@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Equinox76561198048419394.Core.UI;
 using Medieval.GUI.ContextMenu.DataSources;
 using Sandbox.Graphics.GUI;
 using Sandbox.Gui.Controls;
 using Sandbox.Gui.Styles;
 using Sandbox.Gui.Utility;
-using Sandbox.ModAPI;
-using VRage.Components;
 using VRage.Core;
 using VRage.Definitions.Inventory;
 using VRage.Game;
@@ -20,11 +17,12 @@ using VRage.Session;
 using VRage.Utils;
 using VRageMath;
 
-namespace Equinox76561198048419394.BetterTax
+namespace Equinox76561198048419394.BetterTax.UI
 {
     internal class TaxItemsDataSource : IMyGridDataSource<IEquiIconGridItem>, IEquiDataSourceWithChangeEvent
     {
-        private readonly EquiBetterTaxComponent _tax;
+        private readonly EquiBetterTaxSystem _tax;
+        private readonly EquiBetterTaxComponentDefinition _definition;
         private readonly MyInventoryBase _inv;
         private readonly Func<TaxItem> _get;
         private readonly Action<TaxItem> _set;
@@ -38,13 +36,15 @@ namespace Equinox76561198048419394.BetterTax
         public event Action OnChange;
 
         public TaxItemsDataSource(
-            EquiBetterTaxComponent tax,
+            EquiBetterTaxSystem tax,
+            EquiBetterTaxComponentDefinition definition,
             MyInventoryBase inv,
             Func<TaxItem> get,
             Action<TaxItem> set,
             Func<TimeSpan> requiredTax)
         {
             _tax = tax;
+            _definition = definition;
             _inv = inv;
             _get = get;
             _set = set;
@@ -75,7 +75,7 @@ namespace Equinox76561198048419394.BetterTax
                 var def = item.GetDefinition();
                 if (!_index.TryGetValue(def, out var index))
                 {
-                    var valuePer = _tax.GetValue(def);
+                    var valuePer = _tax.GetValue(_definition, def);
                     if (valuePer <= TimeSpan.Zero) continue;
                     index = _items.Count;
                     _index.Add(def, index);
@@ -158,7 +158,7 @@ namespace Equinox76561198048419394.BetterTax
         {
             tooltip.AddTitle(Definition.DisplayNameText);
             tooltip.AddLine($"{AmountAvailable} available of {AmountRequired} required for full payment");
-            tooltip.AddLine($"{EquiBetterClaimBlockInteractionContext.FormatTime(ValuePer)} each");
+            tooltip.AddLine($"{BetterTaxesContext.FormatTime(ValuePer)} each");
         }
 
         void IMyObject.Deserialize(MyObjectBuilder_Base builder) => throw new NotImplementedException();
@@ -191,14 +191,15 @@ namespace Equinox76561198048419394.BetterTax
             var available = taxItem.AmountAvailable;
             var required = taxItem.AmountRequired;
 
-            MyFontHelper.DrawString(
-                font.Font,
-                $"{Math.Min(100, available * 100 / required)} %",
-                itemRect.Position,
-                font.Size,
-                color,
-                MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
-                maxTextWidth: size.X);
+            if (required > 0)
+                MyFontHelper.DrawString(
+                    font.Font,
+                    $"{Math.Min(100, available * 100 / required)} %",
+                    itemRect.Position,
+                    font.Size,
+                    color,
+                    MyGuiDrawAlignEnum.HORISONTAL_LEFT_AND_VERTICAL_TOP,
+                    maxTextWidth: size.X);
 
             MyFontHelper.DrawString(
                 font.Font,

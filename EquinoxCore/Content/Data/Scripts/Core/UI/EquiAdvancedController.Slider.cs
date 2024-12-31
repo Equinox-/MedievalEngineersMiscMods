@@ -2,7 +2,6 @@ using System;
 using Medieval.GUI.ContextMenu;
 using Sandbox.Game.GUI.Dialogs;
 using Sandbox.Graphics.GUI;
-using Sandbox.Gui.Layouts;
 using Sandbox.ModAPI;
 using VRage;
 using VRageMath;
@@ -16,8 +15,9 @@ namespace Equinox76561198048419394.Core.UI
 
         internal SliderData(MyContextMenuController ctl,
             EquiAdvancedControllerDefinition owner,
-            MyObjectBuilder_EquiAdvancedControllerDefinition.Slider def) : base(ctl, owner, def)
+            SliderFactory factory) : base(ctl, owner, factory)
         {
+            var def = factory.Def;
             _dataSource = new DataSourceValueAccessor<float>(ctl, def.DataId, def.DataIndex);
             ContextMenuStyles.SliderStyles(def.StyleNameId, out var sliderStyle, out var sliderValueStyle);
             var valueLabel = new MyGuiControlLabel();
@@ -136,17 +136,15 @@ namespace Equinox76561198048419394.Core.UI
         }
     }
 
-    internal sealed class SliderFactory : ControlFactory
+    internal sealed class SliderFactory : ControlFactory<MyObjectBuilder_EquiAdvancedControllerDefinition.Slider>
     {
         private readonly EquiAdvancedControllerDefinition _owner;
-        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Slider _sliderDef;
 
-        public SliderFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Slider sliderDef)
+        public SliderFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Slider sliderDef) : base(sliderDef)
         {
             _owner = owner;
-            _sliderDef = sliderDef;
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl) => new SliderData(ctl, _owner, _sliderDef);
+        public override IControlHolder Create(MyContextMenuController ctl) => new SliderData(ctl, _owner, this);
     }
 }

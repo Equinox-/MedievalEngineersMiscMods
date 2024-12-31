@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
     <Definition xsi:type="MyObjectBuilder_ContextMenuDefinition">
         <Id Type="MyObjectBuilder_ContextMenu" Subtype="ClaimBlockMenu" />
         <StyleName>ContextMenuDefault</StyleName>
@@ -9,7 +10,6 @@
         </MainController>
         <ContextType>MyObjectBuilder_EquiBetterClaimBlockInteractionContext</ContextType>
     </Definition>
-
 
     <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
         <Id Type="MyObjectBuilder_ButtonListController" Subtype="ClaimBlockMain" />
@@ -68,66 +68,22 @@
         </Buttons>
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_EquiAdvancedControllerDefinition">
-        <Id Type="MyObjectBuilder_EquiAdvancedController" Subtype="EquiClaimBlockTaxes" />
-        <Title>ContextMenu_TaxPaymentTitle</Title>
-        <Width>320</Width>
-        <AutoCommit>true</AutoCommit>
-
-        <Dropdown DataId="SelectMode">
-            <Text>Selection Mode</Text>
-        </Dropdown>
-        <Checkbox DataId="SelectFaction">
-            <Text>Faction Claims</Text>
-            <Tooltip>Select claims owned by any member of your faction.</Tooltip>
-        </Checkbox>
-        <Label>
-            <Line>{0} claims selected,</Line>
-            <Parameter Id="AreaCount" />
-            <Line>first expires in:</Line>
-            <Line>{1}</Line>
-            <Parameter Id="AreaMinExpiry" />
-            <Line>total required:</Line>
-            <Line>{2}</Line>
-            <Parameter Id="AreaMaxPayable" />
-        </Label>
-        <Embedded>
-            <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="EquiClaimBlockTaxItems" />
-        </Embedded>
-        <Embedded>
-            <Id Type="MyObjectBuilder_ButtonListController" Subtype="EquiClaimBlockPay" />
-        </Embedded>
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Copy="Append" Merge="Append">
+        <Id Type="Block" Subtype="ClaimBlockWood" />
+        <Component Type="EquiBetterTaxComponent" Subtype="ClaimBlockWood" />
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_EquiIconGridControllerDefinition">
-        <Id Type="MyObjectBuilder_EquiIconGridController" Subtype="EquiClaimBlockTaxItems" />
-        <DataId>TaxItems</DataId>
-        <Grid Rows="2" />
+    <Definition xsi:type="MyObjectBuilder_EquiBetterTaxComponentDefinition" Copy="Append" Merge="Append">
+        <Id Type="EquiBetterTaxComponent" Subtype="ClaimBlockWood" />
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_ButtonListControllerDefinition">
-        <Id Type="MyObjectBuilder_ButtonListController" Subtype="EquiClaimBlockPay" />
-        <Columns>2</Columns>
-        <Rows>1</Rows>
-        <ButtonStyleId>ButtonListWide</ButtonStyleId>
-        <Buttons>
-            <Button StyleName="ContextButtonSliced">
-                <Text>ContextMenu_TaxPayment</Text>
-                <Tooltip>ContextMenu_TaxPayment_Tooltip</Tooltip>
-                <Action xsi:type="MyObjectBuilder_CMA_ContextMethod" Name="PayBetterTaxes" />
-            </Button>
-            <Button StyleName="ContextButtonSliced">
-                <Text>ContextMenu_Close</Text>
-                <Tooltip>ContextMenu_Close_Tooltip</Tooltip>
-                <Action xsi:type="MyObjectBuilder_CMA_CloseController" />
-            </Button>
-        </Buttons>
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Copy="Append" Merge="Append">
+        <Id Type="Block" Subtype="ClaimBlockStone" />
+        <Component Type="EquiBetterTaxComponent" Subtype="ClaimBlockStone" />
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_ItemRendererMappingDefinition" Merge="Append">
-        <Id Type="MyObjectBuilder_ItemRendererMappingDefinition" Subtype="Default" />
-        <Mappings>
-            <Mapping Type="MyObjectBuilder_EquiBetterTaxItem" Renderer="EquiBetterTaxItem" />
-        </Mappings>
+    <Definition xsi:type="MyObjectBuilder_EquiBetterTaxComponentDefinition" Copy="Append" Merge="Append">
+        <Id Type="EquiBetterTaxComponent" Subtype="ClaimBlockStone" />
+        <SupportPayAll>true</SupportPayAll>
     </Definition>
 </Definitions>

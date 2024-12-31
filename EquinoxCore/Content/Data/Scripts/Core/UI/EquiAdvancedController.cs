@@ -157,27 +157,6 @@ namespace Equinox76561198048419394.Core.UI
         /// </summary>
         public bool? AutoCommit;
 
-        public class DataSourceReference
-        {
-            public MyStringId Id;
-
-            /// <summary>
-            /// Data source ID in the menu context.
-            /// </summary>
-            [XmlAttribute(nameof(Id))]
-            public string IdForXml
-            {
-                get => Id.String;
-                set => Id = MyStringId.GetOrCompute(value);
-            }
-
-            /// <summary>
-            /// Index in a vector / array data source.
-            /// </summary>
-            [XmlAttribute]
-            public int Index;
-        }
-
         public class ControlBase : LabelDefinition
         {
             /// <summary>

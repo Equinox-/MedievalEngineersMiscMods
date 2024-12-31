@@ -464,6 +464,7 @@ namespace Equinox76561198048419394.Core.Inventory
 
             internal MyItemFacadeDefinition TryGetFacade(MyInventoryItemDefinition def)
             {
+                if (def == null) return null;
                 lock (_lut)
                 {
                     if (_lut.TryGetValue(def.Id, out var cached))

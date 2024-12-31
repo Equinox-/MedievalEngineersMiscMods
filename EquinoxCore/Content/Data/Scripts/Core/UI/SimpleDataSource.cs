@@ -34,6 +34,25 @@ namespace Equinox76561198048419394.Core.UI
             return new SimpleDropdownDataSourceFactory<T>(values, items);
         }
 
+        public static SimpleDropdownDataSourceFactory<T> DropdownEnum<T>(Func<T, ContextMenuDropdownDataSource.DropdownItem?> name) where T : struct =>
+            DropdownFactory(name, (T[])Enum.GetValues(typeof(T)));
+
+        public static SimpleDropdownDataSourceFactory<T> DropdownFactory<T>(Func<T, ContextMenuDropdownDataSource.DropdownItem?> name, params T[] values)
+        {
+            var items = new ContextMenuDropdownDataSource.DropdownItem[values.Length];
+            var j = 0;
+            for (var i = 0; i < values.Length; i++)
+            {
+                var item = name(values[i]);
+                if (!item.HasValue) continue;
+                values[j] = values[i];
+                items[j++] = item.Value;
+            }
+            System.Array.Resize(ref items, j);
+            System.Array.Resize(ref values, j);
+            return new SimpleDropdownDataSourceFactory<T>(values, items);
+        }
+
         public static ContextMenuDropdownDataSource.DropdownItem DropdownItem(string text, string tooltip = null) =>
             new ContextMenuDropdownDataSource.DropdownItem(MyStringId.GetOrCompute(text), MyStringId.GetOrCompute(tooltip));
     }

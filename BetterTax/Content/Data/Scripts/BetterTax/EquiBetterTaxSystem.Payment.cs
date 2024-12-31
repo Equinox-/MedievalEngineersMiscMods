@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.Components.Planet;
 using Medieval.GameSystems;
+using Medieval.ObjectBuilders.Components;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Players;
 using Sandbox.ModAPI;
@@ -12,10 +13,11 @@ using VRage.Game;
 using VRage.Library.Collections;
 using VRage.Network;
 using VRage.ObjectBuilders;
+using VRage.Serialization;
 
 namespace Equinox76561198048419394.BetterTax
 {
-    public partial class EquiBetterTaxComponent
+    public partial class EquiBetterTaxSystem
     {
         public void RequestPay(EquiBetterTaxAreaSelection selection, MyDefinitionId itemId, int amount)
         {
@@ -55,8 +57,15 @@ namespace Equinox76561198048419394.BetterTax
                 return;
             }
 
+            EquiBetterTaxComponentDefinition definition;
+            if (Scene.TryGetEntity(selection.PaymentEntityId, out var paymentEntity)
+                && paymentEntity.Components.TryGet(out EquiBetterTaxComponent taxComponent))
+                definition = taxComponent.Definition;
+            else
+                definition = EquiBetterTaxComponentDefinition.Default;
+
             // If remote pay isn't supported then ensure the calling player is inside the requested area.
-            if (!Config.SupportPayAll &&
+            if (!definition.SupportedModes.Contains(EquiBetterTaxAreaSelection.SelectionMode.All) &&
                 !NetworkTrust.IsTrusted(playerEntity.GetPosition(), areasComponent.CalculateEnclosingWorldSphere(selection.AreaId)))
             {
                 MyEventContext.ValidationFailed();
@@ -64,13 +73,13 @@ namespace Equinox76561198048419394.BetterTax
             }
 
             // Ensure the requested mode is supported.
-            if (!Config.IsSupported(selection.Mode))
+            if (!definition.SupportedModes.Contains(selection.Mode))
             {
                 MyEventContext.ValidationFailed();
                 return;
             }
 
-            var itemValue = GetValue(itemDef);
+            var itemValue = GetValue(definition, itemDef);
             var availablePayment = TimeSpan.FromTicks(Math.Min(playerInventory.GetItemAmount(itemId), amount) * itemValue.Ticks);
 
             // Ensure the player has the items they want to use and that they have value.
@@ -179,5 +188,51 @@ namespace Equinox76561198048419394.BetterTax
             }
         }
 
+    }
+
+    public class EquiBetterTaxAreaSelection
+    {
+        public enum SelectionMode
+        {
+            Local,
+            Connected,
+            All,
+        }
+
+        [Serialize]
+        public SelectionMode Mode;
+
+        [Serialize]
+        public bool IncludeFaction = true;
+
+        [Serialize]
+        public long PlanetId;
+
+        [Serialize]
+        public long AreaId;
+
+        [Serialize]
+        public long PaymentEntityId;
+
+        public void SelectedAreas(MyPlanetAreaOwnershipComponent planetOwnership, MyIdentity identity, HashSet<long> selectedAreas)
+        {
+            switch (Mode)
+            {
+                case SelectionMode.Local:
+                    if (AreaQueries.IsPayable(planetOwnership, identity, AreaId, IncludeFaction))
+                        selectedAreas.Add(AreaId);
+                    break;
+                case SelectionMode.Connected:
+                    AreaQueries.ConnectedPayableAreas(planetOwnership, selectedAreas, identity, AreaId, IncludeFaction);
+                    break;
+                case SelectionMode.All:
+                    foreach (var area in planetOwnership.GetAreas(MyObjectBuilder_PlanetAreaOwnershipComponent.AreaState.Claimed))
+                        if (AreaQueries.IsPayable(planetOwnership, identity, area, IncludeFaction))
+                            selectedAreas.Add(area);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
     }
 }

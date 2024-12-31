@@ -15,7 +15,7 @@ namespace Equinox76561198048419394.BetterTax
         {
             var temp = new Dictionary<long, long>(newExpiryTime.Count);
             foreach (var kv in newExpiryTime)
-                temp.Add(kv.Key, kv.Value.Ticks / EquiBetterTaxComponent.Granularity.Ticks);
+                temp.Add(kv.Key, kv.Value.Ticks / EquiBetterTaxSystem.Granularity.Ticks);
             UpdateUpkeep_Internal(component, temp);
             MyAPIGateway.Multiplayer?.RaiseEvent(component.Entity, x => x.UpdateUpkeep_Client, temp);
         }

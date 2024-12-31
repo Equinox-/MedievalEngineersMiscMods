@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_EquiBetterTaxComponentDefinition">
+        <Id Type="EquiBetterTaxComponent" Subtype="DirectPayBlock" />
+        <PaymentDummy>detector_generic_claim</PaymentDummy>
+        <SupportPayLocal>true</SupportPayLocal>
+        <SupportPayConnected>true</SupportPayConnected>
+        <SupportPayAll>true</SupportPayAll>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_UseObjectsComponentDefinition">
+        <Id Type="UseObjectsComponent" Subtype="DirectPayBlock" />
+        <LoadFromModel>false</LoadFromModel>
+        <CustomUseObject Dummy="detector_generic_claim" Name="generic" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_BuildableBlockDefinition">
+        ...
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Copy="Append">
+        <Id Type="Block" Subtype="DirectPayBlock" />
+        <CopyFrom Type="EntityBase" Subtype="BaseFatBlock" />
+
+        <Component Type="EquiBetterTaxComponent" Subtype="DirectPayBlock" />
+        <Component Type="UseObjectsComponent" Subtype="DirectPayBlock" />
+    </Definition>
+</Definitions>

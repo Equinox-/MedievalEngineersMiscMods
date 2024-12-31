@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
-using Sandbox.ModAPI;
 using VRage.Components.Session;
 using VRage.Game.Entity;
 using VRage.Library.Collections;
@@ -29,18 +28,10 @@ namespace Equinox76561198048419394.Core.Util
             // Clean up with minor shift to get out of overlapping any surfaces
             var cleanupCandidate = MyEntities.FindFreePlace(
                 place, orientation,
-                halfExtentsForFix * 1.05f, 250, 50, 0.025f, false);
+                halfExtentsForFix, 250, 50, 0.025f, false);
             var cleanedPosition = cleanupCandidate != null && (extraTest == null || extraTest(cleanupCandidate.Value))
                 ? cleanupCandidate.Value
                 : place;
-
-            // Drop down onto the ground.
-            var projectedHalfExtent = gravityDir * (1 + Math.Abs(Vector3.Dot(gravityDir, halfExtentsForFix)));
-            var rayStart = cleanedPosition + projectedHalfExtent;
-            if (MyAPIGateway.Physics != null 
-                && MyAPIGateway.Physics.CastRay(rayStart, rayStart + 2 * gravityDir, out var hit)
-                && (extraTest == null || extraTest(hit.Position - projectedHalfExtent)))
-                return hit.Position - projectedHalfExtent;
 
             return cleanedPosition;
         }

@@ -13,8 +13,9 @@ namespace Equinox76561198048419394.Core.UI
         private readonly MyGuiControlCheckbox _checkbox;
 
         internal CheckboxData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner,
-            MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox def) : base(ctl, owner, def)
+            CheckboxFactory factory) : base(ctl, owner, factory)
         {
+            var def = factory.Def;
             _dataSource = new DataSourceValueAccessor<bool>(ctl, def.DataId, def.DataIndex);
             _checkbox = new MyGuiControlCheckbox(toolTip: MyTexts.GetString(def.TooltipId));
             _checkbox.ApplyStyle(ContextMenuStyles.CheckboxStyle(def.StyleNameId));
@@ -40,17 +41,15 @@ namespace Equinox76561198048419394.Core.UI
         }
     }
 
-    internal sealed class CheckboxFactory : ControlFactory
+    internal sealed class CheckboxFactory : ControlFactory<MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox>
     {
         private readonly EquiAdvancedControllerDefinition _owner;
-        private readonly MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox _checkDef;
 
-        public CheckboxFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox checkDef)
+        public CheckboxFactory(EquiAdvancedControllerDefinition owner, MyObjectBuilder_EquiAdvancedControllerDefinition.Checkbox checkDef) : base(checkDef)
         {
             _owner = owner;
-            _checkDef = checkDef;
         }
 
-        public override IControlHolder Create(MyContextMenuController ctl) => new CheckboxData(ctl, _owner, _checkDef);
+        public override IControlHolder Create(MyContextMenuController ctl) => new CheckboxData(ctl, _owner, this);
     }
 }

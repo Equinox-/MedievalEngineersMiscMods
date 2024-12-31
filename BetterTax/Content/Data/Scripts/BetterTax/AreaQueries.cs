@@ -26,7 +26,7 @@ namespace Equinox76561198048419394.BetterTax
         {
             var areas = ownership.Container?.Get<MyPlanetAreasComponent>();
             if (areas == null) return;
-            var data = new ConnectedPayableAreasData { Ownership = ownership, Output = payableAreas, IncludeFaction = includeFaction, Identity = identity.Id };
+            var data = new ConnectedPayableAreasData { Ownership = ownership, Output = payableAreas, IncludeFaction = includeFaction, Identity = identity };
             areas.FloodFillAreas(ref data, (ref ConnectedPayableAreasData userData, long areaId) =>
             {
                 if (!IsPayable(userData.Ownership, userData.Identity, areaId, userData.IncludeFaction)) return false;
@@ -35,20 +35,21 @@ namespace Equinox76561198048419394.BetterTax
             }, startingArea);
         }
 
-        internal static bool IsPayable(MyPlanetAreaOwnershipComponent ownership, long identity, long area, bool includeFaction)
+        internal static bool IsPayable(MyPlanetAreaOwnershipComponent ownership, MyIdentity identity, long area, bool includeFaction)
         {
             var owner = ownership.GetAreaOwner(area);
-            if (owner == identity) return true;
+            if (identity == null) return owner != 0;
+            if (owner == identity.Id) return true;
             if (!includeFaction) return false;
             var ownerFaction = MyFactionManager.GetPlayerFaction(owner);
-            return ownerFaction != null && ownerFaction.IsMember(identity);
+            return ownerFaction != null && ownerFaction.IsMember(identity.Id);
         }
 
         private struct ConnectedPayableAreasData
         {
             public MyPlanetAreaOwnershipComponent Ownership;
             public HashSet<long> Output;
-            public long Identity;
+            public MyIdentity Identity;
             public bool IncludeFaction;
         }
     }
