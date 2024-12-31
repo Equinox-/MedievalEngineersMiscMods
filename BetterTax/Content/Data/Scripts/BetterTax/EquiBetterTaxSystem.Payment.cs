@@ -21,7 +21,7 @@ namespace Equinox76561198048419394.BetterTax
     {
         public void RequestPay(EquiBetterTaxAreaSelection selection, MyDefinitionId itemId, int amount)
         {
-            if (MyAPIGateway.Multiplayer != null && !MyEventContext.Current.IsLocallyInvoked)
+            if (MyAPIGateway.Multiplayer != null && !MyMultiplayerModApi.Static.IsServer)
                 MyAPIGateway.Multiplayer.RaiseEvent(this, e => e.Pay_Sync, selection, (SerializableDefinitionId)itemId, amount);
             else
                 PayInternal(selection, itemId, amount, MyPlayers.Static.GetControllingPlayer(Session.PlayerEntity));
