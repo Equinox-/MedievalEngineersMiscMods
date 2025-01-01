@@ -4,6 +4,7 @@ using Medieval.Entities.Components.Planet;
 using ObjectBuilders.Components;
 using Sandbox.ModAPI;
 using VRage.Game.Entity;
+using VRage.Library.Collections;
 using VRage.Network;
 
 namespace Equinox76561198048419394.BetterTax
@@ -30,38 +31,42 @@ namespace Equinox76561198048419394.BetterTax
 
         private static void UpdateUpkeep_Internal(MyPlanetAreaUpkeepComponent component, Dictionary<long, long> newExpirations)
         {
-            var ob = (MyObjectBuilder_PlanetAreaUpkeepComponent)component.Serialize();
-            if (ob.ExpirationTimes != null)
-                for (var i = 0; i < ob.ExpirationTimes.Count; i++)
-                {
-                    var entry = ob.ExpirationTimes[i];
-                    if (!newExpirations.TryGetValue(entry.AreaId, out var newExpiry)) continue;
-
-                    newExpirations.Remove(entry.AreaId);
-
-                    if (newExpiry == MarkerRemoveExpiration)
+            using (PoolManager.Get(out HashSet<long> updated))
+            {
+                var ob = (MyObjectBuilder_PlanetAreaUpkeepComponent)component.Serialize();
+                if (ob.ExpirationTimes != null)
+                    for (var i = 0; i < ob.ExpirationTimes.Count; i++)
                     {
-                        ob.ExpirationTimes.RemoveAtFast(i);
-                        i--;
-                        continue;
+                        var entry = ob.ExpirationTimes[i];
+                        if (!newExpirations.TryGetValue(entry.AreaId, out var newExpiry)) continue;
+
+                        updated.Add(entry.AreaId);
+
+                        if (newExpiry == MarkerRemoveExpiration)
+                        {
+                            ob.ExpirationTimes.RemoveAtFast(i);
+                            i--;
+                            continue;
+                        }
+
+                        entry.ExpirationTime = newExpiry;
+                        ob.ExpirationTimes[i] = entry;
                     }
 
-                    entry.ExpirationTime = newExpiry;
-                    ob.ExpirationTimes[i] = entry;
+                foreach (var entry in newExpirations)
+                {
+                    if (entry.Value == MarkerRemoveExpiration) continue;
+                    if (updated.Contains(entry.Key)) continue;
+                    ob.ExpirationTimes = ob.ExpirationTimes ?? new List<MyObjectBuilder_PlanetAreaUpkeepComponent.AreaEntry>();
+                    ob.ExpirationTimes.Add(new MyObjectBuilder_PlanetAreaUpkeepComponent.AreaEntry
+                    {
+                        AreaId = entry.Key,
+                        ExpirationTime = entry.Value,
+                    });
                 }
 
-            foreach (var entry in newExpirations)
-            {
-                if (entry.Value == MarkerRemoveExpiration) continue;
-                ob.ExpirationTimes = ob.ExpirationTimes ?? new List<MyObjectBuilder_PlanetAreaUpkeepComponent.AreaEntry>();
-                ob.ExpirationTimes.Add(new MyObjectBuilder_PlanetAreaUpkeepComponent.AreaEntry
-                {
-                    AreaId = entry.Key,
-                    ExpirationTime = entry.Value,
-                });
+                component.Deserialize(ob);
             }
-
-            component.Deserialize(ob);
         }
     }
 }

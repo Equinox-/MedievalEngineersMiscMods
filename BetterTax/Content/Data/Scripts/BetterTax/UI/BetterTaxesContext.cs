@@ -167,13 +167,15 @@ namespace Equinox76561198048419394.BetterTax.UI
             var item = _taxItem.Definition;
             var usedPayment = new Dictionary<long, TimeSpan>();
             _tax.PlanPayment(_planetUpkeep, _selectedAreas, _taxItem.ValueAvailable, usedPayment, out var totalUsedPayment);
+            var itemValue = _tax.GetValue(_definition, item);
+            var totalUsedItems = (int)Math.Ceiling(totalUsedPayment.Ticks / (double)itemValue.Ticks);
             MyMessageBox.Show(
-                MyTexts.GetString(MyMedievalTexts.AreaUpkeep_Confirm, amount, item.DisplayNameText, FormatTime(totalUsedPayment)),
+                MyTexts.GetString(MyMedievalTexts.AreaUpkeep_Confirm, totalUsedItems, item.DisplayNameText, FormatTime(totalUsedPayment)),
                 MyTexts.GetString(MyCommonTexts.MessageBoxCaptionPleaseConfirm),
                 MyMessageBoxButtons.YesNo, MyMessageBoxIcon.Question, callback: result =>
                 {
                     if (result == MyDialogResult.Yes)
-                        _tax.RequestPay(_selection, _taxItem.Definition.Id, amount);
+                        _tax.RequestPay(_selection, _taxItem.Definition.Id, totalUsedItems);
                 });
         }
 
