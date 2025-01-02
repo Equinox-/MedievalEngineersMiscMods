@@ -42,10 +42,27 @@ namespace Equinox76561198048419394.Core.Debug
 
             AddLabel("Dynamic Mesh", Color.Yellow, 1);
             AddCheckBox("Draw count", () => DebugDraw<EquiDynamicMeshComponent>.Enabled, val => DebugDraw<EquiDynamicMeshComponent>.Enabled = val);
+            AddCheckBox("Draw decals", () => EquiDynamicMeshComponent.ShowDecals, val => ChangeDynamicMesh(ref EquiDynamicMeshComponent.ShowDecals, val));
+            AddCheckBox("Draw lines", () => EquiDynamicMeshComponent.ShowLines, val => ChangeDynamicMesh(ref EquiDynamicMeshComponent.ShowLines, val));
+            AddCheckBox("Draw surfaces", () => EquiDynamicMeshComponent.ShowSurfaces, val => ChangeDynamicMesh(ref EquiDynamicMeshComponent.ShowSurfaces, val));
+            AddButton("Recreate", _ => RegenerateDynamicMesh());
 
             m_currentPosition.Y += 0.01f;
             AddLabel("Modifiers", Color.Yellow, 1);
             AddCheckBox("Draw count", () => DebugDraw<EquiGridModifierComponent>.Enabled, val => DebugDraw<EquiGridModifierComponent>.Enabled = val);
+        }
+
+        private static void ChangeDynamicMesh(ref bool target, bool value)
+        {
+            if (target == value) return;
+            target = value;
+            RegenerateDynamicMesh();
+        }
+
+        private static void RegenerateDynamicMesh()
+        {
+            foreach (var comp in ComponentDebug.GetAll<EquiDynamicMeshComponent>())
+                comp.DebugMarkAllDirty();
         }
     }
 }

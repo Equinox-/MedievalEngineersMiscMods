@@ -33,6 +33,10 @@ namespace Equinox76561198048419394.Core.Mesh
     {
         public const float GhostDithering = 0.4f;
 
+        internal static bool ShowDecals = true;
+        internal static bool ShowLines = true;
+        internal static bool ShowSurfaces = true;
+
 #pragma warning disable CS0649
         [Automatic]
         private readonly MyRenderComponentGrid _gridRender;
@@ -130,6 +134,12 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             MarkDirty();
             _dirtyCells.Add(cell);
+        }
+
+        internal void DebugMarkAllDirty()
+        {
+            foreach (var cell in _renderCells.Keys)
+                MarkCellDirty(cell);
         }
 
         [Update(false)]
@@ -325,7 +335,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
                     foreach (var obj in kv.Value)
                     {
-                        if (Lines.TryGetValue(obj, out var wrappedLine))
+                        if (ShowLines && Lines.TryGetValue(obj, out var wrappedLine))
                         {
                             ref var line = ref wrappedLine.Value.Data;
                             wrappedLine.Value.BvhEntryMin = bvhEntries.Count;
@@ -349,7 +359,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             wrappedLine.Value.BvhEntryMax = bvhEntries.Count;
                         }
 
-                        if (Surfaces.TryGetValue(obj, out var surface))
+                        if (ShowSurfaces && Surfaces.TryGetValue(obj, out var surface))
                         {
                             ref readonly var surf = ref surface.Value.Data;
                             surface.Value.BvhEntryMin = bvhEntries.Count;
@@ -369,7 +379,7 @@ namespace Equinox76561198048419394.Core.Mesh
                             surface.Value.BvhEntryMax = bvhEntries.Count;
                         }
 
-                        if (Decals.TryGetValue(obj, out var decal))
+                        if (ShowDecals && Decals.TryGetValue(obj, out var decal))
                         {
                             decal.Value.BvhEntryMin = bvhEntries.Count;
                             ref readonly var decalData = ref decal.Value.Data;
