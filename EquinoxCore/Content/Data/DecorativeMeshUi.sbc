@@ -105,7 +105,11 @@
             <TextFormat>{0}°</TextFormat>
             <Tooltip>Controls the rotation of the decal</Tooltip>
         </Slider>
-        
+        <Checkbox DataId="DecalMirrored">
+            <Text>Mirrored</Text>
+            <Tooltip>Should the decal be left/right mirrored.</Tooltip>
+        </Checkbox>
+
         <!-- Models -->
         <Slider DataId="ModelScale">
             <Text>Scale</Text>

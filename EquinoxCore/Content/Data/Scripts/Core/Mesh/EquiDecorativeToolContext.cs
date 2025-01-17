@@ -26,6 +26,7 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public static readonly MyStringId DecalRotationDeg = MyStringId.GetOrCompute("DecalRotationDeg");
         public static readonly MyStringId DecalHeight = MyStringId.GetOrCompute("DecalHeight");
+        public static readonly MyStringId DecalMirrored = MyStringId.GetOrCompute("DecalMirrored");
 
         public static readonly MyStringId ModelScale = MyStringId.GetOrCompute("ModelScale");
 
@@ -111,6 +112,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         EquiDecorativeDecalTool.MaxDecalHeight,
                         () => DecorativeToolSettings.DecalHeight,
                         val => DecorativeToolSettings.DecalHeight = val));
+                    m_dataSources.Add(DecalMirrored, SimpleDataSources.SimpleRef(() => ref DecorativeToolSettings.DecalMirrored));
                     break;
                 case EquiDecorativeModelToolDefinition model:
                     var modelScale = model.ScaleRange;

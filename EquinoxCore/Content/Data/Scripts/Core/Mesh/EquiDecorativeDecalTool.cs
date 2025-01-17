@@ -79,7 +79,9 @@ namespace Equinox76561198048419394.Core.Mesh
         protected override void EyeDropperFeature(in EquiDecorativeMeshComponent.FeatureHandle feature)
         {
             base.EyeDropperFeature(in feature);
+            if (!feature.IsDecal) return;
             DecorativeToolSettings.DecalHeight = feature.DecalHeight;
+            DecorativeToolSettings.DecalMirrored = feature.DecalMirrored;
         }
 
         protected override void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points)
@@ -108,6 +110,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         Normal = normal,
                         Up = ComputeDecalUp(points[0].Grid, normal),
                         Height = DecorativeToolSettings.DecalHeight,
+                        Flags = DecorativeToolSettings.DecalFlags,
                         Shared =
                         {
                             Color = PackedHsvShift
@@ -130,6 +133,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     PackedNormal = VF_Packer.PackNormal(normal),
                     PackedUp = VF_Packer.PackNormal(up),
                     Height = DecorativeToolSettings.DecalHeight,
+                    Flags = DecorativeToolSettings.DecalFlags,
                     Color = PackedHsvShift,
                 }, false);
         }
@@ -141,6 +145,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public uint PackedNormal;
             public uint PackedUp;
             public float Height;
+            public EquiDecorativeMeshComponent.DecalFlags Flags;
             public PackedHsvShift Color;
         }
 
@@ -196,6 +201,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         Normal = VF_Packer.UnpackNormal(decal.PackedNormal),
                         Up = VF_Packer.UnpackNormal(decal.PackedUp),
                         Height = decal.Height,
+                        Flags = decal.Flags,
                         Shared =
                         {
                             Color = decal.Color
@@ -259,6 +265,7 @@ namespace Equinox76561198048419394.Core.Mesh
                     Normal = localNormal,
                     Up = localUp,
                     Height = DecorativeToolSettings.DecalHeight,
+                    Flags = DecorativeToolSettings.DecalFlags,
                     Shared =
                     {
                         Color = PackedHsvShift
@@ -273,7 +280,7 @@ namespace Equinox76561198048419394.Core.Mesh
             renderMatrix *= worldTransform;
 
 
-            var previewModel = EquiDecalPreviewModels.GetPreviewModel(def.Material, def.TopLeftUv, def.BottomRightUv);
+            var previewModel = EquiDecalPreviewModels.GetPreviewModel(def.Material, prepared.TopLeftUv, prepared.BottomRightUv);
             if (_currentRenderObject == MyRenderProxy.RENDER_ID_UNASSIGNED || _currentRenderObjectModel != previewModel)
             {
                 if (_currentRenderObject != MyRenderProxy.RENDER_ID_UNASSIGNED)
@@ -315,6 +322,10 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             public readonly HalfVector2 TopLeftUv;
             public readonly HalfVector2 BottomRightUv;
+
+            public readonly HalfVector2 TopLeftUvMirrored;
+            public readonly HalfVector2 BottomRightUvMirrored;
+
             public readonly float AspectRatio;
             public readonly float DurabilityPerSquareMeter;
             public readonly string Material;
@@ -325,9 +336,13 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 Material = ob.Material.Build().MaterialName;
                 var topLeftUv = ob.TopLeftUv ?? Vector2.Zero;
-                TopLeftUv = new HalfVector2(topLeftUv);
                 var bottomRightUv = ob.BottomRightUv ?? Vector2.One;
+                TopLeftUv = new HalfVector2(topLeftUv);
                 BottomRightUv = new HalfVector2(bottomRightUv);
+
+                TopLeftUvMirrored = new HalfVector2(bottomRightUv.X, topLeftUv.Y);
+                BottomRightUvMirrored = new HalfVector2(topLeftUv.X, bottomRightUv.Y);
+
                 AspectRatio = Math.Abs(ob.AspectRatio ?? (bottomRightUv.X - topLeftUv.X) / (bottomRightUv.Y - topLeftUv.Y));
                 DurabilityPerSquareMeter = ob.DurabilityPerSquareMeter ?? 0;
             }

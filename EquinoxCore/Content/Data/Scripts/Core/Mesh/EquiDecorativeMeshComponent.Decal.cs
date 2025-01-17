@@ -15,12 +15,19 @@ namespace Equinox76561198048419394.Core.Mesh
 {
     public partial class EquiDecorativeMeshComponent
     {
+        [Flags]
+        public enum DecalFlags : uint
+        {
+            Mirrored = 1 << 0,
+        }
+
         public struct DecalArgs<TPos> where TPos : struct
         {
             public TPos Position;
             public Vector3 Normal;
             public Vector3 Up;
             public float Height;
+            public DecalFlags Flags;
             public SharedArgs Shared;
         }
 
@@ -31,12 +38,13 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             var left = Vector3.Cross(args.Normal, args.Up);
             left *= args.Height * decal.AspectRatio / left.Length() / 2;
+            var mirrored = (args.Flags & DecalFlags.Mirrored) != 0;
             return new EquiMeshHelpers.DecalData
             {
                 Material = decal.Material,
                 Position = args.Position + args.Normal * 0.005f,
-                TopLeftUv = decal.TopLeftUv,
-                BottomRightUv = decal.BottomRightUv,
+                TopLeftUv = mirrored ? decal.TopLeftUvMirrored : decal.TopLeftUv,
+                BottomRightUv = mirrored ? decal.BottomRightUvMirrored : decal.BottomRightUv,
                 Normal = VF_Packer.PackNormal(args.Normal),
                 Up = new HalfVector3(args.Up * args.Height / 2),
                 Left = new HalfVector3(left),
@@ -55,6 +63,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 DecalNormal = VF_Packer.PackNormal(args.Normal),
                 DecalUp = VF_Packer.PackNormal(args.Up),
                 DecalHeight = args.Height,
+                DecalFlags = args.Flags,
                 Shared = args.Shared,
             };
             if (TryAddFeatureInternal(in key, def.Owner, in rpcArgs))
@@ -85,6 +94,11 @@ namespace Equinox76561198048419394.Core.Mesh
 
             [XmlAttribute("H")]
             public float Height;
+
+            [XmlAttribute("F")]
+            public uint Flags;
+
+            public bool ShouldSerializeFlags() => Flags != 0;
 
 #pragma warning disable CS0612 // Type or member is obsolete, backcompat
             [XmlIgnore]

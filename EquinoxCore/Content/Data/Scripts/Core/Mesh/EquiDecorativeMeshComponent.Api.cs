@@ -44,6 +44,7 @@ namespace Equinox76561198048419394.Core.Mesh
             public bool IsDecal => Key.Type == FeatureType.Decal;
             public BlockAndAnchor DecalPosition => Key.A;
             public float DecalHeight => Args.DecalHeight;
+            public bool DecalMirrored => (Args.DecalFlags & DecalFlags.Mirrored) != 0;
 
             public bool IsLine => Key.Type == FeatureType.Line;
             public BlockAndAnchor LinePt0 => Key.A;

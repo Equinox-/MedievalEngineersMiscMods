@@ -15,6 +15,8 @@ namespace Equinox76561198048419394.Core.Mesh
 
         public static float DecalRotationDeg = 0;
         public static float DecalHeight = 0.125f;
+        public static bool DecalMirrored = false;
+        public static EquiDecorativeMeshComponent.DecalFlags DecalFlags => DecalMirrored ? EquiDecorativeMeshComponent.DecalFlags.Mirrored : 0;
 
         public static float ModelScale = 1;
 

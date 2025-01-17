@@ -380,6 +380,7 @@ namespace Equinox76561198048419394.Core.Mesh
                         Normal = VF_Packer.UnpackNormal(args.DecalNormal),
                         Up = VF_Packer.UnpackNormal(args.DecalUp),
                         Height = args.DecalHeight,
+                        Flags = args.DecalFlags,
                         Shared = args.Shared,
                     }));
                     if (id != EquiDynamicMeshComponent.NullId)
@@ -477,6 +478,9 @@ namespace Equinox76561198048419394.Core.Mesh
             private uint _uint1;
 
             [Serialize]
+            private uint _uint2;
+
+            [Serialize]
             public MyStringHash MaterialId;
 
             [Serialize]
@@ -553,6 +557,13 @@ namespace Equinox76561198048419394.Core.Mesh
             {
                 get => _uint1;
                 set => _uint1 = value;
+            }
+
+            [NoSerialize]
+            public DecalFlags DecalFlags
+            {
+                get => (DecalFlags)_uint2;
+                set => _uint2 = (uint)value;
             }
 
             #endregion
@@ -703,6 +714,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                 Normal = args.DecalNormal,
                                 Up = args.DecalUp,
                                 Height = args.DecalHeight,
+                                Flags = (uint)args.DecalFlags,
                             });
                             break;
                         case FeatureType.Line:
@@ -828,6 +840,7 @@ namespace Equinox76561198048419394.Core.Mesh
                                 DecalNormal = item.Normal,
                                 DecalUp = item.Up,
                                 DecalHeight = item.Height,
+                                DecalFlags = (DecalFlags)item.Flags,
                                 Shared =
                                 {
 #pragma warning disable CS0612 // Type or member is obsolete, back compat
