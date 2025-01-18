@@ -369,7 +369,7 @@ namespace Equinox76561198048419394.Core.Mesh
             MyObjectBuilder_Base IMyObject.Serialize() => throw new NotImplementedException();
 
             IMyObjectIdentifier IMyObject.Id => throw new NotImplementedException();
-            MyDefinitionId IMyObject.DefinitionId => new MyDefinitionId(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition), Id);
+            MyDefinitionId IMyObject.DefinitionId => new MyDefinitionId(typeof(MyObjectBuilder_EquiDecorativeMaterial), Id);
             bool IMyObject.NeedsSerialize => throw new NotImplementedException();
         }
 

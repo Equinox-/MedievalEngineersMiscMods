@@ -172,4 +172,11 @@
         <Title>Decorative Mesh: Material</Title>
         <DataId>MaterialDef</DataId>
     </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemRendererMappingDefinition" Merge="Append">
+        <Id Type="MyObjectBuilder_ItemRendererMappingDefinition" Subtype="Default" />
+        <Mappings>
+            <Mapping Type="MyObjectBuilder_EquiDecorativeMaterial" Renderer="EquiDecorativeMaterial" />
+        </Mappings>
+    </Definition>
 </Definitions>

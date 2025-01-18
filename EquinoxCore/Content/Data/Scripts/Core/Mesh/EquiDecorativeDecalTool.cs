@@ -330,11 +330,15 @@ namespace Equinox76561198048419394.Core.Mesh
             public readonly float DurabilityPerSquareMeter;
             public readonly string Material;
 
+            public readonly bool UiIconUsesUv;
+
             internal DecalDef(EquiDecorativeDecalToolDefinition owner, MyObjectBuilder_EquiDecorativeDecalToolDefinition ownerOb,
                 MyObjectBuilder_EquiDecorativeDecalToolDefinition.DecalDef ob) : base(owner, ownerOb, ob,
                 ob.Material?.Icons)
             {
-                Material = ob.Material.Build().MaterialName;
+                var mtl = ob.Material?.Build() ?? throw new ArgumentException($"No material specified for {ob.Name}");
+                Material = mtl.MaterialName;
+                UiIconUsesUv = ob.IconUsesUv ?? (!(ob.UiIcons?.Length > 0) && ob.Material.Icons?.Count > 0);
                 var topLeftUv = ob.TopLeftUv ?? Vector2.Zero;
                 var bottomRightUv = ob.BottomRightUv ?? Vector2.One;
                 TopLeftUv = new HalfVector2(topLeftUv);
@@ -460,6 +464,19 @@ namespace Equinox76561198048419394.Core.Mesh
             /// </summary>
             [XmlElement]
             public float? DurabilityPerSquareMeter;
+
+            [XmlIgnore]
+            public bool? IconUsesUv;
+
+            /// <summary>
+            /// Should the UI Icons use the UVs specified above.
+            /// </summary>
+            [XmlAttribute(nameof(IconUsesUv))]
+            public bool IconUsesUvXml
+            {
+                set => IconUsesUv = value;
+                get => IconUsesUv ?? false;
+            }
         }
 
         [XmlElement("Decal")]

@@ -42,6 +42,7 @@ namespace Equinox76561198048419394.Core.UI
             target.UserData = item;
             target.Icons = item?.UiIcons ?? FallbackIcons;
             target.Text = item?.UiIcons?.Length > 0 ? "" : item?.Name ?? "";
+            target.UserData = item;
             if (item is IEquiIconGridItemTooltip withTooltip)
             {
                 target.Tooltip = new MyTooltip();
