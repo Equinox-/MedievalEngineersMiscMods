@@ -18,6 +18,7 @@ using VRage.Game.Components;
 using VRage.Game.ModAPI;
 using VRage.Game.ObjectBuilders.ComponentSystem;
 using VRage.Library.Collections;
+using VRage.Library.Utils;
 using VRage.ObjectBuilders;
 using VRageMath;
 using VRageMath.PackedVector;
@@ -285,7 +286,6 @@ namespace Equinox76561198048419394.Core.Mesh
             internal readonly MyHashSetDictionary<string, ulong> MaterialToObject = new MyHashSetDictionary<string, ulong>();
             private readonly string _modelPrefix;
             private string _modelName;
-            private uint _meshGeneration;
             private uint _renderObject = MyRenderProxy.RENDER_ID_UNASSIGNED;
             private int _ownerBvhProxy = MyDynamicAABBTree.NullNode;
 
@@ -439,7 +439,7 @@ namespace Equinox76561198048419394.Core.Mesh
                 var model = IsDedicated ? null : MyRenderProxy.PrepareAddRuntimeModel();
                 if (model != null)
                 {
-                    model.Name = _modelName = $"{_modelPrefix}_{_meshGeneration++}";
+                    model.Name = _modelName = $"{_modelPrefix}_{MyRandom.Instance.NextLong()}";
                     model.ReplacedModel = null;
                     model.Persistent = false;
 #if VRAGE_API_1
