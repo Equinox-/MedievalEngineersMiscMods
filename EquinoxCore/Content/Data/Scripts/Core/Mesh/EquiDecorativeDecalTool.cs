@@ -26,6 +26,7 @@ using VRage.Import;
 using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Scene;
+using VRage.Serialization;
 using VRage.Utils;
 using VRageMath;
 using VRageMath.PackedVector;
@@ -145,8 +146,17 @@ namespace Equinox76561198048419394.Core.Mesh
             public uint PackedNormal;
             public uint PackedUp;
             public float Height;
-            public EquiDecorativeMeshComponent.DecalFlags Flags;
             public PackedHsvShift Color;
+
+            [Serialize]
+            private uint _flags;
+
+            [NoSerialize]
+            public EquiDecorativeMeshComponent.DecalFlags Flags
+            {
+                get => (EquiDecorativeMeshComponent.DecalFlags)_flags;
+                set => _flags = (uint)value;
+            }
         }
 
         [Event, Reliable, Server]
