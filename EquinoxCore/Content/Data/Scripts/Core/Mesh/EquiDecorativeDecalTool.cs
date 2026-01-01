@@ -4,24 +4,19 @@ using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
-using Equinox76561198048419394.Core.UI;
 using Equinox76561198048419394.Core.Util;
 using Sandbox.Definitions;
-using Sandbox.Definitions.Equipment;
 using Sandbox.Game.EntityComponents.Character;
-using Sandbox.Game.Inventory;
 using Sandbox.ModAPI;
 using VRage;
 using VRage.Collections;
 using VRage.Components;
 using VRage.Components.Entity.Camera;
 using VRage.Components.Entity.CubeGrid;
-using VRage.Core;
 using VRage.Definitions.Inventory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
-using VRage.Game.Entity;
 using VRage.Import;
 using VRage.Network;
 using VRage.ObjectBuilders;
@@ -317,16 +312,46 @@ namespace Equinox76561198048419394.Core.Mesh
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiDecorativeDecalToolDefinition))]
     [MyDependency(typeof(EquiModifierBaseDefinition))]
-    [MyDependency(typeof(MyInventoryItemDefinition))]
-    [MyDependency(typeof(MyItemTagDefinition))]
     public class EquiDecorativeDecalToolDefinition : EquiDecorativeToolBaseDefinition,
         IEquiDecorativeToolBaseDefinition<EquiDecorativeDecalToolDefinition.DecalDef>
     {
         private readonly MaterialHolder<DecalDef> _holder;
-        public DictionaryReader<MyStringHash, DecalDef> Materials => _holder.Materials;
-        public ListReader<DecalDef> SortedMaterials => _holder.SortedMaterials;
-        public override DictionaryReader<MyStringHash, MaterialDef> RawMaterials => _holder.RawMaterials;
-        public override ListReader<MaterialDef> RawSortedMaterials => _holder.SortedRawMaterials;
+
+        public DictionaryReader<MyStringHash, DecalDef> Materials
+        {
+            get
+            {
+                LazyInitIfNeeded();
+                return _holder.Materials;
+            }
+        }
+
+        public ListReader<DecalDef> SortedMaterials
+        {
+            get
+            {
+                LazyInitIfNeeded();
+                return _holder.SortedMaterials;
+            }
+        }
+
+        public override DictionaryReader<MyStringHash, MaterialDef> RawMaterials
+        {
+            get
+            {
+                LazyInitIfNeeded();
+                return _holder.RawMaterials;
+            }
+        }
+
+        public override ListReader<MaterialDef> RawSortedMaterials
+        {
+            get
+            {
+                LazyInitIfNeeded();
+                return _holder.SortedRawMaterials;
+            }
+        }
 
         public class DecalDef : MaterialDef
         {
@@ -377,10 +402,39 @@ namespace Equinox76561198048419394.Core.Mesh
         {
             base.Init(builder);
             var ob = (MyObjectBuilder_EquiDecorativeDecalToolDefinition)builder;
+            if (ob.ItemDecals?.Length > 0)
+            {
+                // Use lazy initialization since dependencies are needed.
+                _lazyInit = ob;
+            }
+            else
+            {
+                // Eagerly initialize since there aren't any external references.
+                LazyInit(ob);
+            }
+        }
+
+        private volatile MyObjectBuilder_EquiDecorativeDecalToolDefinition _lazyInit;
+
+        private void LazyInitIfNeeded()
+        {
+            if (_lazyInit == null) return;
+            lock (this)
+            {
+                var ob = _lazyInit;
+                if (ob == null) return;
+                LazyInit(ob);
+                _lazyInit = null;
+            }
+        }
+
+        private void LazyInit(MyObjectBuilder_EquiDecorativeDecalToolDefinition ob)
+        {
             // Item decals
             if (ob.ItemDecals != null)
                 foreach (var itemDecal in ob.ItemDecals)
                 {
+                    // FIXME // BAD access to inventory items during hand item behavior init 
                     if (itemDecal.All)
                         CreateMany(MyDefinitionManager.GetOfType<MyInventoryItemDefinition>());
                     if (itemDecal.AllWithoutSchematics)

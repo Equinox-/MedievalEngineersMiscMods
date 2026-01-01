@@ -33,6 +33,13 @@ namespace Equinox76561198048419394.Core.Misc
                 HandleTeleportWithGrids,
                 "Teleports a player and their grids"
             );
+            chat.RegisterChatCommand("/crafting-graph", (_, msg, type) =>
+            {
+                if (type != MyChatCommandType.Client) return false;
+                using (var graph = new EquiCraftingGraph(msg.Split(' ')))
+                    graph.Export();
+                return true;
+            }, "Exports a GraphViz file with all crafting recipes", MyChatCommandType.Client);
             RemoveFixedUpdate(Update);
         }
 
