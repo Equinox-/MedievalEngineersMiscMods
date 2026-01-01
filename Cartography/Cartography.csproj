@@ -1,91 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(SolutionDir)\Config\MedievalEngineers.props" />
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0EC21EE2-60CB-4AD9-92E7-E9AD6BF7C890}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Equinox76561198048419394.Cartography</RootNamespace>
-    <AssemblyName>EquinoxCartography</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>x64</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\x64\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>x64</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\x64\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Content\Data\MapLayers.sbc" />
-    <Content Include="Content\Data\Control.sbc" />
-    <Content Include="Content\Data\Internals.sbc" />
-    <Content Include="Content\Data\JourneyMap.sbc.example" />
-    <Content Include="Content\Data\MiMapLayers.sbc.example" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Cartographic\EquiCartographicData.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Cartographic\EquiCartographicDataReplicable.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Cartographic\EquiCartographicElement.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Cartographic\EquiCartographicLocation.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Cartographic\EquiCartographicRoute.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Framework\EquiExternalDataReplicable.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Framework\EquiExternalItemDataManager.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Data\Framework\IEquiExternalDataItem.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Derived\Contours\EquiContourCalculator.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Derived\Contours\EquiContourOptions.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Derived\Contours\EquiContourOverlay.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Derived\Contours\EquiContoursMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Derived\EquiElevationCalculator.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\EquiCartography.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\EquiCartographyItem.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\EquiCustomMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\EquiCustomMapLayersControl.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\EquiDebugMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\EquiSymbolsMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\EquiRasterizedMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\EquiShapesMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\ICustomMapLayer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\MapLayerExt.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\MapLayers\Rasterizer.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Utils\LineSimplifier.cs" />
-    <Compile Include="Content\Data\Scripts\Cartography\Utils\VectorAccessors.cs" />
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EquinoxCore\EquinoxCore.csproj">
       <Project>{50ff4e1a-040f-4733-9b89-1a55f800e5d3}</Project>
       <Name>EquinoxCore</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-         Other similar extension points exist, see Microsoft.Common.targets.
-    <Target Name="BeforeBuild">
-    </Target>
-    <Target Name="AfterBuild">
-    </Target>
-    -->
 </Project>

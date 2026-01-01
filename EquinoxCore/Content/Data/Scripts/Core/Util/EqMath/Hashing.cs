@@ -1,4 +1,5 @@
 using System;
+using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util.EqMath
 {
@@ -9,6 +10,9 @@ namespace Equinox76561198048419394.Core.Util.EqMath
         private static readonly char[] ToStringBuffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-".ToCharArray();
         // ReSharper restore StringLiteralTypo
 
+        public static long Mix64(long value) => (long)FMix64((ulong)value);
+        public static ulong Mix64(ulong value) => FMix64(value);
+        
         public struct Hash128 : IEquatable<Hash128>
         {
             public readonly ulong V0, V1;
@@ -252,6 +256,12 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             public void Add(double f) => Add(BitConverter.DoubleToInt64Bits(f));
 
             public void Add(bool v) => Add(v ? (byte)1 : (byte)0);
+
+            public void Add(in Vector2 f)
+            {
+                Add(f.X);
+                Add(f.Y);
+            }
 
             public void Add(ulong k1, ulong k2)
             {

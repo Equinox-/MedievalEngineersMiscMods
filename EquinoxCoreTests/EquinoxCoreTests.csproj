@@ -1,78 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
     <Import Project="$(SolutionDir)\Config\MedievalEngineers.props" />
     <PropertyGroup>
-        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-        <ProjectGuid>{82A54A44-B13C-4195-B48E-40144C707511}</ProjectGuid>
-        <ProjectTypeGuids>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-        <OutputType>Library</OutputType>
-        <AppDesignerFolder>Properties</AppDesignerFolder>
         <RootNamespace>EquinoxCoreTests</RootNamespace>
-        <AssemblyName>EquinoxCoreTests</AssemblyName>
-        <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-        <FileAlignment>512</FileAlignment>
-        <LangVersion>7.2</LangVersion>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <PlatformTarget>x64</PlatformTarget>
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-        <Optimize>false</Optimize>
-        <OutputPath>bin\Debug\</OutputPath>
-        <DefineConstants>DEBUG;TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-        <PlatformTarget>x64</PlatformTarget>
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
-        <OutputPath>bin\Release\</OutputPath>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <ItemGroup>
-        <Reference Include="System" />
-        <Reference Include="System.Core" />
-        <Reference Include="System.Data" />
-        <Reference Include="System.Xml" />
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Include="TestArrayPool.cs" />
-        <Compile Include="TestBoundedVec30.cs" />
-        <Compile Include="TestBubbleSorter.cs" />
-        <Compile Include="TestIdBag.cs" />
-        <Compile Include="TestMaterialBvh.cs" />
-        <Compile Include="TestModelSerializer.cs" />
-        <Compile Include="TestModifierDataSerialization.cs" />
-        <Compile Include="TestPagedList.cs" />
-        <Compile Include="Tests.cs" />
-        <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="TestUtils.cs" />
-    </ItemGroup>
-    <ItemGroup>
-      <ProjectReference Include="..\EquinoxCoreCli\EquinoxCoreCli.csproj">
-        <Project>{cbeebf84-49e1-4ac4-952b-5c144684bd74}</Project>
-        <Name>EquinoxCoreCli</Name>
-      </ProjectReference>
       <ProjectReference Include="..\EquinoxCore\EquinoxCore.csproj">
         <Project>{50ff4e1a-040f-4733-9b89-1a55f800e5d3}</Project>
         <Name>EquinoxCore</Name>
       </ProjectReference>
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="NUnit" Version="3.14.0" />
+        <PackageReference Include="NUnit" Version="3.14.0" />
     </ItemGroup>
-    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-         Other similar extension points exist, see Microsoft.Common.targets.
-    <Target Name="BeforeBuild">
-    </Target>
-    <Target Name="AfterBuild">
-    </Target>
-    -->
-
 </Project>

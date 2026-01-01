@@ -1,5 +1,4 @@
 using System.Diagnostics.Contracts;
-using System.Numerics;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.Util.EqMath
