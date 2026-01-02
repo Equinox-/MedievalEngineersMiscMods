@@ -149,7 +149,7 @@ namespace Equinox76561198048419394.Core.Util.Struct
 
             public Handle Current => new Handle(_backing, _freeRevision, _index);
 
-            void IDisposable.Dispose()
+            public void Dispose()
             {
             }
 

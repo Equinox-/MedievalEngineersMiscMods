@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="$(SolutionDir)\Config\MedievalEngineers.props" />
+    <PropertyGroup>
+        <RootNamespace>Equinox76561198048419394.DisablePreloading</RootNamespace>
+    </PropertyGroup>
+</Project>

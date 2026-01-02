@@ -11,7 +11,7 @@ namespace Equinox76561198048419394.Core.UI
         public EmbeddedControllerData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, EmbeddedControllerFactory factory) : base(ctl, owner, factory)
         {
             _controller = MyContextMenuFactory.CreateContextMenuController(factory.Id);
-            _controller.BeforeAddedToMenu(ctl.Menu, 0);
+            _controller.BeforeAddedToMenu(ctl.Menu, ctl.Position);
             Root = _controller.CreateControl();
         }
 

@@ -10,9 +10,9 @@ namespace Equinox76561198048419394.Core.Util
 {
     public static class AbstractXmlProxy
     {
-        public static AbstractXmlProxy<T> Wrap<T>(T src) => new AbstractXmlProxy<T>(src);
+        public static AbstractXmlProxy<T> Wrap<T>(T src) where T : class => new AbstractXmlProxy<T>(src);
 
-        public static AbstractXmlProxy<T>[] WrapList<T>(IReadOnlyList<T> src)
+        public static AbstractXmlProxy<T>[] WrapList<T>(IReadOnlyList<T> src) where T : class
         {
             if (src == null) return null;
             var dest = new AbstractXmlProxy<T>[src.Count];
@@ -20,11 +20,12 @@ namespace Equinox76561198048419394.Core.Util
             return dest;
         }
 
-        public static List<T> Unwrap<T>(IReadOnlyList<AbstractXmlProxy<T>> src) => src == null ? null : Unwrap(src, new List<T>(src.Count));
+        public static List<T> Unwrap<T>(IReadOnlyList<AbstractXmlProxy<T>> src) where T : class => src == null ? null : Unwrap(src, new List<T>(src.Count));
 
-        public static TCollection Unwrap<T, TCollection>(IReadOnlyList<AbstractXmlProxy<T>> src, TCollection target, bool dropDefault = false)
+        public static TCollection Unwrap<T, TCollection>(IReadOnlyList<AbstractXmlProxy<T>> src, TCollection target, bool dropDefault = false) where T : class
             where TCollection : ICollection<T>
         {
+            if (src == null) return target;
             var equality = dropDefault ? EqualityComparer<T>.Default : null;
             if (target is List<T> list)
                 list.EnsureSpace(src.Count);
@@ -34,12 +35,27 @@ namespace Equinox76561198048419394.Core.Util
                     target.Add(src[i]);
             return target;
         }
+
+        public static T[] UnwrapArray<T>(IReadOnlyList<AbstractXmlProxy<T>> src, bool dropDefault = false) where T : class
+        {
+            if (src == null) return null;
+            var equality = dropDefault ? EqualityComparer<T>.Default : null;
+            var outputCount = 0;
+            var output = new T[src.Count];
+            // ReSharper disable once ForCanBeConvertedToForeach
+            for (var i = 0; i < src.Count; i++)
+                if (equality == null || !equality.Equals(src[i], default))
+                    output[outputCount++] = src[i];
+            if (outputCount < output.Length)
+                Array.Resize(ref output, outputCount);
+            return output;
+        }
     }
 
     /// <summary>
     /// Wrapper type that allows serializing a value using <see cref="MyAbstractXmlSerializer{TAbstractBase}"/>.
     /// </summary>
-    public class AbstractXmlProxy<T> : IXmlSerializable
+    public class AbstractXmlProxy<T> : IXmlSerializable where T : class
     {
         [Serialize]
         private T _value;
@@ -55,9 +71,9 @@ namespace Equinox76561198048419394.Core.Util
 
         public AbstractXmlProxy(T value) => _value = value;
 
-        public static implicit operator T(AbstractXmlProxy<T> proxy) => proxy._value;
+        public static implicit operator T(AbstractXmlProxy<T> proxy) => proxy?._value;
 
-        public static implicit operator AbstractXmlProxy<T>(in T value) => new AbstractXmlProxy<T>(value);
+        public static implicit operator AbstractXmlProxy<T>(T value) => value != null ? new AbstractXmlProxy<T>(value) : null;
 
         public XmlSchema GetSchema() => throw new NotImplementedException();
 

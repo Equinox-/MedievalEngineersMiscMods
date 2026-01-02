@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.GUI.Controllers;
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.Attributes;
@@ -14,6 +15,7 @@ using Sandbox.Gui.Layouts;
 using VRage;
 using VRage.Game;
 using VRage.Library.Collections;
+using VRage.Logging;
 using VRageMath;
 
 namespace Equinox76561198048419394.Core.UI
@@ -29,6 +31,11 @@ namespace Equinox76561198048419394.Core.UI
         {
             var result = base.BeforeAddedToMenu(menu, position);
             var backing = m_menu.Context.GetDataSource<IMyGridDataSource<T>>(EquiDef.DataId);
+            if (backing == null)
+            {
+                this.GetLogger().Warning($"Context menu data source {EquiDef.DataId} was not present");
+                return result;
+            }
             if (m_dataSource is IEquiDataSourceWithChangeEvent dscOld) dscOld.OnChange -= OnChange;
             m_dataSource = new SearchableGridDataSource(this, backing);
             if (m_dataSource is IEquiDataSourceWithChangeEvent dscNew) dscNew.OnChange += OnChange;
@@ -63,6 +70,20 @@ namespace Equinox76561198048419394.Core.UI
                 LayoutStyle = MyGuiControlLayoutStyle.DynamicX
             };
             query.OnTextChanged += Filter;
+
+            EquiDef.CreateEventActions(this, out var onClick, out var onDoubleClick);
+            if (onClick != null)
+            {
+                onClick.SetAssociatedControl(m_grid);
+                m_grid.ItemClickedWithoutDoubleClick += (_1, _2) => onClick.Run();
+            }
+
+            if (onDoubleClick != null)
+            {
+                onDoubleClick.SetAssociatedControl(m_grid);
+                m_grid.ItemDoubleClicked += (_1, _2) => onDoubleClick.Run();
+            }
+
 
             return new MyGuiControlParent
             {
@@ -253,6 +274,15 @@ namespace Equinox76561198048419394.Core.UI
 
     public abstract class EquiIconGridControllerBaseDefinition : MyGridControllerDefinition
     {
+        private MyObjectBuilder_ContextMenuAction _onClick;
+        private MyObjectBuilder_ContextMenuAction _onDoubleClick;
+
+        public void CreateEventActions(MyContextMenuController owner, out MyContextMenuAction onClick, out MyContextMenuAction onDoubleClick)
+        {
+            onClick = _onClick != null ? MyContextMenuFactory.CreateContextMenuAction(owner, _onClick) : null;
+            onDoubleClick = _onDoubleClick != null ? MyContextMenuFactory.CreateContextMenuAction(owner, _onDoubleClick) : null;
+        }
+
         protected override void Init(MyObjectBuilder_DefinitionBase builder)
         {
             var ob = (MyObjectBuilder_EquiIconGridControllerBaseDefinition)builder;
@@ -274,7 +304,11 @@ namespace Equinox76561198048419394.Core.UI
                 PagingButtonSize = ob.PagingButtonSize ?? new SerializableVector2(32, 32),
                 PagingButtonStyle = ob.PagingButtonStyle ?? "ContextButtonPage",
                 LabelStyle = ob.LabelStyle ?? "ContextMenuLabel",
+                Buttons = AbstractXmlProxy.UnwrapArray(ob.Buttons),
             });
+
+            _onClick = ob.OnClick;
+            _onDoubleClick = ob.OnDoubleClick;
         }
     }
 
@@ -286,5 +320,8 @@ namespace Equinox76561198048419394.Core.UI
         public SerializableVector2? PagingButtonSize;
         public string PagingButtonStyle;
         public string LabelStyle;
+        public AbstractXmlProxy<ButtonDefinition>[] Buttons;
+        public AbstractXmlProxy<MyObjectBuilder_ContextMenuAction> OnClick;
+        public AbstractXmlProxy<MyObjectBuilder_ContextMenuAction> OnDoubleClick;
     }
 }

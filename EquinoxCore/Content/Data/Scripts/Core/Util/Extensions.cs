@@ -2,6 +2,7 @@
 using Medieval.Definitions.GameSystems.Building;
 using Medieval.Entities.UseObject;
 using Medieval.GameSystems;
+using Medieval.GUI.ContextMenu;
 using Sandbox.Game.EntityComponents.Character;
 using Sandbox.Game.Players;
 using Sandbox.ModAPI;
@@ -11,6 +12,7 @@ using VRage.Game.Entity;
 using VRage.Game.Entity.UseObject;
 using VRage.Game.ModAPI;
 using VRage.Input;
+using VRage.Logging;
 using VRage.Network;
 using VRage.Utils;
 using VRageMath;
@@ -36,6 +38,8 @@ namespace Equinox76561198048419394.Core.Util
             if (list.Capacity < capacity)
                 list.Capacity = MathHelper.GetNearestBiggerPowerOfTwo(capacity);
         }
+
+        public static NamedLogger GetLogger(this MyContextMenuController ctl) => new NamedLogger(ctl.GetType().Name, MyLog.Default);
 
         public static MyPhysicsComponentBase ParentedPhysics(this MyEntity e)
         {
