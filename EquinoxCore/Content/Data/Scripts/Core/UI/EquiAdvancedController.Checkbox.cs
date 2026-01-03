@@ -19,13 +19,10 @@ namespace Equinox76561198048419394.Core.UI
             _dataSource = new DataSourceValueAccessor<bool>(ctl, def.DataId, def.DataIndex);
             _checkbox = new MyGuiControlCheckbox(toolTip: MyTexts.GetString(def.TooltipId));
             _checkbox.ApplyStyle(ContextMenuStyles.CheckboxStyle(def.StyleNameId));
-            _checkbox.OnCheckedChanged += _ =>
-            {
-                if (Owner.AutoCommit)
-                    _dataSource.SetValue(_checkbox.IsChecked);
-            };
+            _checkbox.OnCheckedChanged += _ => SyncFromControl();
             _checkbox.LayoutStyle = MyGuiControlLayoutStyle.Fixed;
             MakeHorizontalRoot(_checkbox);
+            SyncToControlInternal();
         }
 
         protected override void SyncToControlInternal()

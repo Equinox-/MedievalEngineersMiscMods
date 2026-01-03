@@ -148,10 +148,10 @@ namespace Equinox76561198048419394.Core.Inventory
                     switch (defParts.Length)
                     {
                         case 1:
-                            id = new MyDefinitionId(typeof(MyObjectBuilder_InventoryItem), defParts[0]);
-                            if (!MyDefinitionManager.TryGet(id, out MyInventoryItemDefinition _))
+                            if (!EquiDefinitions.TryGetItemDefinition(defParts[0], out var itemDef))
                                 return Respond(
                                     $"Failed to find item definition '{defParts[0]}'.  You may need to provide an explicit typeId as 'typeId/subtypeId'");
+                            id = itemDef.Id;
                             break;
                         case 2:
                             var type = defParts[0];

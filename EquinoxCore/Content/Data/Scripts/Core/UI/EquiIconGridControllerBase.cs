@@ -89,7 +89,8 @@ namespace Equinox76561198048419394.Core.UI
             {
                 Layout = new MyVerticalLayoutBehavior(spacing: Margin.Y * 2),
                 Size = new Vector2(grid.Size.X, grid.Size.Y + Margin.Y * 2 + query.Size.Y),
-                Controls = { query, grid }
+                Controls = { query, grid },
+                Name = Definition.Id.SubtypeName,
             };
         }
 

@@ -11,6 +11,7 @@ namespace Equinox76561198048419394.Core.UI
     internal sealed class SliderData : ControlHolder<MyObjectBuilder_EquiAdvancedControllerDefinition.Slider>
     {
         private readonly DataSourceValueAccessor<float> _dataSource;
+        private MyGuiControlLabel _valueLabel;
         private readonly MyGuiControlSlider _slider;
 
         internal SliderData(MyContextMenuController ctl,
@@ -20,30 +21,23 @@ namespace Equinox76561198048419394.Core.UI
             var def = factory.Def;
             _dataSource = new DataSourceValueAccessor<float>(ctl, def.DataId, def.DataIndex);
             ContextMenuStyles.SliderStyles(def.StyleNameId, out var sliderStyle, out var sliderValueStyle);
-            var valueLabel = new MyGuiControlLabel();
-            valueLabel.ApplyStyle(sliderValueStyle);
+            _valueLabel = new MyGuiControlLabel();
+            _valueLabel.ApplyStyle(sliderValueStyle);
             _slider = new MyGuiControlSlider(
                 width: owner.Width,
                 labelDecimalPlaces: def.LabelDecimalPlaces,
                 toolTip: MyTexts.GetString(def.TooltipId),
-                minValue: _dataSource.Min ?? def.Min ?? 0,
-                maxValue: _dataSource.Max ?? def.Max ?? 0)
+                minValue: 0,
+                maxValue: 1)
             {
                 Properties = CreateProperties(_dataSource)
             };
 
             _slider.ApplyStyle(sliderStyle);
-            _slider.ValueChanged += _ =>
-            {
-                var value = _slider.Value;
-                if (owner.AutoCommit)
-                    _dataSource.SetValue(value);
-                valueLabel.Text = FormatLabel(value, def.LabelDecimalPlaces, def.TextFormat);
-            };
+            _slider.ValueChanged += _ => SyncFromControl();
             _slider.SliderClicked += SliderClicked;
-            valueLabel.Text = FormatLabel(_slider.Value, def.LabelDecimalPlaces, def.TextFormat);
-
-            MakeVerticalRoot(_slider, valueLabel);
+            MakeVerticalRoot(_slider, _valueLabel);
+            SyncToControlInternal();
         }
 
         protected override void SyncToControlInternal()
@@ -58,27 +52,29 @@ namespace Equinox76561198048419394.Core.UI
             _slider.DefaultValue = _dataSource.Default ?? Def.Default ?? (minVal + maxVal) / 2;
             var newValue = value.Value;
             var tolerance = Math.Max(Math.Abs(minVal), Math.Abs(maxVal)) / 1000;
-            if (Math.Abs(newValue - _slider.Value) > tolerance)
-                _slider.Value = newValue;
+            if (Math.Abs(newValue - _slider.Value) <= tolerance) return;
+            _slider.Value = newValue;
+            _valueLabel.Text = FormatLabel(newValue, Def.LabelDecimalPlaces, Def.TextFormat);
         }
 
         protected override void SyncFromControlInternal()
         {
-            _dataSource.SetValue(_slider.ValueNormalized);
+            _dataSource.SetValue(_slider.Value);
         }
 
         private MyGuiSliderProperties CreateProperties(DataSourceValueAccessor<float> ds)
         {
+            var exponent = Def.Exponent ?? 1;
             return new MyGuiSliderProperties
             {
                 RatioToValue = ratio =>
                 {
-                    var value = RatioToValue(Min(), Max(), Exponent(), MathHelper.Clamp(ratio, 0, 1));
+                    var value = RatioToValue(Min(), Max(), MathHelper.Clamp(ratio, 0, 1));
                     if (Def.IsInteger)
                         value = (float)Math.Round(value);
                     return value;
                 },
-                ValueToRatio = value => ValueToRatio(Min(), Max(), Exponent(), value),
+                ValueToRatio = value => ValueToRatio(Min(), Max(), value),
                 RatioFilter = ratio =>
                 {
                     ratio = MathHelper.Clamp(ratio, 0, 1);
@@ -86,19 +82,19 @@ namespace Equinox76561198048419394.Core.UI
                         return ratio;
                     var minVal = Min();
                     var maxVal = Max();
-                    var exponentVal = Exponent();
-                    var value = RatioToValue(minVal, maxVal, exponentVal, ratio);
+                    var value = RatioToValue(minVal, maxVal, ratio);
                     value = (float)Math.Round(value);
-                    return ValueToRatio(minVal, maxVal, exponentVal, value);
+                    return ValueToRatio(minVal, maxVal, value);
                 },
                 FormatLabel = _ => ""
             };
             float Min() => ds.Min ?? Def.Min ?? float.PositiveInfinity;
             float Max() => ds.Max ?? Def.Max ?? float.NegativeInfinity;
-            float Exponent() => Def.Exponent ?? 1;
 
-            float ValueToRatio(float min, float max, float exponent, float value)
+            float ValueToRatio(float min, float max, float value)
             {
+                if (min >= max)
+                    return 0;
                 var ratio = (value - min) / (max - min);
                 ratio = (float)Math.Pow(ratio, 1 / exponent);
                 if (float.IsNaN(ratio))
@@ -106,8 +102,10 @@ namespace Equinox76561198048419394.Core.UI
                 return MathHelper.Clamp(ratio, 0, 1);
             }
 
-            float RatioToValue(float min, float max, float exponent, float ratio)
+            float RatioToValue(float min, float max, float ratio)
             {
+                if (min >= max)
+                    return min;
                 ratio = (float)Math.Pow(ratio, exponent);
                 ratio = MathHelper.Clamp(ratio, 0, 1);
                 if (float.IsNaN(ratio))

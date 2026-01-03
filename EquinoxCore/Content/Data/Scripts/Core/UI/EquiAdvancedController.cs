@@ -33,11 +33,19 @@ namespace Equinox76561198048419394.Core.UI
                 Layout = new MyVerticalLayoutBehavior(
                     padding: new MyGuiBorderThickness(Margin.X, Margin.X, Margin.Y, Margin.Y),
                     spacing: Margin.Y * 2),
-                Size = new Vector2(definition.Width + Margin.X * 2, 0)
+                Size = new Vector2(definition.Width + Margin.X * 2, 0),
+                Name = definition.Id.SubtypeName,
             };
             _controls.Clear();
-            foreach (var factory in definition.Controls)
-                _controls.Add(factory.Create(this));
+            for (var ix = 0; ix < definition.Controls.Count; ix++)
+            {
+                var factory = definition.Controls[ix];
+                var control = factory.Create(this);
+                if (control.Root.Name == control.Root.GetType().Name)
+                    control.Root.Name = $"{factory.GetType().Name}`{ix}";
+                _controls.Add(control);
+            }
+
             SyncToControls();
             return _container;
         }
@@ -60,7 +68,7 @@ namespace Equinox76561198048419394.Core.UI
 
             if (rebuildLayout)
             {
-                _container.Controls.Clear();
+                _container.Controls.Clear(false);
                 foreach (var control in _controls)
                     if (control.Root.Enabled)
                     {

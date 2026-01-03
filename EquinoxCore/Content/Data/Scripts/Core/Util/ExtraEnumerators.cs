@@ -2,12 +2,7 @@ using System.Collections.Generic;
 
 namespace Equinox76561198048419394.Core.Util
 {
-    public interface IRefEnumerable<out T, out TEnumerator> : IEnumerable<T> where TEnumerator : IRefEnumerator<T>
-    {
-        new TEnumerator GetEnumerator();
-    }
-
-    public interface IRefReadonlyEnumerable<out T, out TEnumerator> : IEnumerable<T> where TEnumerator : IRefReadonlyEnumerator<T>
+    public interface IConcreteEnumerable<out T, out TEnumerator> : IEnumerable<T> where TEnumerator : IEnumerator<T>
     {
         new TEnumerator GetEnumerator();
     }

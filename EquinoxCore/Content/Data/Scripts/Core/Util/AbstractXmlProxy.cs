@@ -46,8 +46,7 @@ namespace Equinox76561198048419394.Core.Util
             for (var i = 0; i < src.Count; i++)
                 if (equality == null || !equality.Equals(src[i], default))
                     output[outputCount++] = src[i];
-            if (outputCount < output.Length)
-                Array.Resize(ref output, outputCount);
+            Array.Resize(ref output, outputCount);
             return output;
         }
     }

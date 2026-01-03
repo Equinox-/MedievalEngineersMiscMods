@@ -184,7 +184,7 @@ namespace Equinox76561198048419394.Core.UI
 
             if (rebuildLayout)
             {
-                _container.Controls.Clear();
+                _container.Controls.Clear(false);
                 foreach (var (labeledSlider, slider) in _sliders)
                     if (slider.Enabled)
                         _container.Controls.Add(labeledSlider);
