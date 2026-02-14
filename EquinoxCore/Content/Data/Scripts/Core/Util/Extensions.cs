@@ -25,7 +25,7 @@ namespace Equinox76561198048419394.Core.Util
     public static class Extensions
     {
         public static IMyUtilities ApiUtilities => MyAPIUtilities.Static;
-        
+
         public static void SetTransform(this MyCharacterBone bone, Matrix matrix)
         {
             var q = Quaternion.CreateFromRotationMatrix(matrix);
@@ -129,6 +129,7 @@ namespace Equinox76561198048419394.Core.Util
         }
 
         public const float DefaultBuildingDistanceLimit = 10;
+
         public static float BuildingDistanceLimit(this IMyPlayer player)
         {
             var gridPlacer = MyDefinitionManager.Get<MyGridPlacerDefinition>("Default");

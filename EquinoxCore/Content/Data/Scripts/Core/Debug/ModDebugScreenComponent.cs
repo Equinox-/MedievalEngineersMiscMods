@@ -6,7 +6,12 @@ using VRage.Session;
 
 namespace Equinox76561198048419394.Core.Debug
 {
-    public abstract class ModDebugScreenComponent : MySessionComponent
+    public interface IModDebugScreenSessionComponent
+    {
+        IEnumerable<ModDebugScreenComponent.DebugScreen> Screens { get; }
+    }
+
+    public abstract class ModDebugScreenComponent : MySessionComponent, IModDebugScreenSessionComponent
     {
         public virtual string FriendlyName => null;
 
@@ -29,7 +34,7 @@ namespace Equinox76561198048419394.Core.Debug
         }
 
         protected static DebugScreen CreateDebugScreen<T>(string friendlyName = null) where T : MyGuiScreenDebugBase, new() =>
-            new DebugScreen(friendlyName ?? typeof(T).Name, typeof(T), () => new T());
+            DebugScreen.Create<T>(friendlyName);
 
         public struct DebugScreen
         {
@@ -43,6 +48,9 @@ namespace Equinox76561198048419394.Core.Debug
                 ScreenType = screenType;
                 Construct = construct;
             }
+
+            public static DebugScreen Create<T>(string friendlyName = null) where T : MyGuiScreenDebugBase, new() =>
+                new DebugScreen(friendlyName ?? typeof(T).Name, typeof(T), () => new T());
         }
     }
 }

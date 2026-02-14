@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition">
+        <Id Type="EntityBase" Subtype="EquiMarketStorageBase" />
+        <Tag>EquiMarketStorage</Tag>
+        <Component Type="MultiplayerComponent" />
+        <Component Type="EquiMarketStorageComponent" />
+        <Component Type="EquiMarketHistoryComponent" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiMarketManagerDefinition">
+        <Id Type="EquiMarketManagerDefinition" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiMarketHistoryComponentDefinition">
+        <Id Type="EquiMarketHistoryComponent" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
+        <Id Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+        <CopyFrom Type="EntityBase" Subtype="EquiMarketStorageBase" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
+        <Id Type="EntityBase" Subtype="EquiPlanetMarketStorage" />
+        <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
+        <Id Type="EntityBase" Subtype="EquiKingdomMarketStorage" />
+        <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
+        <Id Type="EntityBase" Subtype="EquiRegionMarketStorage" />
+        <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
+        <Id Type="EntityBase" Subtype="EquiAreaMarketStorage" />
+        <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+    </Definition>
+</Definitions>

@@ -26,6 +26,18 @@ namespace Equinox76561198048419394.Core.UI
                 committable.CommitDataSource();
         }
 
+        public override void OnBecameTopController()
+        {
+            base.OnBecameTopController();
+            _controller.OnBecameTopController();
+        }
+
+        public override void OnLostTopController()
+        {
+            _controller.OnLostTopController();
+            base.OnLostTopController();
+        }
+
         public override void DetachFromMenu()
         {
             _controller.AfterRemovedFromMenu(Ctl.Menu);

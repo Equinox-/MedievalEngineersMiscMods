@@ -6,6 +6,7 @@ using Equinox76561198048419394.Cartography.Data.Framework;
 using Equinox76561198048419394.Cartography.Derived;
 using Equinox76561198048419394.Cartography.Derived.Contours;
 using Equinox76561198048419394.Cartography.MapLayers;
+using Equinox76561198048419394.Core.Debug;
 using Medieval.GameSystems;
 using Medieval.GUI.Ingame.Map;
 using ObjectBuilders.GUI.Map;
@@ -29,7 +30,7 @@ using VRage.Utils;
 namespace Equinox76561198048419394.Cartography
 {
     [MySessionComponent(AlwaysOn = true)]
-    public class EquiCartography : MySessionComponent
+    public class EquiCartography : MySessionComponent, IModDebugScreenSessionComponent
     {
         #region Map Overlay Data
 
@@ -64,6 +65,10 @@ namespace Equinox76561198048419394.Cartography
 
             _contourOverlayIndex = (_contourOverlayIndex + 1) % (_contourOverlayOptions.Count + 1);
         }
+
+        internal void InvalidateCachedElevation() => _elevation.Invalidate();
+
+        internal void InvalidateCachedContours() => _contours.Invalidate();
 
         #endregion
 
@@ -144,5 +149,8 @@ namespace Equinox76561198048419394.Cartography
             }, MyInventoryBase.NewItemParams.AsNewStack);
             return true;
         }
+
+        IEnumerable<ModDebugScreenComponent.DebugScreen> IModDebugScreenSessionComponent.Screens =>
+            new[] { ModDebugScreenComponent.DebugScreen.Create<EquiCartographyDebugDraw>("Cartography") };
     }
 }

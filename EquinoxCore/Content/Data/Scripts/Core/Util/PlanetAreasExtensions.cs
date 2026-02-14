@@ -4,6 +4,7 @@ using Medieval.GameSystems;
 using Medieval.GameSystems.Factions;
 using Sandbox.Game.Entities.Planet;
 using Sandbox.Game.Players;
+using VRage;
 using VRage.Library.Collections;
 using VRageMath;
 
@@ -12,6 +13,26 @@ namespace Equinox76561198048419394.Core.Util
     public static class PlanetAreasExtensions
     {
         public const int AdjacentAreaCount = 4;
+
+        public static void UnpackAreaIdToNames(this MyPlanetAreasComponent areas, long areaId, out string kingdom, out string region, out string area)
+        {
+            var areasPerRegion = areas.AreasPerRegionCount;
+            MyPlanetAreasComponent.UnpackAreaId(areaId, out int face, out var x, out var y);
+            var regionX = x / areasPerRegion;
+            var regionY = y / areasPerRegion;
+            var areaX = x % areasPerRegion;
+            var areaY = x % areasPerRegion;
+            kingdom = MyTexts.GetString(MyPlanetAreasComponent.KingdomNames[face]);
+            region = (char) ('A' + regionX) + (regionY + 1).ToString();
+            area = (char) ('A' + areaX) + (areaY + 1).ToString();
+        }
+
+        public static void UnpackRegionIdToNames(this MyPlanetAreasComponent areas, long regionId, out string kingdom, out string region)
+        {
+            MyPlanetAreasComponent.UnpackAreaId(regionId, out int face, out var x, out var y);
+            kingdom = MyTexts.GetString(MyPlanetAreasComponent.KingdomNames[face]);
+            region = (char) ('A' + x) + (y + 1).ToString();
+        }
 
         public static long GetAdjacentArea(this MyPlanetAreasComponent comp, long area, int neighbor)
         {

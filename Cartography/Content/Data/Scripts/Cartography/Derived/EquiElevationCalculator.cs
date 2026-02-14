@@ -28,27 +28,27 @@ namespace Equinox76561198048419394.Cartography.Derived
         {
             private readonly ElevationArgs _args;
             public volatile ElevationData Computed;
-            private readonly EquiElevationCalculator _owner;
 
             public FutureElevationData(EquiElevationCalculator owner, in ElevationArgs args)
             {
-                _owner = owner;
                 _args = args;
-                _owner._parallel.Start(Compute);
+                owner._parallel.Start(Compute);
             }
 
             private void Compute()
             {
-                var data = new ushort[ElevationData.RasterSize, ElevationData.RasterSize];
+                var rasterSize = ElevationData.RasterSize;
+                var rasterSizeMinusOne = rasterSize - 1;
+                var data = new ushort[rasterSize, rasterSize];
                 var minRadius = _args.Planet.MinimumRadius;
                 var deltaRadius = _args.Planet.MaximumRadius - minRadius;
                 var planet = _args.Planet;
-                for (var y = 0; y < ElevationData.RasterSize; y++)
+                for (var y = 0; y < rasterSize; y++)
                 {
-                    var texY = _args.Area.Position.Y + y * _args.Area.Size.Y / ElevationData.RasterSizeMinusOne;
-                    for (var x = 0; x < ElevationData.RasterSize; x++)
+                    var texY = _args.Area.Position.Y + y * _args.Area.Size.Y / rasterSizeMinusOne;
+                    for (var x = 0; x < rasterSize; x++)
                     {
-                        var texX = _args.Area.Position.X + x * _args.Area.Size.X / ElevationData.RasterSizeMinusOne;
+                        var texX = _args.Area.Position.X + x * _args.Area.Size.X / rasterSizeMinusOne;
                         var uv = new Vector2D(texX, texY);
                         MyEnvironmentCubemapHelper.UniformAngleToProjectionUVs(ref uv);
                         var world = new Vector3D(uv, -1);
@@ -60,6 +60,14 @@ namespace Equinox76561198048419394.Cartography.Derived
                 }
 
                 Computed = new ElevationData(in _args, data);
+            }
+        }
+
+        internal void Invalidate()
+        {
+            lock (this)
+            {
+                _elevationCache.Reset();
             }
         }
     }
@@ -98,14 +106,17 @@ namespace Equinox76561198048419394.Cartography.Derived
         private readonly ushort[,] _data;
         private readonly float _range;
         private readonly float _centerOnAverage;
-        public const int RasterSize = 256;
-        public const int RasterSizeMinusOne = RasterSize - 1;
+        private readonly int _rasterSizeMinusOne;
+
+        public static int RasterSize { get; internal set; } = 256;
+        public static int RasterSizeMinusOne => RasterSize - 1;
 
         public ElevationData(in ElevationArgs args, ushort[,] data)
         {
             _data = data;
             _range = args.Planet.MaximumRadius - args.Planet.MinimumRadius;
             _centerOnAverage = args.Planet.MinimumRadius - args.Planet.AverageRadius;
+            _rasterSizeMinusOne = _data.GetLength(0) - 1;
         }
 
         public float SampleRawNorm(int x, int y) => _data[y, x] / (float) ushort.MaxValue;
@@ -114,8 +125,8 @@ namespace Equinox76561198048419394.Cartography.Derived
 
         public float SampleNorm(float x, float y)
         {
-            x *= RasterSizeMinusOne;
-            y *= RasterSizeMinusOne;
+            x *= _rasterSizeMinusOne;
+            y *= _rasterSizeMinusOne;
             var rawX = (int)Math.Floor(x);
             var rawY = (int)Math.Floor(y);
             var mixX = x - rawX;
@@ -125,15 +136,15 @@ namespace Equinox76561198048419394.Cartography.Derived
             {
                 if (col < 0)
                     return SampleRawNorm(0, row);
-                if (col >= RasterSizeMinusOne)
-                    return SampleRawNorm(RasterSizeMinusOne, row);
+                if (col >= _rasterSizeMinusOne)
+                    return SampleRawNorm(_rasterSizeMinusOne, row);
                 return MathHelper.Lerp(SampleRawNorm(col, row), SampleRawNorm(col + 1, row), mixX);
             }
 
             if (rawY < 0)
                 return SampleAlongX(rawX, 0);
-            if (rawY >= RasterSizeMinusOne)
-                return SampleAlongX(rawX, RasterSizeMinusOne);
+            if (rawY >= _rasterSizeMinusOne)
+                return SampleAlongX(rawX, _rasterSizeMinusOne);
             return MathHelper.Lerp(
                 SampleAlongX(rawX, rawY),
                 SampleAlongX(rawX, rawY + 1),

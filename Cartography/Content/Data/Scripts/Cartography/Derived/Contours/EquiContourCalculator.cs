@@ -9,14 +9,15 @@ using Sandbox.ModAPI;
 using VRage;
 using VRage.Collections;
 using VRage.Library.Collections;
+using VRage.ParallelWorkers;
 using VRageMath;
 
 namespace Equinox76561198048419394.Cartography.Derived.Contours
 {
     internal sealed class EquiContourCalculator
     {
-        private const int ElevationRasterSize = 256;
-        private const float SimplificationDistanceSq = 0.5f;
+        internal static int RasterSize = 512;
+        internal static float SimplificationDistanceSq = 0.01f;
 
         private readonly LRUCache<ContourArgs, FutureContourData> _contoursCache = new LRUCache<ContourArgs, FutureContourData>(128);
         private readonly ConcurrentBag<ContourTempData> _tempDataPool = new ConcurrentBag<ContourTempData>();
@@ -35,9 +36,17 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
             }
         }
 
+        internal void Invalidate()
+        {
+            lock (this)
+            {
+                _contoursCache.Reset();
+            }
+        }
+
         #region Contouring
 
-        private sealed class FutureContourData
+        private sealed class FutureContourData : IWork
         {
             private readonly ContourArgs _args;
             public volatile ContourData Computed;
@@ -47,11 +56,10 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
             {
                 _owner = owner;
                 _args = args;
-                _owner._parallel.Start(Compute);
+                _owner._parallel.Start(this);
             }
 
-
-            private void Compute()
+            public void DoWork()
             {
                 if (!_owner._tempDataPool.TryTake(out var tempData))
                     tempData = new ContourTempData();
@@ -76,9 +84,10 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
 
         private sealed class ContourTempData
         {
+            private int _rasterSize;
             private float _minContour;
             private float _maxContour;
-            private readonly CellData[,] _cellData = new CellData[ElevationRasterSize + 1, ElevationRasterSize + 1];
+            private CellData[,] _cellData;
 
             private struct EdgeData
             {
@@ -128,15 +137,21 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
 
             public void FillEdgeMap(in ContourArgs args)
             {
+                var rasterSize = RasterSize;
+                if (rasterSize != _rasterSize)
+                {
+                    _cellData = new CellData[rasterSize + 1, rasterSize + 1];
+                    _rasterSize = rasterSize;
+                }
                 _minContour = float.PositiveInfinity;
                 _maxContour = float.NegativeInfinity;
                 var planet = args.Planet;
-                for (var y = 0; y <= ElevationRasterSize; y++)
+                for (var y = 0; y <= rasterSize; y++)
                 {
-                    var texY = args.Area.Position.Y + y * args.Area.Size.Y / ElevationRasterSize;
-                    for (var x = 0; x <= ElevationRasterSize; x++)
+                    var texY = args.Area.Position.Y + y * args.Area.Size.Y / rasterSize;
+                    for (var x = 0; x <= rasterSize; x++)
                     {
-                        var texX = args.Area.Position.X + x * args.Area.Size.X / ElevationRasterSize;
+                        var texX = args.Area.Position.X + x * args.Area.Size.X / rasterSize;
                         var uv = new Vector2D(texX, texY);
                         MyEnvironmentCubemapHelper.UniformAngleToProjectionUVs(ref uv);
                         var world = new Vector3D(uv, -1);
@@ -261,7 +276,7 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
                             out var nextX, out var nextY, out var nextIncoming);
                         if (okay)
                             sequence.Add(outgoingPos);
-                        if (!okay || nextX < 0 || nextY < 0 || nextX >= ElevationRasterSize || nextY >= ElevationRasterSize)
+                        if (!okay || nextX < 0 || nextY < 0 || nextX >= _rasterSize || nextY >= _rasterSize)
                         {
                             SimplifyAndCollectSequence(sequence, ranges);
                             return;
@@ -286,20 +301,20 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
                     // Commit to vertex list.
                     var vertexOffset = vertices.Count;
                     foreach (var vert in simplified)
-                        vertices.Add(ContourData.PackVertex(vert / ElevationRasterSize));
+                        vertices.Add(ContourData.PackVertex(vert / _rasterSize));
 
                     loops.Add(new ContourData.ContourLine(contour, contour * contourInterval, 
                         vertexOffset, vertexOffset + simplified.Length - 1));
                 }
 
-                for (var y = 0; y < ElevationRasterSize; y++)
-                for (var x = 0; x < ElevationRasterSize; x++)
+                for (var y = 0; y < _rasterSize; y++)
+                for (var x = 0; x < _rasterSize; x++)
                     _cellData[y, x].ConsumedMask = 0;
 
                 using (PoolManager.Get(out List<Vector2> sequence))
                 using (PoolManager.Get(out Stack<MyTuple<int, int>> ranges))
-                    for (var y = 0; y < ElevationRasterSize; y++)
-                    for (var x = 0; x < ElevationRasterSize; x++)
+                    for (var y = 0; y < _rasterSize; y++)
+                    for (var x = 0; x < _rasterSize; x++)
                     {
                         ref var cell = ref _cellData[y, x];
 

@@ -88,6 +88,20 @@ namespace Equinox76561198048419394.Core.UI
                 SyncToControls();
         }
 
+        public override void OnBecameTopController()
+        {
+            base.OnBecameTopController();
+            foreach (var control in _controls)
+                control.OnBecameTopController();
+        }
+
+        public override void OnLostTopController()
+        {
+            foreach (var control in _controls)
+                control.OnLostTopController();
+            base.OnLostTopController();
+        }
+
         public override void AfterRemovedFromMenu(MyContextMenu menu)
         {
             foreach (var control in _controls)

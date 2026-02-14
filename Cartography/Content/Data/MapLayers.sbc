@@ -6,7 +6,7 @@
         <ContourInterval>2.5</ContourInterval>
         <MajorContourEvery>10</MajorContourEvery>
         <HighlightContourColor R="255" G="0" B="255" A="255" />
-        <OverlayMajorDepthTestDistance>20</OverlayMajorDepthTestDistance>
+        <OverlayMajorDepthTestDistance>10</OverlayMajorDepthTestDistance>
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_EquiContourOptions">
@@ -15,7 +15,7 @@
         <OverlayMinorRenderDistance>500</OverlayMinorRenderDistance>
         <ContourInterval>5</ContourInterval>
         <HighlightContourColor R="255" G="0" B="255" A="255" />
-        <OverlayMajorDepthTestDistance>20</OverlayMajorDepthTestDistance>
+        <OverlayMajorDepthTestDistance>10</OverlayMajorDepthTestDistance>
     </Definition>
 
 

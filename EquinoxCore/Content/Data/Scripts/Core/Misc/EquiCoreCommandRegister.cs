@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Inventory;
-using Sandbox.Game.Entities.Character;
 using Sandbox.Game.GameSystems.Chat;
 using Sandbox.Game.Players;
 using Sandbox.ModAPI;
@@ -16,31 +15,30 @@ using VRageMath;
 namespace Equinox76561198048419394.Core.Misc
 {
     [MySessionComponent(AllowAutomaticCreation = true, AlwaysOn = true)]
+    [MyDependency(typeof(MyChatSystem), Critical = false)]
     public sealed class EquiCoreCommandRegister : MySessionComponent
     {
-        [FixedUpdate(true)]
-        private void Update()
-        {
-            var chat = MyChatSystem.Static;
-            if (chat == null)
-                return;
+        [Automatic]
+        private readonly MyChatSystem _chat = null;
 
-            chat.RegisterChatCommand("/item-gen",
+        protected override void OnLoad()
+        {
+            base.OnLoad();
+            _chat?.RegisterChatCommand("/item-gen",
                 EquiItemGeneratorComponent.HandleCommand,
                 "Edits item generator tasks");
-            chat.RegisterChatCommand(
+            _chat?.RegisterChatCommand(
                 "/teleport-with-grids",
                 HandleTeleportWithGrids,
                 "Teleports a player and their grids"
             );
-            chat.RegisterChatCommand("/crafting-graph", (_, msg, type) =>
+            _chat?.RegisterChatCommand("/crafting-graph", (_, msg, type) =>
             {
                 if (type != MyChatCommandType.Client) return false;
                 using (var graph = new EquiCraftingGraph(msg.Split(' ')))
                     graph.Export();
                 return true;
             }, "Exports a GraphViz file with all crafting recipes", MyChatCommandType.Client);
-            RemoveFixedUpdate(Update);
         }
 
         private static bool HandleTeleportWithGrids(ulong sender, string message, MyChatCommandType handledAsType)

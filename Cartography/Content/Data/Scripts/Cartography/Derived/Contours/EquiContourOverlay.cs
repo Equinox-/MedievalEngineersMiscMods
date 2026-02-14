@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Medieval.GameSystems;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
-using VRage.Collections;
 using VRage.Components.Entity.Camera;
 using VRage.Library.Collections;
 using VRageMath;
@@ -15,6 +13,8 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
 {
     public class EquiContourOverlay
     {
+        internal static float FakeDepthBiasFactor = .05f;
+
         private readonly LRUCache<WorldSpaceContourKey, WorldSpaceContourVertices> _worldSpaceVertices =
             new LRUCache<WorldSpaceContourKey, WorldSpaceContourVertices>(16);
 
@@ -101,28 +101,36 @@ namespace Equinox76561198048419394.Cartography.Derived.Contours
                     if (options.HighlightContourColor.HasValue && highlightContour == contour.ContourId)
                         color = options.HighlightContourColor.Value;
 
+                    var depthTestDistanceSq = major ? options.OverlayMajorDepthTestDistanceSq : options.OverlayMinorDepthTestDistanceSq;
+
                     Vector3 ContourToWorld(int vertex, out bool visible, out bool useDepth)
                     {
                         var res = worldSpaceContourVertices.Vertices[vertex];
                         var cameraDistanceSq = Vector3.DistanceSquared(cameraPosLocal, res);
                         visible = cameraDistanceSq < renderDistanceSq;
-                        useDepth = cameraDistanceSq >= (major ? options.OverlayMajorDepthTestDistanceSq : options.OverlayMinorDepthTestDistanceSq);
-                        // Fake depth biasing.  It isn't good, but it's better than nothing.
-                        if (useDepth)
-                            res += (cameraPosLocal - res) * .03f;
+                        useDepth = cameraDistanceSq >= depthTestDistanceSq;
                         return res;
                     }
 
-                    var prev = ContourToWorld(contour.StartVertex, out var prevVisible, out _);
+                    var prev = ContourToWorld(contour.StartVertex, out var prevVisible, out var prevUseDepth);
                     for (var v = contour.StartVertex + 1; v <= contour.EndVertex; v++)
                     {
-                        var curr = ContourToWorld(v, out var currVisible, out var useDepth);
+                        var curr = ContourToWorld(v, out var currVisible, out var currUseDepth);
                         if (prevVisible || currVisible)
-                            (useDepth ? batchDepthTest : batchDepthIgnore).AddLine(prev, color, curr, color);
+                        {
+                            if (prevUseDepth && currUseDepth)
+                                batchDepthTest.AddLine(FakeDepthBias(prev), color, FakeDepthBias(curr), color);
+                            else
+                                batchDepthIgnore.AddLine(prev, color, curr, color);
+                        }
+
                         prev = curr;
                         prevVisible = currVisible;
+                        prevUseDepth = currUseDepth;
                     }
                 }
+
+                Vector3 FakeDepthBias(Vector3 pos) => Vector3.Lerp(pos, cameraPosLocal, FakeDepthBiasFactor);
             }
         }
 

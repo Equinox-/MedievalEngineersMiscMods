@@ -26,12 +26,11 @@ namespace Equinox76561198048419394.Core.Util
             where TCollection : ICollection<T>
         {
             if (src == null) return target;
-            var equality = dropDefault ? EqualityComparer<T>.Default : null;
             if (target is List<T> list)
                 list.EnsureSpace(src.Count);
             // ReSharper disable once ForCanBeConvertedToForeach
             for (var i = 0; i < src.Count; i++)
-                if (equality == null || !equality.Equals(src[i], default))
+                if (dropDefault || src[i] != null)
                     target.Add(src[i]);
             return target;
         }
@@ -39,12 +38,11 @@ namespace Equinox76561198048419394.Core.Util
         public static T[] UnwrapArray<T>(IReadOnlyList<AbstractXmlProxy<T>> src, bool dropDefault = false) where T : class
         {
             if (src == null) return null;
-            var equality = dropDefault ? EqualityComparer<T>.Default : null;
             var outputCount = 0;
             var output = new T[src.Count];
             // ReSharper disable once ForCanBeConvertedToForeach
             for (var i = 0; i < src.Count; i++)
-                if (equality == null || !equality.Equals(src[i], default))
+                if (dropDefault || src[i] != null)
                     output[outputCount++] = src[i];
             Array.Resize(ref output, outputCount);
             return output;
@@ -53,6 +51,9 @@ namespace Equinox76561198048419394.Core.Util
 
     /// <summary>
     /// Wrapper type that allows serializing a value using <see cref="MyAbstractXmlSerializer{TAbstractBase}"/>.
+    /// Replace usages of <see cref="XmlElementAttribute"/> and <see cref="XmlArrayItemAttribute"/> with
+    /// <code>Type = typeof(MyAbstractXmlSerializer&lt;T&gt;)</code> by removing the Type attribute and changed the object builder item
+    /// to use <code>AbstractXmlProxy&lt;T&gt;</code> 
     /// </summary>
     public class AbstractXmlProxy<T> : IXmlSerializable where T : class
     {

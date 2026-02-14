@@ -14,6 +14,10 @@ namespace Equinox76561198048419394.Core.UI
         void SyncToControl();
 
         void DetachFromMenu();
+
+        void OnBecameTopController();
+
+        void OnLostTopController();
     }
 
     internal abstract class ControlHolder<T> : IControlHolder where T : MyObjectBuilder_EquiAdvancedControllerDefinition.ControlBase
@@ -99,6 +103,14 @@ namespace Equinox76561198048419394.Core.UI
         protected abstract void SyncFromControlInternal();
 
         public virtual void DetachFromMenu()
+        {
+        }
+
+        public virtual void OnBecameTopController()
+        {
+        }
+
+        public virtual void OnLostTopController()
         {
         }
     }

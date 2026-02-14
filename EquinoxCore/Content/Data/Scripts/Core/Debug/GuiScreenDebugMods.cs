@@ -36,7 +36,7 @@ namespace Equinox76561198048419394.Core.Debug
             m_currentPosition = -m_size.Value / 2.0f + new Vector2(0.03f, 0.1f);
 
             var checkboxList = new List<MyGuiControlBase>();
-            foreach (var component in MySession.Static.Components.GetAll<ModDebugScreenComponent>())
+            foreach (var component in MySession.Static.Components.GetAll<IModDebugScreenSessionComponent>())
             foreach (var screen in component.Screens)
                 AddGroupBox(screen.FriendlyName, screen, checkboxList);
         }
