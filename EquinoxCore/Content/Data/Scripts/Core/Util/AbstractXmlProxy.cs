@@ -47,6 +47,11 @@ namespace Equinox76561198048419394.Core.Util
             Array.Resize(ref output, outputCount);
             return output;
         }
+
+        /// <summary>
+        /// Reads the schema for an abstract XML proxy instance.
+        /// </summary>
+        internal static XmlSchema ShimReadAbstractSchema(Type type) => null;
     }
 
     /// <summary>
@@ -75,7 +80,7 @@ namespace Equinox76561198048419394.Core.Util
 
         public static implicit operator AbstractXmlProxy<T>(T value) => value != null ? new AbstractXmlProxy<T>(value) : null;
 
-        public XmlSchema GetSchema() => throw new NotImplementedException();
+        public XmlSchema GetSchema() => AbstractXmlProxy.ShimReadAbstractSchema(typeof(T));
 
         public void ReadXml(XmlReader reader)
         {

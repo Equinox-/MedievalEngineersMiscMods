@@ -29,7 +29,7 @@ using MySession = VRage.Session.MySession;
 namespace Equinox76561198048419394.Core.Mesh
 {
     [MyHandItemBehavior(typeof(MyObjectBuilder_EquiDecorativeToolBaseDefinition))]
-    public abstract class EquiDecorativeToolBase<TDef, TMaterial> : MyToolBehaviorBase, IToolWithMenu, IToolWithBuilding
+    public abstract class EquiDecorativeToolBase<TDef, TMaterial> : MyToolBehaviorBase, IToolWithMenu, IToolWithBuilding, IToolWithUpdate
         where TDef : EquiDecorativeToolBaseDefinition, IEquiDecorativeToolBaseDefinition<TMaterial>
         where TMaterial : EquiDecorativeToolBaseDefinition.MaterialDef
     {
@@ -144,15 +144,14 @@ namespace Equinox76561198048419394.Core.Mesh
             base.Activate();
             this.OnActivateWithMenu();
             this.OnActivateWithBuilding();
-            if (IsLocallyControlled)
-                Scene.Scheduler.AddFixedUpdate(RenderAndUpdateHighlight);
+            this.OnActivateWithUpdate();
         }
 
         public override void Deactivate()
         {
             this.OnDeactivateWithMenu();
             this.OnDeactivateWithBuilding();
-            Scene.Scheduler.RemoveFixedUpdate(RenderAndUpdateHighlight);
+            this.OnDeactivateWithUpdate();
             _highlight.Dispose();
             base.Deactivate();
         }
@@ -230,7 +229,7 @@ namespace Equinox76561198048419394.Core.Mesh
         
         protected abstract void HitWithEnoughPoints(ListReader<BlockAnchorInteraction> points);
 
-        private void RenderAndUpdateHighlight()
+        void IToolWithUpdate.Update()
         {
             var hasNextAnchor = TryGetAnchor(out var nextAnchor, out var nextAnchorDistance);
 

@@ -59,7 +59,9 @@ namespace Equinox76561198048419394.Core.UI
 
         protected override void SyncFromControlInternal()
         {
-            _dataSource.SetValue(_slider.Value);
+            var newValue = _slider.Value;
+            _dataSource.SetValue(newValue);
+            _valueLabel.Text = FormatLabel(newValue, Def.LabelDecimalPlaces, Def.TextFormat);
         }
 
         private MyGuiSliderProperties CreateProperties(DataSourceValueAccessor<float> ds)

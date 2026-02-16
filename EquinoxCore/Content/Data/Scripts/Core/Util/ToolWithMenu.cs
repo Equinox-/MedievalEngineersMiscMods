@@ -40,12 +40,11 @@ namespace Equinox76561198048419394.Core.Util
                 InputContext.Pop();
         }
 
+        public static MyContextMenu CurrentlyOpenMenu(this IToolWithMenu tool) => MyContextMenuScreen.GetContextMenu(tool.ToolContextMenuId);
+
         public static void ToggleMenu(this IToolWithMenu tool)
         {
-            var menu = tool.ToolContextMenuId;
-            if (menu == null)
-                return;
-            var open = MyContextMenuScreen.GetContextMenu(menu);
+            var open = tool.CurrentlyOpenMenu();
             if (open != null)
                 open.Close();
             else
@@ -58,9 +57,6 @@ namespace Equinox76561198048419394.Core.Util
             MyContextMenuScreen.OpenMenu(tool.Holder, tool.ToolContextMenuId, tool.ToolContextMenuArguments);
         }
 
-        public static void CloseMenu(this IToolWithMenu tool)
-        {
-            MyContextMenuScreen.GetContextMenu(tool.ToolContextMenuId)?.Close();
-        }
+        public static void CloseMenu(this IToolWithMenu tool) => tool.CurrentlyOpenMenu()?.Close();
     }
 }

@@ -135,6 +135,8 @@ namespace Equinox76561198048419394.Core.UI
             var controls = new List<ControlFactory>();
             if (ob.Controls != null)
                 foreach (var ctl in ob.Controls)
+                {
+                    if (ctl.TextFormat == null) ctl.TextFormat = "{0}";
                     switch (ctl)
                     {
                         case MyObjectBuilder_EquiAdvancedControllerDefinition.Slider slider:
@@ -153,6 +155,7 @@ namespace Equinox76561198048419394.Core.UI
                             controls.Add(new LabelFactory(this, label));
                             break;
                     }
+                }
 
             Controls = controls;
         }

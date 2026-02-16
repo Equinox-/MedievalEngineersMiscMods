@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Equinox76561198048419394.Core.Util.Memory;
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.DataSources;
+using VRage;
 using VRage.Utils;
 
 namespace Equinox76561198048419394.Core.UI
@@ -27,30 +29,35 @@ namespace Equinox76561198048419394.Core.UI
             DropdownFactory(name, (T[])Enum.GetValues(typeof(T)));
 
         public static SimpleDropdownDataSourceFactory<T> DropdownFactory<T>(Func<T, ContextMenuDropdownDataSource.DropdownItem> name, params T[] values)
-        {
-            var items = new ContextMenuDropdownDataSource.DropdownItem[values.Length];
-            for (var i = 0; i < values.Length; i++)
-                items[i] = name(values[i]);
-            return new SimpleDropdownDataSourceFactory<T>(values, items);
-        }
+            => DropdownFactory(values.Select(x => MyTuple.Create(x, name(x))));
 
         public static SimpleDropdownDataSourceFactory<T> DropdownEnum<T>(Func<T, ContextMenuDropdownDataSource.DropdownItem?> name) where T : struct =>
             DropdownFactory(name, (T[])Enum.GetValues(typeof(T)));
 
         public static SimpleDropdownDataSourceFactory<T> DropdownFactory<T>(Func<T, ContextMenuDropdownDataSource.DropdownItem?> name, params T[] values)
+            => DropdownFactory(values.Select(x => MyTuple.Create(x, name(x)))
+                .Where(x => x.Item2.HasValue)
+                .Select(x => MyTuple.Create(x.Item1, x.Item2.Value)));
+
+        public static SimpleDropdownDataSourceFactory<T> DropdownFactory<T>(IEnumerable<MyTuple<T, ContextMenuDropdownDataSource.DropdownItem>> items)
         {
-            var items = new ContextMenuDropdownDataSource.DropdownItem[values.Length];
-            var j = 0;
-            for (var i = 0; i < values.Length; i++)
+            var initialSize = (items as IReadOnlyCollection<MyTuple<T, ContextMenuDropdownDataSource.DropdownItem>>)?.Count ?? 10;
+            var valuesCopy = new T[initialSize];
+            var itemsCopy = new ContextMenuDropdownDataSource.DropdownItem[initialSize];
+            var i = 0;
+            foreach (var item in items)
             {
-                var item = name(values[i]);
-                if (!item.HasValue) continue;
-                values[j] = values[i];
-                items[j++] = item.Value;
+                if (i >= valuesCopy.Length) System.Array.Resize(ref valuesCopy, valuesCopy.Length * 2);
+                valuesCopy[i] = item.Item1;
+
+                if (i >= itemsCopy.Length) System.Array.Resize(ref itemsCopy, itemsCopy.Length * 2);
+                itemsCopy[i] = item.Item2;
+                i++;
             }
-            System.Array.Resize(ref items, j);
-            System.Array.Resize(ref values, j);
-            return new SimpleDropdownDataSourceFactory<T>(values, items);
+
+            System.Array.Resize(ref itemsCopy, i);
+            System.Array.Resize(ref valuesCopy, i);
+            return new SimpleDropdownDataSourceFactory<T>(valuesCopy, itemsCopy);
         }
 
         public static ContextMenuDropdownDataSource.DropdownItem DropdownItem(string text, string tooltip = null) =>
@@ -156,6 +163,8 @@ namespace Equinox76561198048419394.Core.UI
         }
 
         public ContextMenuDropdownDataSource Create(Func<T> getter, Action<T> setter) => new Impl(this, getter, setter);
+
+        public ContextMenuDropdownDataSource Create(SimpleRefDataSource<T>.DelGetRef getRef) => new Impl(this, () => getRef(), val => getRef() = val);
 
         private sealed class Impl : ContextMenuDropdownDataSource
         {
