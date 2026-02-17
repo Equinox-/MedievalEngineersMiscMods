@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Entities.Components.Crafting.Power;
@@ -107,7 +108,10 @@ namespace Equinox76561198048419394.Core.Inventory
                     {
                         inventory = tokens[2];
                         if (!entity.Components.TryGet<MyInventoryBase>(MyStringHash.GetOrCompute(inventory), out _))
-                            return Respond($"Failed to find inventory {inventory} on {entity.DefinitionId}");
+                        {
+                            var knownInventories = string.Join(", ", entity.Components.GetComponents<MyInventoryBase>().Select(x => x.SubtypeId.String));
+                            return Respond($"Failed to find inventory {inventory} on {entity.DefinitionId}. Known: ${knownInventories}");
+                        }
                     }
                     else
                     {
