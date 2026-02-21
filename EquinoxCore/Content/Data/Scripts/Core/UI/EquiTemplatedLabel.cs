@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using Medieval.GUI.ContextMenu;
 using Medieval.GUI.ContextMenu.DataSources;
-using Sandbox.Graphics.GUI;
-using Sandbox.Gui.Layouts;
 using VRage;
 using VRage.Collections;
 using VRage.Library.Collections;
-using VRageMath;
 using MyGuiControlLabel = Sandbox.Graphics.GUI.MyGuiControlLabel;
 
 namespace Equinox76561198048419394.Core.UI

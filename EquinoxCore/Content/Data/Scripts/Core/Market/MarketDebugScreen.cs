@@ -201,9 +201,9 @@ namespace Equinox76561198048419394.Core.Market
                 slider.ValueChanged += _ =>
                 {
                     if (maxPrice)
-                        _orderFilter.MaxPricePerItem = slider.Value < max ? (int?)slider.Value : null;
+                        _orderFilter.MaxPricePerItem = slider.Value < max ? (uint?)slider.Value : null;
                     else
-                        _orderFilter.MinPricePerItem = slider.Value > 0 ? (int?)slider.Value : null;
+                        _orderFilter.MinPricePerItem = slider.Value > 0 ? (uint?)slider.Value : null;
                     FiltersChanged();
                 };
             }

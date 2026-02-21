@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
-    <Definition xsi:type="MyObjectBuilder_ContainerDefinition">
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Abstract="true">
         <Id Type="EntityBase" Subtype="EquiMarketStorageBase" />
         <Tag>EquiMarketStorage</Tag>
         <Component Type="MultiplayerComponent" />
@@ -17,28 +17,52 @@
         <Id Type="EquiMarketHistoryComponent" />
     </Definition>
 
-    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
+    <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append" Abstract="true">
         <Id Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
         <CopyFrom Type="EntityBase" Subtype="EquiMarketStorageBase" />
+
+        <Component Type="EquiMarketPermissionsComponent" Subtype="EquiLocationalMarketPermissions" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
         <Id Type="EntityBase" Subtype="EquiPlanetMarketStorage" />
         <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+
+        <Component Type="EquiPlanetMarketHostComponent" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
         <Id Type="EntityBase" Subtype="EquiKingdomMarketStorage" />
         <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+
+        <Component Type="EquiKingdomMarketHostComponent" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
         <Id Type="EntityBase" Subtype="EquiRegionMarketStorage" />
         <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+
+        <Component Type="EquiRegionMarketHostComponent" />
     </Definition>
 
     <Definition xsi:type="MyObjectBuilder_ContainerDefinition" Merge="Append" Copy="Append">
         <Id Type="EntityBase" Subtype="EquiAreaMarketStorage" />
         <CopyFrom Type="EntityBase" Subtype="EquiLocationalMarketStorage" />
+
+        <Component Type="EquiAreaMarketHostComponent" />
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_EquiMarketPermissionsComponentDefinition">
+        <Id Type="EquiMarketPermissionsComponent" Subtype="EquiLocationalMarketPermissions" />
+
+        <Rule OrderCreatorRelation="Faction" LocalOnly="true">
+            <Allow>CreateSellOrder</Allow>
+            <Allow>CreateBuyOrder</Allow>
+            <Allow>CollectOrder</Allow>
+        </Rule>
+
+        <Rule OrderCreatorRelation="Faction" LocalOnly="false">
+            <Allow>CancelOrder</Allow>
+        </Rule>
     </Definition>
 </Definitions>

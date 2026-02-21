@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Medieval.GameSystems;
 using Medieval.GameSystems.Factions;
+using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Planet;
 using Sandbox.Game.Players;
 using VRage;
@@ -32,6 +33,23 @@ namespace Equinox76561198048419394.Core.Util
             MyPlanetAreasComponent.UnpackAreaId(regionId, out int face, out var x, out var y);
             kingdom = MyTexts.GetString(MyPlanetAreasComponent.KingdomNames[face]);
             region = (char) ('A' + x) + (y + 1).ToString();
+        }
+
+        public static Vector3D CalculateRegionCenter(this MyPlanetAreasComponent areas, long regionId)
+        {
+            var regionCount = areas.RegionCount;
+            var planetRadius = areas.Planet.AverageRadius;
+            MyPlanetAreasComponent.UnpackAreaId(regionId, out int face, out var x, out var y);
+            MyEnvironmentCubemapHelper.TexcoordToWorld(new Vector2D((2.0 * x - regionCount + 0.5) / regionCount, (2.0 * y - regionCount + 0.5) / regionCount),
+                face, planetRadius, out var position);
+            return position;
+        }
+
+        public static Vector3D CalculateKingdomCenter(this MyPlanetAreasComponent areas, int kingdomId)
+        {
+            var planetRadius = areas.Planet.AverageRadius;
+            MyEnvironmentCubemapHelper.TexcoordToWorld(Vector2D.Zero, kingdomId, planetRadius, out var position);
+            return position;
         }
 
         public static long GetAdjacentArea(this MyPlanetAreasComponent comp, long area, int neighbor)

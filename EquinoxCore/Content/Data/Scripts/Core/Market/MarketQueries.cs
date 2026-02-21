@@ -40,8 +40,14 @@ namespace Equinox76561198048419394.Core.Market
         /// </summary>
         public static RemoteOrderEnumerable Orders(this in FilteredMarketEnumerable markets) => new RemoteOrderEnumerable(in markets);
 
+        /// <summary>
+        /// Tests a market storage component against a filter.
+        /// </summary>
         public static bool Test(this in MarketFilter filter, EquiMarketStorageComponent host) => true;
 
+        /// <summary>
+        /// Tests a market order against a filter.
+        /// </summary>
         public static bool Test(this in MarketOrderFilter filter, in LocalMarketOrder order)
         {
             if (filter.CreatorId != null && order.CreatorId != filter.CreatorId.Value) return false;
@@ -304,12 +310,12 @@ namespace Equinox76561198048419394.Core.Market
         /// <summary>
         /// Filter returned orders with a <see cref="LocalMarketOrder.DesiredPricePerItem"/> greater than or equal to this value.
         /// </summary>
-        public int? MinPricePerItem;
+        public uint? MinPricePerItem;
 
         /// <summary>
         /// Filter returned orders with a <see cref="LocalMarketOrder.DesiredPricePerItem"/> less than or equal to this value.
         /// </summary>
-        public int? MaxPricePerItem;
+        public uint? MaxPricePerItem;
 
         /// <summary>
         /// Filter returned orders with an <see cref="LocalMarketOrder.Item"/> contained within this tag.
@@ -345,18 +351,6 @@ namespace Equinox76561198048419394.Core.Market
         {
             get => CreatorId.HasValue ? MyIdentities.Static?.GetIdentity(CreatorId.Value) : null;
             set => CreatorId = value?.Id;
-        }
-
-        public MarketOrderFilter(MyIdentity creator = null, MarketOrderType? type = null, MyInventoryItemDefinition item = null,
-            MyItemTagDefinition tag = null, MyInventoryConstraint constraint = null, int? minPricePerItem = null, int? maxPricePerItem = null)
-        {
-            CreatorId = creator?.Id;
-            Type = type;
-            if ((item != null ? 1 : 0) + (tag != null ? 1 : 0) + (constraint != null ? 1 : 0) > 1)
-                throw new ArgumentException("Only one of item, tag, or constraint can be set");
-            RawItemFilter = (MyDefinitionBase)item ?? (MyDefinitionBase)tag ?? constraint;
-            MinPricePerItem = minPricePerItem;
-            MaxPricePerItem = maxPricePerItem;
         }
     }
 }
