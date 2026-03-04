@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Serialization;
+using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.GameSystems.Factions;
 using Medieval.GameSystems.Factions;
+using Sandbox.Game.Entities.Inventory.Constraints;
 using Sandbox.Game.Players;
 using VRage.Components;
+using VRage.Definitions.Inventory;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.Definitions;
@@ -39,6 +42,11 @@ namespace Equinox76561198048419394.Core.Market
             _diplomacy = MySession.Static?.Components.Get<MyDiplomacyManager>();
             _neutral = _diplomacy?.RelationshipNeutral ?? MyStringHash.GetOrCompute("Neutral");
         }
+
+        /// <summary>
+        /// Checks if the given item can be used in the market.
+        /// </summary>
+        public bool CheckItem(MyInventoryItemDefinition item) => _definition.Constraint?.Check(item.Id) ?? true;
 
         /// <summary>
         /// Gets the permissions granted to self, against orders created by orderCreator, with local or non-local access.
@@ -82,8 +90,11 @@ namespace Equinox76561198048419394.Core.Market
 
     [MyDefinitionType(typeof(MyObjectBuilder_EquiMarketPermissionsComponentDefinition))]
     [MyDependency(typeof(MyDiplomaticStatusDefinition))]
+    [MyDependency(typeof(MyInventoryConstraint), Recursive = true)]
     public class EquiMarketPermissionsComponentDefinition : MyEntityComponentDefinition
     {
+        public MyInventoryConstraint Constraint { get; private set; }
+
         public EquiMarketPermission PermissionsFor(bool local, MyStringHash relationWithOrderCreator, MyStringHash relationWithMarketOwner)
             => _permissions.GetValueOrDefault(new MarketPermissionKey(local, relationWithOrderCreator, relationWithMarketOwner), (EquiMarketPermission)0);
 
@@ -121,6 +132,7 @@ namespace Equinox76561198048419394.Core.Market
         {
             base.Init(def);
             var ob = (MyObjectBuilder_EquiMarketPermissionsComponentDefinition)def;
+            Constraint = ob.ItemConstraint != null ? MyDefinitionManager.Get<MyInventoryConstraint>(ob.ItemConstraint.Value) : null;
             var relations = MyDefinitionManager.GetOfType<MyDiplomaticStatusDefinition>()
                 .Select(x => x.Id.SubtypeId)
                 .ToList();
@@ -134,8 +146,10 @@ namespace Equinox76561198048419394.Core.Market
                 if (ob.Rules != null)
                     foreach (var rule in ob.Rules)
                         if ((!rule.LocalOnly || local)
-                            && (string.IsNullOrEmpty(rule.OrderCreatorRelation) || rule.OrderCreatorRelation == orderCreatorRelation.String)
-                            && (string.IsNullOrEmpty(rule.MarketOwnerRelation) || rule.MarketOwnerRelation == marketOwnerRelation.String)
+                            && (string.IsNullOrEmpty(rule.OrderCreatorRelation) ||
+                                rule.OrderCreatorRelation.ContainsCommaSeparated(orderCreatorRelation.String))
+                            && (string.IsNullOrEmpty(rule.MarketOwnerRelation)
+                                || rule.MarketOwnerRelation.ContainsCommaSeparated(marketOwnerRelation.String))
                             && rule.Allowed != null)
                             foreach (var allow in rule.Allowed)
                                 allowed |= allow;
@@ -151,22 +165,27 @@ namespace Equinox76561198048419394.Core.Market
         /// Create a sell order that is paired with an existing buy order.
         /// </summary>
         CreateSellOrderPaired = 1 << 0,
+
         /// <summary>
         /// Create an arbitrary sell order.
         /// </summary>
         CreateSellOrder = 1 << 1 | CreateSellOrderPaired, // Implies CreateSellOrderPaired
+
         /// <summary>
         /// Create a buy order that is paired with an existing sell order.
         /// </summary>
         CreateBuyOrderPaired = 1 << 2,
+
         /// <summary>
         /// Create an arbitrary buy order.
         /// </summary>
         CreateBuyOrder = 1 << 3 | CreateBuyOrderPaired, // Implies CreateBuyOrderPaired
+
         /// <summary>
         /// Collect money and items from an order.
         /// </summary>
         CollectOrder = 1 << 4,
+
         /// <summary>
         /// Cancel an order.
         /// </summary>
@@ -182,6 +201,12 @@ namespace Equinox76561198048419394.Core.Market
     [XmlSerializerAssembly("MedievalEngineers.ObjectBuilders.XmlSerializers")]
     public class MyObjectBuilder_EquiMarketPermissionsComponentDefinition : MyObjectBuilder_EntityComponentDefinition
     {
+        /// <summary>
+        /// Inventory constraint to use when determining what item types can be ordered.
+        /// </summary>
+        [XmlElement]
+        public SerializableDefinitionId? ItemConstraint;
+
         [XmlElement("Rule")]
         public List<MarketPermissionRule> Rules;
 
@@ -189,14 +214,14 @@ namespace Equinox76561198048419394.Core.Market
         {
             /// <summary>
             /// Only grant permission when the diplomatic status between the order creator and the interacting player matches this value.
-            /// Empty to match any diplomatic status.
+            /// Empty to match any diplomatic status. Multiple comma separated values can be provided.
             /// </summary>
             [XmlAttribute]
             public string OrderCreatorRelation;
 
             /// <summary>
             /// Only grant permission when the diplomatic status between the market owner and the interacting player matches this value.
-            /// Empty to match any diplomatic status.
+            /// Empty to match any diplomatic status. Multiple comma separated values can be provided.
             /// </summary>
             [XmlAttribute]
             public string MarketOwnerRelation;

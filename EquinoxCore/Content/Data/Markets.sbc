@@ -55,14 +55,30 @@
     <Definition xsi:type="MyObjectBuilder_EquiMarketPermissionsComponentDefinition">
         <Id Type="EquiMarketPermissionsComponent" Subtype="EquiLocationalMarketPermissions" />
 
-        <Rule OrderCreatorRelation="Faction" LocalOnly="true">
+        <ItemConstraint Type="ItemTypeConstraint" Subtype="EquiDefaultMarketConstraint" />
+
+        <Rule OrderCreatorRelation="Self,Faction" LocalOnly="true">
             <Allow>CreateSellOrder</Allow>
             <Allow>CreateBuyOrder</Allow>
             <Allow>CollectOrder</Allow>
         </Rule>
 
-        <Rule OrderCreatorRelation="Faction" LocalOnly="false">
+        <Rule OrderCreatorRelation="Self,Faction" LocalOnly="false">
             <Allow>CancelOrder</Allow>
         </Rule>
+    </Definition>
+
+    <Definition xsi:type="MyObjectBuilder_ItemTypeConstraint">
+        <Id Type="ItemTypeConstraint" Subtype="EquiDefaultMarketConstraint" />
+        <Whitelist>true</Whitelist>
+        <Item Type="InventoryItem" />
+        <!-- Omitting DurableItem and subtypes -->
+        <Item Type="PhysicalObject" />
+        <Item Type="BlockItem" />
+        <Item Type="UsableItem" />
+        <Item Type="ConsumableItem" />
+        <Item Type="QuestItem" />
+        <Item Type="SchematicItem" />
+        <Item Type="ProjectileItem" />
     </Definition>
 </Definitions>

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Medieval.Definitions.GameSystems.Building;
 using Medieval.Entities.UseObject;
 using Medieval.GameSystems;
@@ -171,6 +172,23 @@ namespace Equinox76561198048419394.Core.Util
             if (args != null && args.Length == 2 && args[0] != null)
                 return args[0].ToString();
             return "F";
+        }
+
+        public static bool ContainsCommaSeparated(this string haystack, string query, StringComparison comparison = StringComparison.Ordinal)
+        {
+            var ix = 0;
+            while (true)
+            {
+                ix = haystack.IndexOf(query, ix, comparison);
+                if (ix == -1)
+                    return false;
+                var end = ix + query.Length;
+                var startsWithComma = ix == 0 || haystack[ix - 1] == ',';
+                var endsWithComma = end >= haystack.Length || haystack[end] == ',';
+                if (startsWithComma && endsWithComma)
+                    return true;
+                ix = end;
+            }
         }
     }
 }

@@ -1,14 +1,15 @@
 using System;
 using System.Globalization;
 using Equinox76561198048419394.Core.Util;
+using Sandbox.Game.Entities;
 using Sandbox.Game.GameSystems.Chat;
 using Sandbox.Game.Players;
 using Sandbox.ModAPI;
 using VRage.Definitions.Inventory;
 using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.Entity;
 using VRage.ObjectBuilder;
-using VRage.Session;
 using VRage.Utils;
 using VRageMath;
 
@@ -71,6 +72,14 @@ namespace Equinox76561198048419394.Core.Market
                 if (!market.Components.TryGet(out marketStorage))
                     return Respond($"Location market storage entity {market} does not have a market storage component");
 
+                return false;
+            }
+
+            bool GetPlayerInventory(out MyInventoryBase inventory)
+            {
+                inventory = player.ControlledEntity?.GetInventory();
+                if (inventory == null)
+                    return Respond("Player does not have an inventory");
                 return false;
             }
 
@@ -155,22 +164,40 @@ namespace Equinox76561198048419394.Core.Market
 
             bool ModeBuy()
             {
-                if (handledAsType == MyChatCommandType.Client) return Respond("Not supported on the client.");
                 if (GetMarket(out var marketStorage, true)) return true;
                 if (GetBuySellArgs(out var item, out var pricePerItem, out var amount)) return true;
-                var id = marketStorage.CreateBuyOrder(player.Identity, item, pricePerItem, amount, pricePerItem * amount);
-                Respond($"Created order, id={id}");
-                return true;
+                if (handledAsType == MyChatCommandType.Server)
+                {
+                    var id = marketStorage.CreateBuyOrder(player.Identity, item, pricePerItem, amount, pricePerItem * amount);
+                    Respond($"Created order, id={id}");
+                    return true;
+                }
+
+                if (GetPlayerInventory(out var inventory)) return true;
+                var result = marketStorage.CanCreateBuyOrder(inventory, item, pricePerItem, amount);
+                if (result != EquiMarketStorageComponent.CanCreateBuyOrderResult.Okay)
+                    return Respond($"Cannot create buy order: {result}");
+                marketStorage.RequestCreateBuyOrder(inventory, item, pricePerItem, amount);
+                return Respond("Requested buy order creation");
             }
 
             bool ModeSell()
             {
-                if (handledAsType == MyChatCommandType.Client) return Respond("Not supported on the client.");
                 if (GetMarket(out var marketStorage, true)) return true;
                 if (GetBuySellArgs(out var item, out var pricePerItem, out var amount)) return true;
-                var id = marketStorage.CreateSellOrder(player.Identity, item, pricePerItem, amount);
-                Respond($"Created order, id={id}");
-                return true;
+                if (handledAsType == MyChatCommandType.Server)
+                {
+                    var id = marketStorage.CreateSellOrder(player.Identity, item, pricePerItem, amount);
+                    Respond($"Created order, id={id}");
+                    return true;
+                }
+
+                if (GetPlayerInventory(out var inventory)) return true;
+                var result = marketStorage.CanCreateSellOrder(inventory, item, pricePerItem, amount);
+                if (result != EquiMarketStorageComponent.CanCreateSellOrderResult.Okay)
+                    return Respond($"Cannot create sell order: {result}");
+                marketStorage.RequestCreateSellOrder(inventory, item, pricePerItem, amount);
+                return Respond("Requested sell order creation");
             }
 
             bool GetManageOrderArgs(out MarketOrderLocalId id)
@@ -186,34 +213,51 @@ namespace Equinox76561198048419394.Core.Market
 
             bool ModeCancel()
             {
-                if (handledAsType == MyChatCommandType.Client) return Respond("Not supported on the client.");
                 if (GetMarket(out var marketStorage)) return true;
                 if (GetManageOrderArgs(out var id)) return true;
-                var cancelled = marketStorage.CancelOrder(id);
-                return Respond(cancelled ? "Order was cancelled" : "Order did not exist");
+                if (handledAsType == MyChatCommandType.Server)
+                {
+                    var cancelled = marketStorage.CancelOrder(id);
+                    return Respond(cancelled ? "Order was cancelled" : "Order did not exist");
+                }
+
+                var result = marketStorage.CanCancelOrder(id);
+                if (result != EquiMarketStorageComponent.CanCancelOrderResult.Okay)
+                    return Respond($"Cannot cancel order: {result}");
+                marketStorage.RequestCancelOrder(id);
+                return Respond("Requested order cancellation");
             }
 
             bool ModeCollect()
             {
-                if (handledAsType == MyChatCommandType.Client) return Respond("Not supported on the client.");
                 if (GetMarket(out var marketStorage)) return true;
                 if (GetManageOrderArgs(out var id)) return true;
-                var collectResult = marketStorage.CollectOrder(id,
-                    ref sender, (ref ulong senderCaptured, in MyDefinitionId item, int amount) =>
-                    {
-                        var granted = (amount + 1) / 2;
-                        MyChatSystem.Static.SendMessageToClient(senderCaptured, MyStringHash.GetOrCompute("System"),
-                            0, $"Collected {item}, {granted} of {amount}.");
-                        return granted;
-                    },
-                    (ref ulong senderCaptured, int amount) =>
-                    {
-                        var granted = (amount + 1) / 2;
-                        MyChatSystem.Static.SendMessageToClient(senderCaptured, MyStringHash.GetOrCompute("System"),
-                            0, $"Collected money, {granted} of {amount}");
-                        return granted;
-                    });
-                return Respond($"Collect result: {collectResult}");
+                if (handledAsType == MyChatCommandType.Server)
+                {
+                    var collectResult = marketStorage.CollectOrder(id,
+                        ref sender, (ref ulong senderCaptured, in MyDefinitionId item, int amount) =>
+                        {
+                            var granted = (amount + 1) / 2;
+                            MyChatSystem.Static.SendMessageToClient(senderCaptured, MyStringHash.GetOrCompute("System"),
+                                0, $"Collected {item}, {granted} of {amount}.");
+                            return granted;
+                        },
+                        (ref ulong senderCaptured, int amount) =>
+                        {
+                            var granted = (amount + 1) / 2;
+                            MyChatSystem.Static.SendMessageToClient(senderCaptured, MyStringHash.GetOrCompute("System"),
+                                0, $"Collected money, {granted} of {amount}");
+                            return granted;
+                        });
+                    return Respond($"Collect result: {collectResult}");
+                }
+
+                if (GetPlayerInventory(out var inventory)) return true;
+                var result = marketStorage.CanCollectOrder(inventory, id);
+                if (result != EquiMarketStorageComponent.CanCollectOrderResult.Okay)
+                    return Respond($"Cannot collect order: {result}");
+                marketStorage.RequestCollectOrder(inventory, id);
+                return Respond("Requested order collection");
             }
 
             bool ModeHistory()

@@ -11,6 +11,8 @@ using VRage.ObjectBuilders;
 using VRage.Scene;
 using VRageMath;
 
+// ReSharper disable ConvertIfStatementToReturnStatement
+
 namespace Equinox76561198048419394.Core.Market
 {
     public partial class EquiMarketStorageComponent
@@ -18,18 +20,44 @@ namespace Equinox76561198048419394.Core.Market
         [Automatic]
         private readonly EquiMarketPermissionsComponent _permissions = null;
 
+        public enum CanCreateBuyOrderResult
+        {
+            Okay,
+            NoIdentity,
+            InvalidItem,
+            NoPermission,
+            NotEnoughPairedOrders,
+            NotEnoughMoney,
+        }
+
         /// <summary>
         /// Determines if buy orders can be created by the local player.
         /// </summary>
-        public bool CanCreateBuyOrders(bool local = true) => TryGetLocalIdentity(out var identity)
-                                                             && _permissions.PermissionsFor(identity, identity.Id, local)
-                                                                 .Has(EquiMarketPermission.CreateBuyOrderPaired);
+        public CanCreateBuyOrderResult CanCreateBuyOrders(bool local = true)
+        {
+            if (!TryGetLocalIdentity(out var identity))
+                return CanCreateBuyOrderResult.NoIdentity;
+            if (!_permissions.PermissionsFor(identity, identity.Id, local).Has(EquiMarketPermission.CreateBuyOrderPaired))
+                return CanCreateBuyOrderResult.NoPermission;
+            return CanCreateBuyOrderResult.Okay;
+        }
+
+        /// <summary>
+        /// Determines if any buy order for the given item can be created by the local player.
+        /// </summary>
+        public CanCreateBuyOrderResult CanCreateBuyOrder(MyInventoryBase inventory, MyInventoryItemDefinition item, bool local = true)
+            => CanCreateBuyOrder(inventory, item, uint.MaxValue, 0, local);
 
         /// <summary>
         /// Determines if a new buy order can be created by the local player.
         /// </summary>
-        public bool CanCreateBuyOrder(MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount, bool local = true)
-            => TryGetLocalIdentity(out var identity) && CanCreateBuyOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local);
+        public CanCreateBuyOrderResult CanCreateBuyOrder(MyInventoryBase inventory, MyInventoryItemDefinition item,
+            uint pricePerItem, uint itemAmount, bool local = true)
+        {
+            if (!TryGetLocalIdentity(out var identity))
+                return CanCreateBuyOrderResult.NoIdentity;
+            return CanCreateBuyOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local);
+        }
 
         /// <summary>
         /// Called by the local player to create a new buy order. If they don't have enough currency, based on the
@@ -37,7 +65,8 @@ namespace Equinox76561198048419394.Core.Market
         /// </summary>
         public void RequestCreateBuyOrder(MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount, bool local = true)
         {
-            if (!TryGetLocalIdentity(out var identity) || !CanCreateBuyOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local)) return;
+            if (!TryGetLocalIdentity(out var identity)
+                || CanCreateBuyOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local) != CanCreateBuyOrderResult.Okay) return;
             if (MyMultiplayerModApi.Static.IsServer)
                 CreateBuyOrderImpl(identity, inventory, item, pricePerItem, itemAmount);
             else
@@ -45,25 +74,52 @@ namespace Equinox76561198048419394.Core.Market
                     (SerializableDefinitionId)item.Id, pricePerItem, itemAmount);
         }
 
+        public enum CanCreateSellOrderResult
+        {
+            Okay,
+            NoIdentity,
+            InvalidItem,
+            NoPermission,
+            NotEnoughPairedOrders,
+            NotEnoughItems,
+        }
+
         /// <summary>
         /// Determines if sell orders can be created by the local player.
         /// </summary>
-        public bool CanCreateSellOrders(bool local = true) => TryGetLocalIdentity(out var identity)
-                                                              && _permissions.PermissionsFor(identity, identity.Id, local)
-                                                                  .Has(EquiMarketPermission.CreateSellOrderPaired);
+        public CanCreateSellOrderResult CanCreateSellOrders(bool local = true)
+        {
+            if (!TryGetLocalIdentity(out var identity))
+                return CanCreateSellOrderResult.NoIdentity;
+            if (!_permissions.PermissionsFor(identity, identity.Id, local).Has(EquiMarketPermission.CreateSellOrderPaired))
+                return CanCreateSellOrderResult.NoPermission;
+            return CanCreateSellOrderResult.Okay;
+        }
+
+        /// <summary>
+        /// Determines if any sell order for the given item can be created by the local player.
+        /// </summary>
+        public CanCreateSellOrderResult CanCreateSellOrder(MyInventoryBase inventory, MyInventoryItemDefinition item, bool local = true)
+            => CanCreateSellOrder(inventory, item, 0, 0, local);
 
         /// <summary>
         /// Determines if a new sell order can be created by the local player.
         /// </summary>
-        public bool CanCreateSellOrder(MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount, bool local = true)
-            => TryGetLocalIdentity(out var identity) && CanCreateSellOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local);
+        public CanCreateSellOrderResult CanCreateSellOrder(MyInventoryBase inventory, MyInventoryItemDefinition item,
+            uint pricePerItem, uint itemAmount, bool local = true)
+        {
+            if (!TryGetLocalIdentity(out var identity))
+                return CanCreateSellOrderResult.NoIdentity;
+            return CanCreateSellOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local);
+        }
 
         /// <summary>
         /// Called by the local player to create a new sell order. If they don't have enough of the item in the provided inventory the order won't be created.
         /// </summary>
         public void RequestCreateSellOrder(MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount, bool local = true)
         {
-            if (!TryGetLocalIdentity(out var identity) || !CanCreateSellOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local)) return;
+            if (!TryGetLocalIdentity(out var identity) ||
+                CanCreateSellOrderImpl(identity, inventory, item, pricePerItem, itemAmount, local) != CanCreateSellOrderResult.Okay) return;
             if (MyMultiplayerModApi.Static.IsServer)
                 CreateSellOrderImpl(identity, inventory, item, pricePerItem, itemAmount);
             else
@@ -71,36 +127,61 @@ namespace Equinox76561198048419394.Core.Market
                     (SerializableDefinitionId)item.Id, pricePerItem, itemAmount);
         }
 
+        public enum CanCancelOrderResult
+        {
+            Okay,
+            NoIdentity,
+            NoOrder,
+            NoPermission,
+        }
+
         /// <summary>
         /// Determines if the local player can cancel the given order.
         /// </summary>
-        public bool CanCancelOrder(MarketOrderLocalId id, bool local = true) =>
-            TryGetLocalIdentity(out var identity) && CanCancelOrderImpl(identity, id, local);
+        public CanCancelOrderResult CanCancelOrder(MarketOrderLocalId id, bool local = true)
+        {
+            if (!TryGetLocalIdentity(out var identity))
+                return CanCancelOrderResult.NoIdentity;
+            return CanCancelOrderImpl(identity, id, local);
+        }
 
         /// <summary>
         /// Called by a local player to cancel an order they created.
         /// </summary>
         public void RequestCancelOrder(MarketOrderLocalId id)
         {
-            if (!CanCancelOrder(id)) return;
+            if (CanCancelOrder(id) != CanCancelOrderResult.Okay) return;
             if (MyMultiplayerModApi.Static.IsServer)
                 CancelOrder(id);
             else
                 MyAPIGateway.Multiplayer.RaiseEvent(this, m => m.RequestCancelOrder_Sync, (ulong)id);
         }
 
+        public enum CanCollectOrderResult
+        {
+            Okay,
+            NoIdentity,
+            NoOrder,
+            NoPermission,
+            NothingToCollect,
+        }
+
         /// <summary>
         /// Determines if the local player can collect the given order.
         /// </summary>
-        public bool CanCollectOrder(MyInventoryBase inventory, MarketOrderLocalId id) =>
-            TryGetLocalIdentity(out var identity) && CanCollectOrderImpl(identity, inventory, id, true);
+        public CanCollectOrderResult CanCollectOrder(MyInventoryBase inventory, MarketOrderLocalId id)
+        {
+            if (!TryGetLocalIdentity(out var identity))
+                return CanCollectOrderResult.NoIdentity;
+            return CanCollectOrderImpl(identity, inventory, id, true);
+        }
 
         /// <summary>
         /// Called by a local player to collect items and currency for an order they created into the provided inventory.
         /// </summary>
         public void RequestCollectOrder(MyInventoryBase inventory, MarketOrderLocalId id)
         {
-            if (!CanCollectOrder(inventory, id)) return;
+            if (CanCollectOrder(inventory, id) != CanCollectOrderResult.Okay) return;
             if (MyMultiplayerModApi.Static.IsServer)
                 CollectOrderImpl(inventory, id);
             else
@@ -115,7 +196,7 @@ namespace Equinox76561198048419394.Core.Market
             var sender = NetworkTrust.SenderIdentity;
             if (!TryGetTrustedInventory(inventoryId, out var inventory)
                 || sender == null || !MyDefinitionManager.TryGet(itemId, out MyInventoryItemDefinition item)
-                || !CanCreateBuyOrderImpl(sender, inventory, item, pricePerItem, itemAmount, true))
+                || CanCreateBuyOrderImpl(sender, inventory, item, pricePerItem, itemAmount, true) != CanCreateBuyOrderResult.Okay)
             {
                 MyEventContext.ValidationFailed();
                 return;
@@ -130,7 +211,7 @@ namespace Equinox76561198048419394.Core.Market
             var sender = NetworkTrust.SenderIdentity;
             if (!TryGetTrustedInventory(inventoryId, out var inventory)
                 || sender == null || !MyDefinitionManager.TryGet(itemId, out MyInventoryItemDefinition item)
-                || !CanCreateSellOrderImpl(sender, inventory, item, pricePerItem, itemAmount, true))
+                || CanCreateSellOrderImpl(sender, inventory, item, pricePerItem, itemAmount, true) != CanCreateSellOrderResult.Okay)
             {
                 MyEventContext.ValidationFailed();
                 return;
@@ -142,8 +223,9 @@ namespace Equinox76561198048419394.Core.Market
         [Event, Reliable, Server]
         private void RequestCancelOrder_Sync(ulong orderIdRaw)
         {
+            var sender = NetworkTrust.SenderIdentity;
             MarketOrderLocalId id = orderIdRaw;
-            if (!TryGetLocalOrderHandle(id, out var order) || order.Value.CreatorId != NetworkTrust.SenderIdentity?.Id)
+            if (sender == null || CanCancelOrderImpl(sender, id, true) != CanCancelOrderResult.Okay)
             {
                 MyEventContext.ValidationFailed();
                 return;
@@ -157,7 +239,7 @@ namespace Equinox76561198048419394.Core.Market
         {
             MarketOrderLocalId id = orderIdRaw;
             var sender = NetworkTrust.SenderIdentity;
-            if (!TryGetTrustedInventory(inventoryId, out var inventory) || !CanCollectOrderImpl(sender, inventory, id, true))
+            if (!TryGetTrustedInventory(inventoryId, out var inventory) || CanCollectOrderImpl(sender, inventory, id, true) != CanCollectOrderResult.Okay)
             {
                 MyEventContext.ValidationFailed();
                 return;
@@ -170,69 +252,106 @@ namespace Equinox76561198048419394.Core.Market
 
         #region Implementations
 
-        private bool CanCreateBuyOrderImpl(MyIdentity identity, MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount,
-            bool local)
+        private CanCreateBuyOrderResult CanCreateBuyOrderImpl(MyIdentity identity, MyInventoryBase inventory, MyInventoryItemDefinition item,
+            uint pricePerItem, uint itemAmount, bool local)
         {
-            return identity != null
-                   && _manager.CurrencySystem.TotalValue(inventory) >= pricePerItem * (ulong)itemAmount
-                   && _permissions.PermissionsFor(identity, identity.Id, local)
-                       .Has(IsPaired() ? EquiMarketPermission.CreateBuyOrderPaired : EquiMarketPermission.CreateBuyOrder);
+            if (identity == null)
+                return CanCreateBuyOrderResult.NoIdentity;
+            if (!_permissions.CheckItem(item))
+                return CanCreateBuyOrderResult.InvalidItem;
+            var perms = _permissions.PermissionsFor(identity, identity.Id, local);
+            if (!perms.Has(EquiMarketPermission.CreateBuyOrder))
+            {
+                if (!perms.Has(EquiMarketPermission.CreateBuyOrderPaired))
+                    return CanCreateBuyOrderResult.NoPermission;
+                if (!IsPaired())
+                    return CanCreateBuyOrderResult.NotEnoughPairedOrders;
+            }
+
+            if (itemAmount > 0 && _manager.CurrencySystem.TotalValue(inventory) < pricePerItem * (ulong)itemAmount)
+                return CanCreateBuyOrderResult.NotEnoughMoney;
+            return CanCreateBuyOrderResult.Okay;
 
             bool IsPaired()
             {
                 var buyable = 0u;
-                foreach (var handle in _orders)
-                {
-                    ref var order = ref handle.Value;
-                    if (order.Type != MarketOrderType.Sell || order.Item != item.Id || order.DesiredPricePerItem > pricePerItem)
-                        continue;
-                    buyable += order.RemainingItemAmount;
-                    if (buyable >= itemAmount)
-                        return true;
-                }
+                using (var e = Orders
+                           .Filter(new MarketOrderFilter { Type = MarketOrderType.Sell, ItemFilter = item, MaxPricePerItem = pricePerItem })
+                           .GetEnumerator())
+                    while (e.MoveNext())
+                    {
+                        ref readonly var order = ref e.Current;
+                        buyable += order.RemainingItemAmount;
+                        if (buyable >= itemAmount)
+                            return true;
+                    }
 
                 return false;
             }
         }
 
-        private bool CanCreateSellOrderImpl(MyIdentity identity, MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount,
-            bool local)
+        private CanCreateSellOrderResult CanCreateSellOrderImpl(MyIdentity identity, MyInventoryBase inventory, MyInventoryItemDefinition item,
+            uint pricePerItem, uint itemAmount, bool local)
         {
-            return identity != null
-                   && inventory.CanRemoveItems(item.Id, (int)itemAmount)
-                   && _permissions.PermissionsFor(identity, identity.Id, local)
-                       .Has(IsPaired() ? EquiMarketPermission.CreateSellOrderPaired : EquiMarketPermission.CreateSellOrder);
+            if (identity == null)
+                return CanCreateSellOrderResult.NoIdentity;
+            if (!_permissions.CheckItem(item))
+                return CanCreateSellOrderResult.InvalidItem;
+            var perms = _permissions.PermissionsFor(identity, identity.Id, local);
+            if (!perms.Has(EquiMarketPermission.CreateSellOrder))
+            {
+                if (!perms.Has(EquiMarketPermission.CreateSellOrderPaired))
+                    return CanCreateSellOrderResult.NoPermission;
+                if (!IsPaired())
+                    return CanCreateSellOrderResult.NotEnoughPairedOrders;
+            }
+
+            if (itemAmount > 0 && inventory.GetItemAmount(item.Id) < itemAmount) // CanRemoveItems is broken, MEC~555
+                return CanCreateSellOrderResult.NotEnoughItems;
+            return CanCreateSellOrderResult.Okay;
 
             bool IsPaired()
             {
                 var sellable = 0u;
-                foreach (var handle in _orders)
-                {
-                    ref var order = ref handle.Value;
-                    if (order.Type != MarketOrderType.Buy || order.Item != item.Id || order.DesiredPricePerItem < pricePerItem)
-                        continue;
-                    sellable += order.RemainingItemAmount;
-                    if (sellable >= itemAmount)
-                        return true;
-                }
+                using (var e = Orders
+                           .Filter(new MarketOrderFilter { Type = MarketOrderType.Buy, ItemFilter = item, MinPricePerItem = pricePerItem })
+                           .GetEnumerator())
+                    while (e.MoveNext())
+                    {
+                        ref readonly var order = ref e.Current;
+                        sellable += order.RemainingItemAmount;
+                        if (sellable >= itemAmount)
+                            return true;
+                    }
 
                 return false;
             }
         }
 
-        private bool CanCancelOrderImpl(MyIdentity identity, MarketOrderLocalId id, bool local)
+        private CanCancelOrderResult CanCancelOrderImpl(MyIdentity identity, MarketOrderLocalId id, bool local)
         {
-            if (identity == null || !TryGetLocalOrderHandle(id, out var orderHandle)) return false;
+            if (identity == null)
+                return CanCancelOrderResult.NoIdentity;
+            if (!TryGetLocalOrderHandle(id, out var orderHandle))
+                return CanCancelOrderResult.NoOrder;
             ref readonly var order = ref orderHandle.Value;
-            return _permissions.PermissionsFor(identity, order.CreatorId, local).Has(EquiMarketPermission.CancelOrder);
+            if (!_permissions.PermissionsFor(identity, order.CreatorId, local).Has(EquiMarketPermission.CancelOrder))
+                return CanCancelOrderResult.NoPermission;
+            return CanCancelOrderResult.Okay;
         }
 
-        private bool CanCollectOrderImpl(MyIdentity identity, MyInventoryBase inventory, MarketOrderLocalId id, bool local)
+        private CanCollectOrderResult CanCollectOrderImpl(MyIdentity identity, MyInventoryBase inventory, MarketOrderLocalId id, bool local)
         {
-            if (identity == null || !TryGetLocalOrderHandle(id, out var orderHandle)) return false;
+            if (identity == null)
+                return CanCollectOrderResult.NoIdentity;
+            if (!TryGetLocalOrderHandle(id, out var orderHandle))
+                return CanCollectOrderResult.NoOrder;
             ref readonly var order = ref orderHandle.Value;
-            return order.HasCollectableResources(out _, out _)
-                   && _permissions.PermissionsFor(identity, order.CreatorId, local).Has(EquiMarketPermission.CollectOrder);
+            if (!_permissions.PermissionsFor(identity, order.CreatorId, local).Has(EquiMarketPermission.CollectOrder))
+                return CanCollectOrderResult.NoPermission;
+            if (!order.HasCollectableResources(out _, out _))
+                return CanCollectOrderResult.NothingToCollect;
+            return CanCollectOrderResult.Okay;
         }
 
         private void CreateBuyOrderImpl(MyIdentity identity, MyInventoryBase inventory, MyInventoryItemDefinition item, uint pricePerItem, uint itemAmount)
