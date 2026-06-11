@@ -201,19 +201,16 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                             {
                                 var originalMaterial = new MaterialInModel(part.m_MaterialDesc.MaterialName, part.Technique);
                                 var newMaterialName = originalMaterial.Name;
+                                edits.Clear();
+                                builder.Get(originalMaterial, edits);
+                                if (edits.Count != 0)
+                                {
+                                    foreach (var edit in edits)
+                                        edit.ApplyTo(part.m_MaterialDesc);
+                                    newMaterialName = SafeMaterialName(GenerateMaterialName(part.m_MaterialDesc));
+                                }
                                 if (builder.TryGetMaterialSwap(originalMaterial.Name, out var swappedMaterialName))
                                     newMaterialName = swappedMaterialName;
-                                else if (part.m_MaterialDesc.TechniqueEnum != MyMeshDrawTechnique.GLASS)
-                                {
-                                    edits.Clear();
-                                    builder.Get(originalMaterial, edits);
-                                    if (edits.Count != 0)
-                                    {
-                                        foreach (var edit in edits)
-                                            edit.ApplyTo(part.m_MaterialDesc);
-                                        newMaterialName = SafeMaterialName(GenerateMaterialName(part.m_MaterialDesc));
-                                    }
-                                }
                                 if (newMaterialName != originalMaterial.Name)
                                 {
                                     part.m_MaterialDesc = part.m_MaterialDesc.Clone(newMaterialName);

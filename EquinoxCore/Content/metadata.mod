@@ -3,6 +3,7 @@
   <ModId>equinoxcore</ModId>
   <WorkshopId>1367411991</WorkshopId>
   <ModVersion>2.0</ModVersion>
-  <MinGameVersion>0.7.1</MinGameVersion>
+  <MinGameVersion>0.7.3</MinGameVersion>
   <MaxGameVersion>0.8</MaxGameVersion>
+  <EnableScriptCaching>true</EnableScriptCaching>
 </ModMetadata>

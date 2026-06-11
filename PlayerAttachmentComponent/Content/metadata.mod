@@ -5,4 +5,5 @@
   <ModVersion>2.0</ModVersion>
   <MinGameVersion>0.7.1</MinGameVersion>
   <MaxGameVersion>0.8</MaxGameVersion>
+  <EnableScriptCaching xsi:nil="true" />
 </ModMetadata>

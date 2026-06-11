@@ -49,7 +49,7 @@ namespace Equinox76561198048419394.Core.UI
             var maxVal = _dataSource.Max ?? Def.Max ?? float.NegativeInfinity;
             if (minVal >= maxVal) return;
             Root.Enabled = true;
-            _slider.DefaultValue = _dataSource.Default ?? Def.Default ?? (minVal + maxVal) / 2;
+            _slider.DefaultRatio = _slider.Properties.ValueToRatio(_dataSource.Default ?? Def.Default ?? (minVal + maxVal) / 2);
             var newValue = value.Value;
             var tolerance = Math.Max(Math.Abs(minVal), Math.Abs(maxVal)) / 1000;
             if (Math.Abs(newValue - _slider.Value) <= tolerance) return;

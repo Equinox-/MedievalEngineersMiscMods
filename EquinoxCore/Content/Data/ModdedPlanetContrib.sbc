@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+  <!-- these vanilla definitions shouldn't be limited to a specific planet -->
+  <Definition xsi:type="MyObjectBuilder_EnvironmentRuleDefinition">
+    <Id Type="EnvironmentRuleDefinition" Subtype="PlanetGlobal" />
+    <Result Urgency="1" Type="MyObjectBuilder_DynamicSunDefinition" Subtype="Global" />
+    <Result Urgency="1" Type="MyObjectBuilder_DynamicFogDefinition" Subtype="Global" />
+    <Result Urgency="1" Type="MyObjectBuilder_DynamicAtmosphereDefinition" Subtype="Global" />
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_EnvironmentRuleDefinition">
+    <Id Type="EnvironmentRuleDefinition" Subtype="PlanetDesertSand" />
+    <Biome Type="BiomeDefinition" Subtype="DesertSand" />
+    <Result Urgency="2" Type="MyObjectBuilder_DynamicFogDefinition" Subtype="Desert" />
+  </Definition>
+
+  <Definition xsi:type="MyObjectBuilder_EnvironmentRuleDefinition">
+    <Id Type="EnvironmentRuleDefinition" Subtype="PlanetDesertRock" />
+    <Biome Type="BiomeDefinition" Subtype="DesertRock" />
+    <Result Urgency="2" Type="MyObjectBuilder_DynamicFogDefinition" Subtype="Desert" />
+  </Definition>
+</Definitions>
