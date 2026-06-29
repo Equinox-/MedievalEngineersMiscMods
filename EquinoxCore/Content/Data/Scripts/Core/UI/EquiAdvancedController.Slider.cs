@@ -35,7 +35,7 @@ namespace Equinox76561198048419394.Core.UI
 
             _slider.ApplyStyle(sliderStyle);
             _slider.ValueChanged += _ => SyncFromControl();
-            _slider.SliderClicked += SliderClicked;
+            SliderCtrlClickInput.Bind(_slider);
             MakeVerticalRoot(_slider, _valueLabel);
             SyncToControlInternal();
         }
@@ -119,20 +119,6 @@ namespace Equinox76561198048419394.Core.UI
         private static string FormatLabel(float value, int decimalPlaces, string textFormat)
         {
             return string.Format(textFormat, value.ToString("N" + decimalPlaces));
-        }
-
-        private bool SliderClicked(MyGuiControlSliderBase _)
-        {
-            if (!MyAPIGateway.Input.IsAnyCtrlKeyDown() || !_slider.Enabled)
-                return false;
-            var minVal = _dataSource.Min ?? Def.Min ?? float.PositiveInfinity;
-            var maxVal = _dataSource.Max ?? Def.Max ?? float.NegativeInfinity;
-            var dialog = new MyFloatInputDialog(
-                MyTexts.GetString(MyCommonTexts.DialogAmount_SetValueCaption),
-                minVal, maxVal, _slider.Value);
-            dialog.ResultCallback += v => _slider.Value = v;
-            MyGuiSandbox.AddScreen(dialog);
-            return true;
         }
     }
 

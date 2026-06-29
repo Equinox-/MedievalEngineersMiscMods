@@ -62,6 +62,63 @@ namespace Equinox76561198048419394.Core.UI
 
         public static ContextMenuDropdownDataSource.DropdownItem DropdownItem(string text, string tooltip = null) =>
             new ContextMenuDropdownDataSource.DropdownItem(MyStringId.GetOrCompute(text), MyStringId.GetOrCompute(tooltip));
+
+        public static IMyListboxDataSource SingleSelectionListbox(
+            Func<int> count,
+            Func<int, MyTuple<MyStringId, string>> titleAndDescription,
+            Func<int> getSelected,
+            Action<int> setSelected) => new SimpleSingleSelectionListboxDataSource(count, titleAndDescription, getSelected, setSelected);
+
+        public static IMyListboxDataSource SingleSelectionListbox<T>(
+            List<T> data,
+            Func<T, MyTuple<MyStringId, string>> titleAndDescription,
+            Func<int> getSelected,
+            Action<int> setSelected) =>
+            new SimpleSingleSelectionListboxDataSource(() => data.Count, ix => titleAndDescription(data[ix]), getSelected, setSelected);
+
+
+        private class SimpleSingleSelectionListboxDataSource : IMyListboxDataSource
+        {
+            private int _lastLoadedCount;
+            private readonly Func<int> _count;
+            private readonly Func<int, MyTuple<MyStringId, string>> _titleAndDescription;
+            private readonly Func<int> _getSelected;
+            private readonly Action<int> _setSelected;
+
+            public SimpleSingleSelectionListboxDataSource(
+                Func<int> count,
+                Func<int, MyTuple<MyStringId, string>> titleAndDescription,
+                Func<int> getSelected,
+                Action<int> setSelected)
+            {
+                _count = count;
+                _titleAndDescription = titleAndDescription;
+                _getSelected = getSelected;
+                _setSelected = setSelected;
+            }
+
+            public void Close()
+            {
+            }
+
+            public void GetItems(List<MyTuple<MyStringId, string>> output)
+            {
+                output.Clear();
+                _lastLoadedCount = _count();
+                for (var i = 0; i < _lastLoadedCount; i++)
+                    output.Add(_titleAndDescription(i));
+            }
+
+            public void GetItemSelection(List<bool> output)
+            {
+                var selected = _getSelected();
+                output.Clear();
+                for (var i = 0; i < _lastLoadedCount; i++)
+                    output.Add(selected == i);
+            }
+
+            public void SetItemSelection(List<bool> input) => _setSelected(input.IndexOf(true));
+        }
     }
 
     public sealed class SimpleDataSource<T> : IMySingleValueDataSource<T>

@@ -325,7 +325,14 @@ namespace Equinox76561198048419394.Core.UI
             /// <summary>
             /// ID of the embedded Context Menu Controller.
             /// </summary>
+            [XmlElement]
             public SerializableDefinitionId Id;
+
+            /// <summary>
+            /// Long data source reference that triggers recreation of the embedded controller. 
+            /// </summary>
+            [XmlElement]
+            public DataSourceReference RebuildReference;
         }
     }
 }

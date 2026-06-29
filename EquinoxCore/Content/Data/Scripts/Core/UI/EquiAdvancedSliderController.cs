@@ -123,7 +123,7 @@ namespace Equinox76561198048419394.Core.UI
                     SelectionChanged();
                     valueLabel.Text = FormatLabel(SafeValue(slider), sliderDef.LabelDecimalPlaces, sliderDef.TextFormat);
                 };
-                slider.SliderClicked += SliderClicked;
+                SliderCtrlClickInput.Bind(slider);
                 var labeledSlider = new MyGuiControlParent(size: slider.Size + new Vector2(0.0f, leftControl.Size.Y));
                 var layout = new MyLayoutVertical(labeledSlider, MarginPx.X);
                 layout.Add(leftControl, valueLabel);
@@ -211,19 +211,6 @@ namespace Equinox76561198048419394.Core.UI
         private static string FormatLabel(float value, int decimalPlaces, string textFormat)
         {
             return string.Format(textFormat, value.ToString("N" + decimalPlaces));
-        }
-
-        private static bool SliderClicked(MyGuiControlSliderBase obj)
-        {
-            var slider = (MyGuiControlSlider)obj;
-            if (!MyAPIGateway.Input.IsAnyCtrlKeyDown() || !obj.Enabled)
-                return false;
-            var dialog = new MyFloatInputDialog(
-                MyTexts.GetString(MyCommonTexts.DialogAmount_SetValueCaption),
-                slider.MinValue, slider.MaxValue, slider.Value);
-            dialog.ResultCallback += v => slider.Value = v;
-            MyGuiSandbox.AddScreen(dialog);
-            return true;
         }
     }
 

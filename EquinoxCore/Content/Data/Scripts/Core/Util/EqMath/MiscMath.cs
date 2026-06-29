@@ -18,6 +18,8 @@ namespace Equinox76561198048419394.Core.Util.EqMath
             return (surfaceDistance + elevationDistance) / periodMeters;
         }
 
+        public static uint SaturatedSubtract(uint left, uint right) => left > right ? left - right : 0u;
+
         public static float Volume(this in BoundingSphere sphere) => MathHelper.FourPi / 3 * sphere.Radius * sphere.Radius * sphere.Radius;
 
         public static float SurfaceAreaExt(this in BoundingBox box)

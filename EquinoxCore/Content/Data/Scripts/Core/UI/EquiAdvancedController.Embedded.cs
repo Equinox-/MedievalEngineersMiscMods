@@ -7,16 +7,26 @@ namespace Equinox76561198048419394.Core.UI
     internal sealed class EmbeddedControllerData : ControlHolder<MyObjectBuilder_EquiAdvancedControllerDefinition.Embedded>
     {
         private readonly MyContextMenuController _controller;
+        private readonly DataSourceValueAccessor<long> _rebuildDs;
+        private long _lastRebuild;
 
         public EmbeddedControllerData(MyContextMenuController ctl, EquiAdvancedControllerDefinition owner, EmbeddedControllerFactory factory) : base(ctl, owner, factory)
         {
             _controller = MyContextMenuFactory.CreateContextMenuController(factory.Id);
             _controller.BeforeAddedToMenu(ctl.Menu, ctl.Position);
+            var dsr = factory.Def.RebuildReference;
+            _rebuildDs = dsr != null ? new DataSourceValueAccessor<long>(ctl, dsr) : default;
             Root = _controller.CreateControl();
         }
 
         protected override void SyncToControlInternal()
         {
+            var ver = _rebuildDs.GetValue() ?? 0L;
+            if (ver != _lastRebuild)
+            {
+                Root = _controller.CreateControl();
+                _lastRebuild = ver;
+            }
             _controller.Update();
         }
 

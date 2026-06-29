@@ -94,6 +94,80 @@ namespace Equinox76561198048419394.Core.Market
             return order.LocalId;
         }
 
+        public enum EditOrderResult
+        {
+            NoSuchOrder,
+            WrongOrderType,
+            Edited,
+        }
+
+        /// <summary>
+        /// Modifiers a buy order on the server. The caller should have already verified (and withdrawn) the necessary money, moneyAmount, from the player.
+        /// The money amount must be enough so that, after modification, the StoredItemAmount on the order is greater or equal to (pricePerItem * itemAmount).
+        /// This function is only usable on the server.
+        /// </summary>
+        public EditOrderResult EditBuyOrder(MarketOrderLocalId id, uint moneyAmount, uint addedItemAmount = 0, uint? newPrice = null)
+        {
+            AssertOnlyServer();
+            if (!_orders.TryGetValue(id, out var handle))
+                return EditOrderResult.NoSuchOrder;
+            ref var storedOrder = ref handle.Value;
+            var order = storedOrder;
+            switch (order.Type)
+            {
+                case MarketOrderType.Buy:
+                    order.DesiredItemAmount += addedItemAmount;
+                    order.RemainingItemAmount += addedItemAmount;
+                    order.StoredMoneyAmount += moneyAmount;
+                    if (newPrice.HasValue) order.DesiredPricePerItem = newPrice.Value;
+                    break;
+                case MarketOrderType.Sell:
+                case MarketOrderType.CancelledBuy:
+                case MarketOrderType.CancelledSell:
+                    return EditOrderResult.WrongOrderType;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            ValidateOrder(in order);
+            storedOrder = order;
+            OrderChangedOnServer(MarketOrderOperation.Edited, in storedOrder);
+            return EditOrderResult.Edited;
+        }
+
+        /// <summary>
+        /// Modifiers a buy order on the server. The caller should have already verified (and withdrawn) the necessary items, addedItemAmount, from the player.
+        /// This function is only usable on the server.
+        /// </summary>
+        public EditOrderResult EditSellOrder(MarketOrderLocalId id, uint addedItemAmount = 0, uint? newPrice = null)
+        {
+            AssertOnlyServer();
+            if (!_orders.TryGetValue(id, out var handle))
+                return EditOrderResult.NoSuchOrder;
+            ref var storedOrder = ref handle.Value;
+            var order = storedOrder;
+            switch (order.Type)
+            {
+                case MarketOrderType.Sell:
+                    order.DesiredItemAmount += addedItemAmount;
+                    order.RemainingItemAmount += addedItemAmount;
+                    order.StoredItemAmount += addedItemAmount;
+                    if (newPrice.HasValue) order.DesiredPricePerItem = newPrice.Value;
+                    break;
+                case MarketOrderType.Buy:
+                case MarketOrderType.CancelledBuy:
+                case MarketOrderType.CancelledSell:
+                    return EditOrderResult.WrongOrderType;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            ValidateOrder(in order);
+            storedOrder = order;
+            OrderChangedOnServer(MarketOrderOperation.Edited, in storedOrder);
+            return EditOrderResult.Edited;
+        }
+
         /// <summary>
         /// Cancels an existing order. This function is only usable on the server.
         /// </summary>
@@ -165,6 +239,7 @@ namespace Equinox76561198048419394.Core.Market
         public CollectOrderResult CollectOrder<TUserData>(MarketOrderLocalId id, ref TUserData userData, DelCollectItems<TUserData> collectItems,
             DelCollectMoney<TUserData> collectMoney)
         {
+            AssertOnlyServer();
             if (!_orders.TryGetValue(in id, out var handle)) return CollectOrderResult.NoSuchOrder;
             var anythingCollected = false;
             ref var storedOrder = ref handle.Value;
@@ -207,6 +282,21 @@ namespace Equinox76561198048419394.Core.Market
 
             OrderChangedOnServer(MarketOrderOperation.Collected, in storedOrder);
             return CollectOrderResult.PartiallyCollected;
+        }
+
+        /// <summary>
+        /// Unconditionally removes an order on the server.
+        /// Will destroy any stored currency or items!
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns>true if the order was removed, false if the order does not exist</returns>
+        public bool RemoveOrder(MarketOrderLocalId id)
+        {
+            AssertOnlyServer();
+            if (!_orders.TryGetValue(in id, out var handle)) return false;
+            OrderChangedOnServer(MarketOrderOperation.BeforeRemoved, in handle.Value);
+            _orders.Remove(in id);
+            return true;
         }
 
         public enum SolveOrderResult

@@ -4,6 +4,7 @@ using Equinox76561198048419394.Core.Util;
 using Sandbox.Game.Entities;
 using Sandbox.Game.GameSystems.Chat;
 using Sandbox.Game.Players;
+using Sandbox.Graphics.GUI;
 using Sandbox.ModAPI;
 using VRage.Definitions.Inventory;
 using VRage.Game;
@@ -37,6 +38,7 @@ namespace Equinox76561198048419394.Core.Market
             const string modeCollect = "collect";
             const string modeHistory = "history";
             const string modeMode = "mode";
+            const string modeGenerator = "generator";
 
             if (tokens.Length < 2) return HelpListModes();
             switch (tokens[1])
@@ -48,6 +50,7 @@ namespace Equinox76561198048419394.Core.Market
                 case modeCollect: return ModeCollect();
                 case modeHistory: return ModeHistory();
                 case modeMode: return ModeMode();
+                case modeGenerator: return ModeGenerator();
                 default: return HelpListModes();
             }
 
@@ -61,7 +64,7 @@ namespace Equinox76561198048419394.Core.Market
                 return true;
             }
 
-            bool HelpListModes() => Respond($"{tokens[0]} {modeInfo}|{modeBuy}|{modeSell}|{modeCancel}|{modeCollect}|{modeHistory}|{modeMode}");
+            bool HelpListModes() => Respond($"{tokens[0]} {modeInfo}|{modeBuy}|{modeSell}|{modeCancel}|{modeCollect}|{modeHistory}|{modeMode}|{modeGenerator}");
 
             bool GetMarket(out EquiMarketStorageComponent marketStorage, bool createIfMissing = false)
             {
@@ -120,6 +123,16 @@ namespace Equinox76561198048419394.Core.Market
                     return Respond($"Unknown locational market mode {modeOverride}");
                 LocationalMarketsOverride = mode;
                 return Respond($"Overrode locational markets mode to {mode}");
+            }
+
+            bool ModeGenerator()
+            {
+                if (handledAsType != MyChatCommandType.Client) return Respond("Only supported on the client.");
+                if (GetMarket(out var marketStorage, true)) return true;
+                var screen = new EquiMarketGenComponent.MarketGenComponentScreen(marketStorage.Entity);
+                MyScreenManager.AddScreenNow(screen);
+                screen.RequestUiData();
+                return Respond($"Opened market generator UI");
             }
 
             bool GetItemArg(out MyInventoryItemDefinition item)
