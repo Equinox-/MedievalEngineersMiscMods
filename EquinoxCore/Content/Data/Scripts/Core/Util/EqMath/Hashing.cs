@@ -13,7 +13,7 @@ namespace Equinox76561198048419394.Core.Util.EqMath
         public static long Mix64(long value) => (long)FMix64((ulong)value);
         public static ulong Mix64(ulong value) => FMix64(value);
         
-        public struct Hash128 : IEquatable<Hash128>
+        public readonly struct Hash128 : IEquatable<Hash128>
         {
             public readonly ulong V0, V1;
 

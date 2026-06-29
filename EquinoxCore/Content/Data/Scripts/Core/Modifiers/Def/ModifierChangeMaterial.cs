@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Util;
+using VRage;
 using VRage.Game;
 using VRage.Game.Definitions;
 using VRage.Library.Collections;
@@ -15,15 +17,37 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
     [MyDefinitionType(typeof(MyObjectBuilder_EquiModifierChangeMaterialDefinition))]
     public class EquiModifierChangeMaterialDefinition : EquiModifierBaseDefinition
     {
-        // Change materials per model (including LODs)
-        private readonly ConcurrentDictionary<string, InterningBag<string>> _memorizedMaterialEdits = new ConcurrentDictionary<string, InterningBag<string>>();
         private readonly Dictionary<string, List<MaterialEdit>> _edits = new Dictionary<string, List<MaterialEdit>>();
         private readonly Dictionary<string, string> _swaps = new Dictionary<string, string>();
+
+        // Change materials per model (including LODs)
+        private readonly ConcurrentDictionary<string, InterningBag<string>> _memorizedMaterialEdits = new ConcurrentDictionary<string, InterningBag<string>>();
+
+        private readonly ConcurrentDictionary<string, InterningBag<string>> _memorizedMaterialEditsRefEquals =
+            new ConcurrentDictionary<string, InterningBag<string>>(new ReferenceEqualityComparer<string>());
+
+        private readonly Func<string, InterningBag<string>> _materialEditsForInternedModel;
+
+        public EquiModifierChangeMaterialDefinition()
+        {
+            Func<string, InterningBag<string>> materialEditsForModel = modelName =>
+            {
+                using (PoolManager.Get(out HashSet<string> valid))
+                {
+                    foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ??
+                                        InterningBag<MaterialInModel>.Empty)
+                        if ((mtl.CanEditInternals && _edits.ContainsKey(mtl.Name)) || _swaps.ContainsKey(mtl.Name))
+                            valid.Add(mtl.Name);
+                    return InterningBag<string>.Of(valid);
+                }
+            };
+            _materialEditsForInternedModel = modelName => _memorizedMaterialEdits.GetOrAdd(modelName, materialEditsForModel);
+        }
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
             base.Init(def);
-            var ob = (MyObjectBuilder_EquiModifierChangeMaterialDefinition) def;
+            var ob = (MyObjectBuilder_EquiModifierChangeMaterialDefinition)def;
             if (ob.Replacements == null) return;
             foreach (var mod in ob.Replacements)
             {
@@ -35,6 +59,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                         foreach (var name in mod.Names)
                             _swaps[name] = mod.NewName;
                 }
+
                 if (mod.Parameters != null)
                 {
                     if (!string.IsNullOrEmpty(mod.Name))
@@ -69,16 +94,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         private InterningBag<string> GetMaterialEdits(string model)
         {
-            return _memorizedMaterialEdits.GetOrAdd(model, (modelName) =>
-            {
-                using (PoolManager.Get(out HashSet<string> valid))
-                {
-                    foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ?? InterningBag<MaterialInModel>.Empty)
-                        if ((mtl.CanEditInternals && _edits.ContainsKey(mtl.Name)) || _swaps.ContainsKey(mtl.Name))
-                            valid.Add(mtl.Name);
-                    return InterningBag<string>.Of(valid);
-                }
-            });
+            // If the interned table grows too much, clear it (but not the underlying cache).
+            if (_memorizedMaterialEditsRefEquals.Count > 10 * _memorizedMaterialEdits.Count)
+                _memorizedMaterialEditsRefEquals.Clear();
+            return _memorizedMaterialEditsRefEquals.GetOrAdd(model, _materialEditsForInternedModel);
         }
 
         public override void Apply(in ModifierContext ctx, IModifierData data, ref ModifierOutput output)

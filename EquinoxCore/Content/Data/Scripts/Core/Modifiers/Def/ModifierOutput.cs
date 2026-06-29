@@ -12,7 +12,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         public override string ToString()
         {
-            return $"{nameof(Model)}: {Model}, Materials: {MaterialEditsBuilder}, Color: {ColorMaskHsv}";
+            return $"Model: {Model}, Materials: {MaterialEditsBuilder}, Color: {ColorMaskHsv}";
         }
 
         public void Dispose()

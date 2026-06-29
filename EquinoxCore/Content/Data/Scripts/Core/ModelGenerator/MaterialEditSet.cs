@@ -1,5 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
+using Equinox76561198048419394.Core.Util.Memory;
 
 namespace Equinox76561198048419394.Core.ModelGenerator
 {
@@ -7,12 +7,14 @@ namespace Equinox76561198048419394.Core.ModelGenerator
     {
         public static void AddOrReplace(this List<MaterialEdit> list, MaterialEdit edt)
         {
-            for (var i = 0; i < list.Count; i++)
-                if (list[i].Equals(edt))
-                {
-                    list[i] = edt;
-                    return;
-                }
+            var span = list.AsEqSpan();
+            for (var i = 0; i < span.Length; i++)
+            {
+                ref var item = ref span[i];
+                if (!item.Equals(edt)) continue;
+                item = edt;
+                return;
+            }
             list.Add(edt);
         }
     }

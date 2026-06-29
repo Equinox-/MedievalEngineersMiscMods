@@ -43,27 +43,16 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             try
             {
                 var modelComp = target.Get<MyModelComponent>();
-                var render = target.Get<MyRenderComponentBase>();
+                MyRenderComponentBase render = null;
                 if (modelComp == null || modelComp.Model is MyFracturedCompoundModel)
                     return;
 
-                var forceRenderInit = false;
                 if (!IsDedicated)
                 {
+                    render = target.Get<MyRenderComponentBase>();
                     modelComp.ColorMask = modifier.ColorMaskHsv ?? Vector3.Zero;
                     if (render != null && !render.EnableColorMaskHsv)
                         render.EnableColorMaskHsv = true;
-#if !VRAGE_VERSION_0_7_4
-                    if (modifier.ColorMaskHsv.HasValue
-                        && render is MyRenderComponent && !(render is ForceOldPipelineRenderComponent))
-                    {
-                        // Big hack...
-                        target.Components.Remove(render);
-                        render = new ForceOldPipelineRenderComponent();
-                        target.Render = render;
-                        forceRenderInit = true;
-                    }
-#endif
                 }
 
                 var model = modifier.Model;
@@ -72,12 +61,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
                 var modelData = MyModels.GetModelOnlyData(model);
                 var collisionData = MyModels.GetModelOnlyData(modifier.Model) ?? modelData;
-                if (modelData != null && (forceRenderInit ||
-                                          (modelComp.Model != modelData || modelComp.ModelCollision != collisionData) &&
-                                          !(modelComp.Model is MyFracturedCompoundModel)))
+                if (modelData != null
+                    && (modelComp.Model != modelData || modelComp.ModelCollision != collisionData)
+                    && !(modelComp.Model is MyFracturedCompoundModel))
                 {
                     modelComp.SetModel(modelData, collisionData);
-                    if (render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
+                    if (render?.RenderObjectIDs?.Length > 0)
                     {
                         foreach (var renderObj in render.RenderObjectIDs)
                             if (renderObj != MyRenderProxy.RENDER_ID_UNASSIGNED)
@@ -92,7 +81,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                             }
                     }
                 }
-                else if (!IsDedicated && render?.RenderObjectIDs != null && render.RenderObjectIDs.Length > 0)
+                else if (!IsDedicated && render?.RenderObjectIDs?.Length > 0)
                 {
                     foreach (var renderObj in render.RenderObjectIDs)
                         if (renderObj != MyRenderProxy.RENDER_ID_UNASSIGNED)

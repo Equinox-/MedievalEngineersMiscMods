@@ -6,7 +6,7 @@ using VRageRender.Import;
 
 namespace Equinox76561198048419394.Core.ModelGenerator
 {
-    public struct MaterialEdit : IEquatable<MaterialEdit>
+    public readonly struct MaterialEdit : IEquatable<MaterialEdit>
     {
         public static readonly string TechniqueKey = "__technique";
 
@@ -18,7 +18,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
         public MaterialEdit(ModeEnum mode, string key, string value)
         {
             Mode = mode;
-            Key = key;
+            Key = string.Intern(key);
             Value = value;
             var builder = Hashing.Builder();
             builder.Add(Key);
@@ -36,7 +36,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         public bool Equals(MaterialEdit other)
         {
-            return Mode == other.Mode && string.Equals(Key, other.Key);
+            return Mode == other.Mode && ReferenceEquals(Key, other.Key);
         }
 
         public override bool Equals(object obj)

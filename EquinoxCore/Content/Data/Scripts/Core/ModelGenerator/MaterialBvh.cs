@@ -27,11 +27,17 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             _strings = table;
         }
 
+        internal static readonly string[] TAGS_FOR_BVH =
+        {
+            MyImporterConstants.TAG_VERTICES,
+            MyImporterConstants.TAG_NORMALS,
+            MyImporterConstants.TAG_MESH_PARTS,
+            MyImporterConstants.TAG_MESH_SECTIONS,
+        };
         public static MaterialBvh Create(Dictionary<string, object> tags, int shapesPerNode = 8)
         {
             var verts = (Vector3[]) tags.GetValueOrDefault(MyImporterConstants.TAG_VERTICES);
             var normals = (Byte4[]) tags.GetValueOrDefault(MyImporterConstants.TAG_NORMALS);
-            var box = (BoundingBox) tags.GetValueOrDefault(MyImporterConstants.TAG_BOUNDING_BOX);
             var parts = (List<MyMeshPartInfo>) tags.GetValueOrDefault(MyImporterConstants.TAG_MESH_PARTS);
             var sections = (List<MyMeshSectionInfo>) tags.GetValueOrDefault(MyImporterConstants.TAG_MESH_SECTIONS);
 

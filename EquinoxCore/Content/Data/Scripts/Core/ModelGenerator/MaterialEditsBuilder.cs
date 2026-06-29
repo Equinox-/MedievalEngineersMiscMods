@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using VRage.Collections;
 using VRage.Library.Collections;
-using VRage.Library.Collections.Concurrent;
 
 namespace Equinox76561198048419394.Core.ModelGenerator
 {
@@ -40,9 +38,16 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             dest.Clear();
             if (!material.CanEditInternals) return;
             if (!_builders.TryGetValue(material.Name, out var builders)) return;
-            foreach (var builder in builders)
-            foreach (var edit in builder)
-                dest.AddOrReplace(edit);
+            if (builders.Count == 0) return;
+            // Add first edit list without checking for duplicates.
+            var firstBuilder = builders[0];
+            dest.EnsureSpace(firstBuilder.Count);
+            foreach (var edit in firstBuilder)
+                dest.Add(edit);
+            // Add remaining edit list while checking for duplicates.
+            for (var i = 1; i < builders.Count; i++)
+                foreach (var edit in builders[i])
+                    dest.AddOrReplace(edit);
         }
 
         public static MaterialEditsBuilder Allocate()

@@ -391,7 +391,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                     }
                 }
 
-                using (ReadModel(rawPath, out var tags))
+                using (ReadModel(rawPath, out var tags, MaterialBvh.TAGS_FOR_BVH))
                     bvh = MaterialBvh.Create(tags);
 
                 try
@@ -615,6 +615,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                 raw[offset + i] = (byte) value[i];
         }
 
+        private static readonly string[] TagsForMaterialList =
+            { MyImporterConstants.TAG_MESH_PARTS, MyImporterConstants.TAG_LODS, MyImporterConstants.TAG_HAVOK_COLLISION_GEOMETRY };
         private InterningBag<MaterialInModel> GetMaterialsForModelInternal(string model, bool isTranslatingLod = false)
         {
             if (_materialsByModel.TryGetValue(model, out var materialsCurrent))
@@ -623,7 +625,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             {
                 try
                 {
-                    using (ReadModel(model, out var tags))
+                    using (ReadModel(model, out var tags, TagsForMaterialList))
                     {
                         if (tags.TryGetValue(MyImporterConstants.TAG_MESH_PARTS, out var meshPartsRaw) && meshPartsRaw is List<MyMeshPartInfo> meshParts)
                         {
@@ -680,11 +682,11 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             return utils.ReadBinaryFileInGlobalStorage(strippedPath);
         }
 
-        private ReturnHandle<ModelImporter> ReadModel(string model, out Dictionary<string, object> tags)
+        private ReturnHandle<ModelImporter> ReadModel(string model, out Dictionary<string, object> tags, string[] tagsToRead = null)
         {
             var handle = _modelImporterPool.GetHandle();
             using (var reader = OpenModelReader(model))
-                handle.Handle.ImportData(reader);
+                handle.Handle.ImportData(reader, tagsToRead);
             tags = handle.Handle.GetTagData();
             return handle;
         }

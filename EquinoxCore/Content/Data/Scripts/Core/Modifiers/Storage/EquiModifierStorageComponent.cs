@@ -32,7 +32,6 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         protected readonly Dictionary<ModifierDataKey, IModifierData> ModifierData = new Dictionary<ModifierDataKey, IModifierData>();
 
-
         public delegate void ModifiersAppliedDelegate(EquiModifierStorageComponent<TRtKey, TObKey> owner, TRtKey block);
 
         public event ModifiersAppliedDelegate ModifiersApplied;
@@ -498,7 +497,6 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 ModifiersApplied?.Invoke(this, key);
             }
             finally
-
             {
                 _applyingModifiers = false;
             }
