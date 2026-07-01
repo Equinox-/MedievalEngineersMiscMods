@@ -23,11 +23,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             Modifiers = modifiers;
         }
 
-        public ModifierContext(MyGridDataComponent data, MyBlock block, InterningBag<EquiModifierBaseDefinition> modifiers)
+        public ModifierContext(MyGridDataComponent data, MyGridBuildingComponent building, MyBlock block, InterningBag<EquiModifierBaseDefinition> modifiers)
         {
             _a = data;
             _b = block;
-            OriginalModel = GetOriginalBlockModel(data, block);
+            OriginalModel = GetOriginalBlockModel(data, building, block);
             Modifiers = modifiers;
         }
 
@@ -40,12 +40,12 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
 
         public Vector3D? Position => GridData != null && Block != null ? GridData.GetBlockWorldBounds(Block).Center : Entity?.PositionComp?.WorldVolume.Center;
 
-        private static string GetOriginalBlockModel(MyGridDataComponent gridData, MyBlock block)
+        private static string GetOriginalBlockModel(MyGridDataComponent gridData, MyGridBuildingComponent building, MyBlock block)
         {
             var buildableDef = block.Definition as MyBuildableBlockDefinition;
             if (buildableDef == null)
                 return block.Definition.Model;
-            var currentState = gridData.Container?.Get<MyGridBuildingComponent>()?.GetBlockState(block.Id);
+            var currentState = building?.GetBlockState(block.Id);
             if (currentState == null)
                 return block.Definition.Model;
 

@@ -6,6 +6,7 @@ using System.Text;
 using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Debug;
 using Equinox76561198048419394.Core.ModelGenerator.ModelIO;
+using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using Sandbox.ModAPI;
@@ -45,7 +46,41 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
         private readonly FastResourceLock _materialsByModelLock = new FastResourceLock();
         private readonly Dictionary<string, InterningBag<MaterialInModel>> _materialsByModel = new Dictionary<string, InterningBag<MaterialInModel>>();
-        private readonly MyConcurrentPool<ModelImporter> _modelImporterPool = new MyConcurrentPool<ModelImporter>(0, (importer) => importer.Clear());
+        private readonly MyConcurrentPool<ModelImporter> _modelImporterPool
+            = new MyConcurrentPool<ModelImporter>(0, importer => importer.Clear());
+
+        private readonly ConcurrentDictionary<ValueTuple<string, Hashing.Hash128>, string> _modifierModels
+            = new ConcurrentDictionary<ValueTuple<string, Hashing.Hash128>, string>();
+
+        public string CreateModel(string baseModel, List<IModifierModelEdit> edits)
+        {
+            if (edits == null || edits.Count == 0)
+                return baseModel;
+
+            Hashing.Hash128 hash;
+            if (edits.Count == 1)
+            {
+                hash = edits[0].RuntimeHash;
+            }
+            else
+            {
+                var hasher = Hashing.Builder();
+                foreach (var edit in edits) hasher.Add(edit.RuntimeHash);
+                hash = hasher.Build();
+            }
+
+            var key = ValueTuple.Create(baseModel, hash);
+            if (_modifierModels.TryGetValue(key, out var path))
+                return path;
+            using (var materialEdits = MaterialEditsBuilder.Allocate())
+            {
+                foreach (var edit in edits)
+                    edit.Apply(materialEdits);
+                path = CreateModel(baseModel, materialEdits);
+                _modifierModels.TryAdd(key, path);
+                return path;
+            }
+        }
 
         public string CreateModel(string baseModel, MaterialEditsBuilder editor)
         {

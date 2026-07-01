@@ -102,6 +102,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                 output.Model = op.Value.Collection.Sample(MyRandom.Instance);
         }
 
+        public override bool MaybeHasData => true;
+
         public override IModifierData CreateDefaultData(in ModifierContext ctx)
         {
             var op = OperationFor(in ctx);
@@ -114,10 +116,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             return new ModifierDataLong(((long) seed << 32) | (long) modelHash);
         }
 
-        public override IModifierData CreateData(string data)
-        {
-            return ModifierDataLong.Deserialize(data);
-        }
+        public override IModifierData CreateData(string data) => ModifierDataLong.Deserialize(data);
 
         public override bool ShouldEvict(EquiModifierBaseDefinition other)
         {

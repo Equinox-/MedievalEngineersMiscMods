@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.Debug;
+using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Def;
 using Equinox76561198048419394.Core.Util;
 using Medieval.Definitions.BlockGeneration;
 using Medieval.Entities.Block;
+using Medieval.Entities.Components.Grid;
 using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
@@ -24,6 +26,7 @@ using VRage.Network;
 using VRage.ObjectBuilder;
 using VRage.ObjectBuilders;
 using VRage.Serialization;
+using VRage.Session;
 using VRage.Utils;
 using VRageMath;
 using VRageRender;
@@ -90,6 +93,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         private readonly MyGridDataComponent _gridData = null;
 
         [Automatic]
+        private readonly MyGridBuildingComponent _gridBuilding = null;
+
+        [Automatic]
         private readonly MyRenderComponentGrid _gridRender = null;
 
         [Automatic]
@@ -98,6 +104,11 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         // Weak dependency without ordering requirements, so not marked with MyDependency
         [Automatic]
         private readonly MyGridConnectivityComponent _gridConnectivity = null;
+
+        private DerivedModelManager _derivedModelManager;
+
+        private DerivedModelManager DerivedModelManager =>
+            _derivedModelManager ?? (_derivedModelManager = MySession.Static.Components.Get<DerivedModelManager>());
 
         public override void OnAddedToScene()
         {
@@ -119,7 +130,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 _gridHierarchy.ChildAdded += BlockEntityAdded;
                 _gridHierarchy.ChildRemoved += BlockEntityRemoved;
             }
-            
+
             AddScheduledCallback(RemoveExtraModifiers, 1000L);
         }
 
@@ -216,7 +227,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (key.AttachmentPoint == MyStringHash.NullOrEmpty)
             {
-                context = new ModifierContext(_gridData, blockObj, modifiers);
+                context = new ModifierContext(_gridData, _gridBuilding, blockObj, modifiers);
                 return true;
             }
 
@@ -275,7 +286,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             if (key.AttachmentPoint == MyStringHash.NullOrEmpty)
             {
-                EquiModifierOutputHelpers.Apply(in output, blockObj, _gridData, _gridRender);
+                EquiModifierOutputHelpers.Apply(in output, blockObj, _gridData, _gridRender, DerivedModelManager);
                 return;
             }
 
@@ -290,38 +301,45 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return;
             }
 
-            foreach (var ent in attached.Value)
+            var specializedOutput = new ModifierOutput();
+            try
             {
-                var ctx = new ModifierContext(ent, context.Modifiers);
-                if (ctx.OriginalModel == context.OriginalModel)
+                foreach (var ent in attached.Value)
                 {
-                    EquiModifierOutputHelpers.Apply(in output, ent);
+                    var ctx = new ModifierContext(ent, context.Modifiers);
+                    if (ctx.OriginalModel == context.OriginalModel)
+                    {
+                        EquiModifierOutputHelpers.Apply(in output, ent, DerivedModelManager);
+                    }
+                    else
+                    {
+                        GenerateModifierOutput(in key, in ctx, ref specializedOutput);
+                        EquiModifierOutputHelpers.Apply(in specializedOutput, ent, DerivedModelManager);
+                    }
                 }
-                else
-                {
-                    GenerateModifierOutput(in key, in ctx, out var specializedOutput);
-                    EquiModifierOutputHelpers.Apply(in specializedOutput, ent);
-                    specializedOutput.MaterialEditsBuilder?.Dispose();
-                }
+            }
+            finally
+            {
+                specializedOutput.Dispose();
             }
         }
 
         protected override void RaiseAddModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, string data, bool recursive)
         {
             MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.AddModifierInternalNet,
-                key.ToObjectBuilder(), (SerializableDefinitionId) modifier, data, recursive);
+                key.ToObjectBuilder(), (SerializableDefinitionId)modifier, data, recursive);
         }
 
         protected override void RaiseUpdateModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, string data, bool recursive)
         {
             MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.UpdateModifierInternalNet,
-                key.ToObjectBuilder(), (SerializableDefinitionId) modifier, data, recursive);
+                key.ToObjectBuilder(), (SerializableDefinitionId)modifier, data, recursive);
         }
 
         protected override void RaiseRemoveModifierInternal(in BlockModifierKey key, in MyDefinitionId modifier, bool recursive)
         {
             MyAPIGateway.Multiplayer.RaiseEvent(this, x => x.RemoveModifierInternalNet,
-                key.ToObjectBuilder(), (SerializableDefinitionId) modifier, recursive);
+                key.ToObjectBuilder(), (SerializableDefinitionId)modifier, recursive);
         }
 
         [Event, Server, Broadcast, Reliable]

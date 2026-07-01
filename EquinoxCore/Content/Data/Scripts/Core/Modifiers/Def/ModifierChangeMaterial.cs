@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Xml.Serialization;
 using Equinox76561198048419394.Core.ModelGenerator;
 using Equinox76561198048419394.Core.Modifiers.Data;
 using Equinox76561198048419394.Core.Util;
+using Equinox76561198048419394.Core.Util.EqMath;
 using VRage;
 using VRage.Game;
 using VRage.Game.Definitions;
-using VRage.Library.Collections;
+using VRage.Network;
 using VRage.ObjectBuilders;
 using VRage.Session;
 
@@ -21,32 +23,40 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
         private readonly Dictionary<string, string> _swaps = new Dictionary<string, string>();
 
         // Change materials per model (including LODs)
-        private readonly ConcurrentDictionary<string, InterningBag<string>> _memorizedMaterialEdits = new ConcurrentDictionary<string, InterningBag<string>>();
+        private readonly ConcurrentDictionary<string, ChangeMaterialsEdit> _memorizedMaterialEdits = new ConcurrentDictionary<string, ChangeMaterialsEdit>();
+        private readonly ConcurrentDictionary<string, ChangeMaterialsEdit> _memorizedMaterialEditsRefEquals =
+            new ConcurrentDictionary<string, ChangeMaterialsEdit>(new ReferenceEqualityComparer<string>());
+        private int _gcMaterialEditsCounter;
 
-        private readonly ConcurrentDictionary<string, InterningBag<string>> _memorizedMaterialEditsRefEquals =
-            new ConcurrentDictionary<string, InterningBag<string>>(new ReferenceEqualityComparer<string>());
-
-        private readonly Func<string, InterningBag<string>> _materialEditsForInternedModel;
+        private readonly Func<string, ChangeMaterialsEdit> _materialEditsForInternedModel;
+        private Hashing.Hash128 _runtimeHash;
 
         public EquiModifierChangeMaterialDefinition()
         {
-            Func<string, InterningBag<string>> materialEditsForModel = modelName =>
+            Func<string, ChangeMaterialsEdit> materialEditsForModel = modelName =>
             {
-                using (PoolManager.Get(out HashSet<string> valid))
-                {
-                    foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ??
-                                        InterningBag<MaterialInModel>.Empty)
-                        if ((mtl.CanEditInternals && _edits.ContainsKey(mtl.Name)) || _swaps.ContainsKey(mtl.Name))
-                            valid.Add(mtl.Name);
-                    return InterningBag<string>.Of(valid);
-                }
+                var valid = new HashSet<string>();
+                foreach (var mtl in MySession.Static.Components.Get<DerivedModelManager>()?.GetMaterialsForModel(modelName) ??
+                                    InterningBag<MaterialInModel>.Empty)
+                    if ((mtl.CanEditInternals && _edits.ContainsKey(mtl.Name)) || _swaps.ContainsKey(mtl.Name))
+                        valid.Add(mtl.Name);
+                return valid.Count > 0 ? new ChangeMaterialsEdit(this, valid) : null;
             };
-            _materialEditsForInternedModel = modelName => _memorizedMaterialEdits.GetOrAdd(modelName, materialEditsForModel);
+            _materialEditsForInternedModel = modelName =>
+            {
+                Interlocked.Increment(ref _gcMaterialEditsCounter);
+                return _memorizedMaterialEdits.GetOrAdd(modelName, materialEditsForModel);
+            };
         }
 
         protected override void Init(MyObjectBuilder_DefinitionBase def)
         {
             base.Init(def);
+            var hasher = Hashing.Builder();
+            hasher.Add((uint)(TypeId)Id.TypeId);
+            hasher.Add((int)Id.SubtypeId);
+            _runtimeHash = hasher.Build();
+
             var ob = (MyObjectBuilder_EquiModifierChangeMaterialDefinition)def;
             if (ob.Replacements == null) return;
             foreach (var mod in ob.Replacements)
@@ -89,14 +99,17 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             var model = ctx.OriginalModel;
             if (model == null)
                 return false;
-            return GetMaterialEdits(model).Count > 0;
+            return GetMaterialEdits(model) != null;
         }
 
-        private InterningBag<string> GetMaterialEdits(string model)
+        private ChangeMaterialsEdit GetMaterialEdits(string model)
         {
             // If the interned table grows too much, clear it (but not the underlying cache).
-            if (_memorizedMaterialEditsRefEquals.Count > 10 * _memorizedMaterialEdits.Count)
+            if (_gcMaterialEditsCounter > 1_000 && _memorizedMaterialEditsRefEquals.Count > 10 * _memorizedMaterialEdits.Count)
+            {
                 _memorizedMaterialEditsRefEquals.Clear();
+                Interlocked.Exchange(ref _gcMaterialEditsCounter, 0);
+            }
             return _memorizedMaterialEditsRefEquals.GetOrAdd(model, _materialEditsForInternedModel);
         }
 
@@ -105,28 +118,43 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
             var model = ctx.OriginalModel;
             if (model == null)
                 return;
-            var materials = GetMaterialEdits(model);
-            if (materials.Count == 0)
+            var edits = GetMaterialEdits(model);
+            if (edits == null)
                 return;
-            if (output.MaterialEditsBuilder == null)
-                output.MaterialEditsBuilder = MaterialEditsBuilder.Allocate();
-            foreach (var mtl in materials)
+            output.AddModelEdit(edits);
+        }
+
+        public override bool MaybeHasData => false;
+        public override IModifierData CreateDefaultData(in ModifierContext ctx) => null;
+        public override IModifierData CreateData(string data) => null;
+
+        private sealed class ChangeMaterialsEdit : IModifierModelEdit
+        {
+            private readonly EquiModifierChangeMaterialDefinition _definition;
+            private readonly HashSet<string> _materials;
+
+            public ChangeMaterialsEdit(EquiModifierChangeMaterialDefinition def, HashSet<string> materials)
             {
-                if (_swaps.TryGetValue(mtl, out var swap))
-                    output.MaterialEditsBuilder.SwapMaterial(mtl, swap);
-                if (_edits.TryGetValue(mtl, out var edits))
-                    output.MaterialEditsBuilder.Add(mtl, edits);
+                _definition = def;
+                _materials = materials;
             }
-        }
 
-        public override IModifierData CreateDefaultData(in ModifierContext ctx)
-        {
-            return null;
-        }
+            public Hashing.Hash128 RuntimeHash => _definition._runtimeHash;
 
-        public override IModifierData CreateData(string data)
-        {
-            return null;
+            public void Apply(MaterialEditsBuilder target)
+            {
+                foreach (var mtl in _materials)
+                {
+                    if (_definition._swaps.TryGetValue(mtl, out var swap))
+                        target.SwapMaterial(mtl, swap);
+                    if (_definition._edits.TryGetValue(mtl, out var edits))
+                        target.Add(mtl, edits);
+                }
+            }
+
+            public void ReturnToPool()
+            {
+            }
         }
     }
 

@@ -22,15 +22,6 @@ using VRageRender;
 
 namespace Equinox76561198048419394.Core.Modifiers.Storage
 {
-    [MyComponent]
-    public sealed class ForceOldPipelineRenderComponent : MyRenderComponent
-    {
-        public override RenderFlags GetRenderFlags()
-        {
-            return base.GetRenderFlags() | RenderFlags.ForceOldPipeline;
-        }
-    }
-
     public static class EquiModifierOutputHelpers
     {
 
@@ -38,7 +29,10 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
         private static bool IsDedicated => ((IMyUtilities) MyAPIUtilities.Static).IsDedicated;
 
-        public static void Apply(in ModifierOutput modifier, MyEntity target)
+        public static void Apply(
+            in ModifierOutput modifier,
+            MyEntity target,
+            DerivedModelManager derivedModelManager)
         {
             try
             {
@@ -56,8 +50,8 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 }
 
                 var model = modifier.Model;
-                if (modifier.MaterialEditsBuilder != null && !IsDedicated)
-                    model = MySession.Static.Components.Get<DerivedModelManager>().CreateModel(model, modifier.MaterialEditsBuilder);
+                if (modifier.ModelEdits != null && !IsDedicated)
+                    model = derivedModelManager?.CreateModel(model, modifier.ModelEdits);
 
                 var modelData = MyModels.GetModelOnlyData(model);
                 var collisionData = MyModels.GetModelOnlyData(modifier.Model) ?? modelData;
@@ -97,13 +91,18 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             }
         }
 
-        public static void Apply(in ModifierOutput modifier, MyBlock block, MyGridDataComponent gridData, MyRenderComponentGrid gridRender)
+        public static void Apply(
+            in ModifierOutput modifier,
+            MyBlock block,
+            MyGridDataComponent gridData,
+            MyRenderComponentGrid gridRender,
+            DerivedModelManager derivedModelManager)
         {
             try
             {
                 var model = modifier.Model;
-                if (modifier.MaterialEditsBuilder != null && !IsDedicated)
-                    model = MySession.Static.Components.Get<DerivedModelManager>().CreateModel(model, modifier.MaterialEditsBuilder);
+                if (modifier.ModelEdits != null && !IsDedicated)
+                    model = derivedModelManager?.CreateModel(model, modifier.ModelEdits);
 
                 var modelData = MyModels.GetModelOnlyData(model);
                 if (modelData != null && block.Model != modelData && !(block.Model is MyFracturedCompoundModel))

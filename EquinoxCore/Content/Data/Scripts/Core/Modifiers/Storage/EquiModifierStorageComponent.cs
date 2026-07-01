@@ -77,27 +77,6 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
             ApplyAllModifiers();
         }
 
-        private void ApplyAllModifiers()
-        {
-            using (Lock.AcquireSharedUsing())
-            using (PoolManager.Get(out List<TRtKey> children))
-            using (PoolManager.Get(out HashSet<TRtKey> explored))
-            {
-                foreach (var id in Modifiers.Keys)
-                    children.Add(id);
-
-                while (children.Count > 0)
-                {
-                    var id = children[children.Count - 1];
-                    children.RemoveAt(children.Count - 1);
-                    if (!explored.Add(id))
-                        continue;
-                    GetChildren(id, children);
-                    ApplyModifiers(id);
-                }
-            }
-        }
-
         protected virtual void RemoveExtraModifiers(long dt)
         {
             if (Entity == null || !Entity.InScene)
@@ -254,8 +233,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         AddModifierRecursiveUnsafe(in key, modifierDef, modifiedData, modifiedKeys);
                 }
 
-                foreach (var modified in modifiedKeys)
-                    ApplyModifiers(in modified);
+                ApplyModifiers(modifiedKeys);
             }
         }
 
@@ -347,8 +325,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         }
                 }
 
-                foreach (var modified in modifiedKeys)
-                    ApplyModifiers(in modified);
+                ApplyModifiers(modifiedKeys);
             }
         }
 
@@ -368,14 +345,14 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                         MyEventContext.ValidationFailed();
                         return;
                     }
+
                     modifiedKeys.Add(key);
 
                     if (recursive)
                         RemoveModifierRecursiveUnsafe(in key, modifierDef, modifiedKeys);
                 }
 
-                foreach (var modified in modifiedKeys)
-                    ApplyModifiers(in modified);
+                ApplyModifiers(modifiedKeys);
             }
         }
 
@@ -479,27 +456,81 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
         {
             if (_applyingModifiers)
                 return;
+            var output = new ModifierOutput();
             try
             {
                 _applyingModifiers = true;
-                if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
-                {
-                    if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
-                        this.GetLogger().Info($"Context creation for {key} failed while applying modifiers");
-                    return;
-                }
-
-                GenerateModifierOutput(in key, in ctx, out var result);
-                if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
-                    this.GetLogger().Info($"Applying modifiers to {key}: {ctx.Modifiers} produced {result}");
-                ApplyOutput(in key, in ctx, in result);
-                result.Dispose();
-                ModifiersApplied?.Invoke(this, key);
+                ApplyModifiersInternal(in key, ref output);
             }
             finally
             {
+                output.Dispose();
                 _applyingModifiers = false;
             }
+        }
+
+        protected void ApplyModifiers(List<TRtKey> keys)
+        {
+            if (_applyingModifiers)
+                return;
+            var output = new ModifierOutput();
+            try
+            {
+                _applyingModifiers = true;
+                foreach (var key in keys)
+                    ApplyModifiersInternal(in key, ref output);
+            }
+            finally
+            {
+                output.Dispose();
+                _applyingModifiers = false;
+            }
+        }
+
+        private void ApplyAllModifiers()
+        {
+            using (PoolManager.Get(out List<TRtKey> children))
+            using (PoolManager.Get(out HashSet<TRtKey> explored))
+            using (Lock.AcquireSharedUsing())
+            {
+                children.AddCollection(Modifiers.Keys);
+
+                var output = new ModifierOutput();
+                try
+                {
+                    _applyingModifiers = true;
+                    while (children.Count > 0)
+                    {
+                        var id = children[children.Count - 1];
+                        children.RemoveAt(children.Count - 1);
+                        if (!explored.Add(id))
+                            continue;
+                        GetChildren(id, children);
+                        ApplyModifiersInternal(in id, ref output);
+                    }
+                }
+                finally
+                {
+                    output.Dispose();
+                    _applyingModifiers = false;
+                }
+            }
+        }
+
+        protected void ApplyModifiersInternal(in TRtKey key, ref ModifierOutput output)
+        {
+            if (!TryCreateContext(in key, GetModifiers(in key), out var ctx))
+            {
+                if (DebugFlags.Debug(typeof(EquiModifierStorageComponent<,>)))
+                    this.GetLogger().Info($"Context creation for {key} failed while applying modifiers");
+                return;
+            }
+
+            GenerateModifierOutput(in key, in ctx, ref output);
+            if (DebugFlags.Trace(typeof(EquiModifierStorageComponent<,>)))
+                this.GetLogger().Info($"Applying modifiers to {key}: {ctx.Modifiers} produced {output}");
+            ApplyOutput(in key, in ctx, in output);
+            ModifiersApplied?.Invoke(this, key);
         }
 
         /// <summary>
@@ -516,24 +547,28 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                 return false;
             }
 
-            GenerateModifierOutput(in key, in ctx, out output);
+            output = new ModifierOutput();
+            GenerateModifierOutput(in key, in ctx, ref output);
             return true;
         }
 
-        protected void GenerateModifierOutput(in TRtKey key, in ModifierContext ctx, out ModifierOutput output)
+        protected void GenerateModifierOutput(in TRtKey key, in ModifierContext ctx, ref ModifierOutput output)
         {
-            output = new ModifierOutput();
+            output.Reset();
             using (Lock.AcquireSharedUsing())
             {
                 output.Model = ctx.OriginalModel;
                 foreach (var modifier in ctx.Modifiers)
-                    modifier.Apply(in ctx, ModifierData.GetValueOrDefault(new ModifierDataKey(key, modifier.Id)), ref output);
+                    modifier.Apply(
+                        in ctx,
+                        modifier.MaybeHasData ? ModifierData.GetValueOrDefault(new ModifierDataKey(key, modifier.Id)) : null,
+                        ref output);
             }
         }
 
         public override MyObjectBuilder_EntityComponent Serialize(bool copy = false)
         {
-            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey>) base.Serialize(copy);
+            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey>)base.Serialize(copy);
             var tmpModifiers = new Dictionary<InterningBag<EquiModifierBaseDefinition>, List<TObKey>>();
             var tmpDataSets = new Dictionary<DataSetKey, List<TObKey>>();
 
@@ -559,7 +594,7 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
 
             ob.Modifiers = new MyObjectBuilder_EquiModifierStorageComponent<TObKey>.ModifierSet[tmpModifiers.Count];
             var modifierI = 0;
-            foreach (var bb in tmpModifiers) 
+            foreach (var bb in tmpModifiers)
             {
                 var modifiers = new SerializableDefinitionId[bb.Key.Count];
                 var i = 0;
@@ -583,13 +618,14 @@ namespace Equinox76561198048419394.Core.Modifiers.Storage
                     Blocks = bb.Value
                 };
             }
+
             return ob;
         }
 
         public override void Deserialize(MyObjectBuilder_EntityComponent builder)
         {
             base.Deserialize(builder);
-            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey>) builder;
+            var ob = (MyObjectBuilder_EquiModifierStorageComponent<TObKey>)builder;
             using (Lock.AcquireExclusiveUsing())
             {
                 Modifiers.Clear();

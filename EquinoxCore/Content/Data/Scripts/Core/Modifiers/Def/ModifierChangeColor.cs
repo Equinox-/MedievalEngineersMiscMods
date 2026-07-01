@@ -57,10 +57,9 @@ namespace Equinox76561198048419394.Core.Modifiers.Def
                 output.ColorMaskHsv = colorMod.Color;
         }
 
-        public override IModifierData CreateDefaultData(in ModifierContext ctx)
-        {
-            return null;
-        }
+        public override bool MaybeHasData => true;
+
+        public override IModifierData CreateDefaultData(in ModifierContext ctx) => null;
 
         public override IModifierData CreateData(string data)
         {
