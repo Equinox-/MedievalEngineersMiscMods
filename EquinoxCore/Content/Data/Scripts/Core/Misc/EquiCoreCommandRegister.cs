@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Equinox76561198048419394.Core.ChunkLoader;
 using Equinox76561198048419394.Core.Controller;
 using Equinox76561198048419394.Core.Inventory;
 using Sandbox.Game.GameSystems.Chat;
@@ -32,6 +33,10 @@ namespace Equinox76561198048419394.Core.Misc
                 HandleTeleportWithGrids,
                 "Teleports a player and their grids"
             );
+            _chat?.RegisterChatCommand(
+                "/chunk-loading",
+                EquiChunkLoaderSystem.HandleCommand,
+                "Manages chunk loaders");
             _chat?.RegisterChatCommand("/crafting-graph", (_, msg, type) =>
             {
                 if (type != MyChatCommandType.Client) return false;

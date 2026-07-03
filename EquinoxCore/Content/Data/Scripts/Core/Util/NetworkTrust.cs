@@ -38,7 +38,9 @@ namespace Equinox76561198048419394.Core.Util
         /// </summary>
         public static MyIdentity LocalIdentity => LocalPlayer?.Identity;
 
-        public static bool IsTrusted(MyEntityComponent target, Vector3D? overrideLocation = null) => IsTrusted(target,
+        public static bool IsTrusted(MyEntityComponent target, Vector3D? overrideLocation = null) => IsTrustedPoint(target, overrideLocation);
+
+        public static bool IsTrustedPoint(MyEntityComponent target, Vector3D? overrideLocation = null) => IsTrustedBox(target,
             overrideLocation != null ? (BoundingBoxD?) new BoundingBoxD(overrideLocation.Value, overrideLocation.Value) : null);
 
         public static bool IsTrusted(in Vector3D playerLoc, in BoundingBoxD worldAabb)
@@ -53,13 +55,13 @@ namespace Equinox76561198048419394.Core.Util
             return Vector3D.DistanceSquared(in playerLoc, in worldSphere.Center) <= dist * dist;
         }
 
-        public static bool IsTrusted(MyEntityComponent target, BoundingBoxD? overrideLocation = null)
+        public static bool IsTrusted(MyEntityComponent target, BoundingBoxD? overrideLocation = null) => IsTrustedBox(target, overrideLocation);
+
+        public static bool IsTrustedBox(MyEntityComponent target, BoundingBoxD? overrideLocation = null)
         {
             if (!MyMultiplayerModApi.Static.IsServer)
                 return true;
             if (MyEventContext.Current.IsLocallyInvoked)
-                return true;
-            if (target?.Entity == null)
                 return true;
             if (MyAPIGateway.Session.IsAdminModeEnabled(MyEventContext.Current.Sender.Value))
                 return true;
@@ -68,9 +70,16 @@ namespace Equinox76561198048419394.Core.Util
             if (playerEntity == null)
                 return false;
 
-            var targetPlayer = MyPlayers.Static.GetControllingPlayer(target.Entity);
-            if (targetPlayer != null)
-                return targetPlayer == player;
+            if (target != null)
+            {
+                var targetPlayer = MyPlayers.Static.GetControllingPlayer(target.Entity);
+                if (targetPlayer != null)
+                    return targetPlayer == player;
+
+            }
+
+            if (overrideLocation == null && target == null)
+                return true;
 
             var playerLoc = playerEntity.WorldMatrix.Translation;
             var worldAabb = overrideLocation ?? target.Entity.PositionComp.WorldAABB;
@@ -78,7 +87,7 @@ namespace Equinox76561198048419394.Core.Util
             if (!IsTrusted(playerLoc, worldAabb))
                 return false;
 
-            var access = target.Container.Get<MyAccessPermissionComponent>();
+            var access = target?.Container.Get<MyAccessPermissionComponent>();
             if (access != null && !access.Permissions.HasPermission(player.Identity.Id))
                 return false;
 
