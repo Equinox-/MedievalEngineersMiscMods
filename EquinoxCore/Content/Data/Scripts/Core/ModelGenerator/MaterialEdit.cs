@@ -1,5 +1,4 @@
 using System;
-using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.EqMath;
 using VRage.Logging;
 using VRageRender.Import;

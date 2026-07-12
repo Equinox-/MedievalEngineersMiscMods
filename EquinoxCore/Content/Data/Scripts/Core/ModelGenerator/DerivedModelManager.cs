@@ -13,6 +13,7 @@ using Sandbox.ModAPI;
 using VRage.Collections;
 using VRage.Components;
 using VRage.Game.ModAPI;
+using VRage.Game.Models;
 using VRage.Library.Collections;
 using VRage.Library.Collections.Concurrent;
 using VRage.Library.Threading;
@@ -175,19 +176,17 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             {
                 foreach (var mtl in GetMaterialsForModel(baseModel))
                 {
-                    if (editor.TryGetMaterialSwap(mtl.Name, out var swap))
-                    {
-                        hashBuilder.Add(mtl.Name);
-                        hashBuilder.Add(0x2183209L);
-                        hashBuilder.Add(swap);
-                        continue;
-                    }
-
                     edits.Clear();
                     editor.Get(mtl, edits);
-                    if (edits.Count <= 0)
+                    var hasSwap = editor.TryGetMaterialSwap(mtl.Name, out var swap);
+                    if (edits.Count <= 0 && !hasSwap)
                         continue;
                     hashBuilder.Add(mtl.Name);
+                    if (hasSwap)
+                    {
+                        hashBuilder.Add(0x2383209L);
+                        hashBuilder.Add(swap);
+                    }
                     foreach (var edit in edits)
                         hashBuilder.Add(in edit.Hash);
                 }
@@ -204,13 +203,14 @@ namespace Equinox76561198048419394.Core.ModelGenerator
 
             if (_derivedModels.TryGetValue(finalHash.Value, out var modifiedModel))
                 return modifiedModel;
+            var resolvedPath = ResolveGeneratedModel(rawModel, finalHash.Value, out var existing);
             try
             {
-                var resolvedPath = ResolveGeneratedModel(rawModel, finalHash.Value, out var existing);
                 if (existing && _useCaching)
                 {
                     if (DebugFlags.Debug(typeof(DerivedModelManager)))
                         _log.Info($"Loading derived model of {rawModel} with {builder} from {resolvedPath}");
+                    MyModels.GetModelOnlyData(resolvedPath, 0);
                     return _derivedModels[finalHash.Value] = resolvedPath;
                 }
 
@@ -246,6 +246,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                                 }
                                 if (builder.TryGetMaterialSwap(originalMaterial.Name, out var swappedMaterialName))
                                     newMaterialName = swappedMaterialName;
+                                if (part.m_MaterialDesc.TechniqueEnum == MyMeshDrawTechnique.GLASS)
+                                    part.m_MaterialDesc.GlassCW = part.m_MaterialDesc.GlassCCW = newMaterialName;
                                 if (newMaterialName != originalMaterial.Name)
                                 {
                                     part.m_MaterialDesc = part.m_MaterialDesc.Clone(newMaterialName);
@@ -271,7 +273,7 @@ namespace Equinox76561198048419394.Core.ModelGenerator
                                         m_indices = new List<int> {0, 0, 0}, // single degenerate tris
                                         m_MaterialDesc = tmp.Clone(newMaterialName),
                                         m_MaterialHash = newMaterialName.GetHashCode(),
-                                        Technique = MyMeshDrawTechnique.MESH
+                                        Technique = MyMeshDrawTechnique.MESH,
                                     });
                                 }
 
@@ -303,6 +305,8 @@ namespace Equinox76561198048419394.Core.ModelGenerator
             }
             catch (Exception e)
             {
+                // Delete cached file if it fails to load.
+                ((IMyUtilities) MyAPIUtilities.Static).DeleteFileInGlobalStorage(Path.GetFileName(resolvedPath));
                 this.GetLogger().Error($"Failed to create derived model from {rawModel} {e}");
                 _derivedModels[finalHash.Value] = rawModel;
                 return rawModel;
