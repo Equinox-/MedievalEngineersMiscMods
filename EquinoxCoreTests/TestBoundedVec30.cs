@@ -1,5 +1,6 @@
 using Equinox76561198048419394.Core.Util;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -22,7 +23,7 @@ namespace EquinoxCoreTests
         {
             var unpacked = Packing.Unpack(packed);
             var repacked = Packing.Pack(unpacked);
-            Assert.AreEqual(packed, repacked, $"Repacking {packed} produces {repacked}, vector is {unpacked}");
+            ClassicAssert.AreEqual(packed, repacked, $"Repacking {packed} produces {repacked}, vector is {unpacked}");
         }
     }
 }

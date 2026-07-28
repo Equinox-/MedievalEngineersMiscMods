@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Equinox76561198048419394.Core.Util;
 using Equinox76561198048419394.Core.Util.Struct;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -38,7 +39,7 @@ namespace EquinoxCoreTests
             allocated.Sort();
             existing.Sort();
 
-            Assert.That(existing, Is.EquivalentTo(allocated));
+            ClassicAssert.That(existing, Is.EquivalentTo(allocated));
         }
     }
 }

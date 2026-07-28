@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://storage.googleapis.com/unofficial-keen-schemas/latest/medieval-modded.xsd">
+    <Definition xsi:type="MyObjectBuilder_WaypointDefinition">
+        <Id Type="WaypointDefinition" Subtype="Freebie" />
+        <IconPath>Textures/GUI/Map/Payment.png</IconPath>
+        <Color R="255" G="255" B="255" A="255" />
+    </Definition>
+</Definitions>

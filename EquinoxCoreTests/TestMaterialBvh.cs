@@ -9,6 +9,7 @@ using NUnit.Framework;
 using VRage.Library.Utils;
 using VRage.Utils;
 using VRageMath;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -50,17 +51,17 @@ namespace EquinoxCoreTests
                 foreach (var proxy in mtlBvh._bvh.GetProxies(nodeId))
                 {
                     ref readonly var tri = ref mtlBvh.GetTriangle(proxy);
-                    Assert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(tri.A));
-                    Assert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(tri.B));
-                    Assert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(tri.C));
+                    ClassicAssert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(tri.A));
+                    ClassicAssert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(tri.B));
+                    ClassicAssert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(tri.C));
                 }
             }
             else
             {
                 ref readonly var lhs = ref mtlBvh._bvh.GetNode(node.Lhs);
                 ref readonly var rhs = ref mtlBvh._bvh.GetNode(node.Rhs);
-                Assert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(lhs.Box));
-                Assert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(rhs.Box));
+                ClassicAssert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(lhs.Box));
+                ClassicAssert.AreNotEqual(ContainmentType.Disjoint, node.Box.Contains(rhs.Box));
                 Verify(mtlBvh, node.Lhs);
                 Verify(mtlBvh, node.Rhs);
             }

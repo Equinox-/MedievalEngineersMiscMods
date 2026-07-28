@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Equinox76561198048419394.Core.ModelGenerator.ModelIO;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -47,15 +48,15 @@ namespace EquinoxCoreTests
         {
             if (expected == null)
             {
-                Assert.True(actual == null, "Expected value was null, got \"{0}\" at {1}", actual, path);
+                ClassicAssert.True(actual == null, "Expected value was null, got \"{0}\" at {1}", actual, path);
                 return;
             }
 
-            Assert.True(actual != null, "Actual value was null, expecting \"{0}\" at {1}", expected, path);
-            Assert.AreEqual(expected.GetType(), actual.GetType(), "Different types at {0}", path);
+            ClassicAssert.True(actual != null, "Actual value was null, expecting \"{0}\" at {1}", expected, path);
+            ClassicAssert.AreEqual(expected.GetType(), actual.GetType(), "Different types at {0}", path);
             if (expected is IDictionary eDict && actual is IDictionary aDict)
             {
-                Assert.AreEqual(eDict.Count, aDict.Count, "Different counts at {0}", path);
+                ClassicAssert.AreEqual(eDict.Count, aDict.Count, "Different counts at {0}", path);
                 foreach (var key in eDict.Keys)
                     AssertTagsEqual(eDict[key], aDict[key], $"{path}.{key}");
             }
@@ -74,7 +75,7 @@ namespace EquinoxCoreTests
                 {
                     var nextE = eItr.MoveNext();
                     var nextA = aItr.MoveNext();
-                    Assert.AreEqual(nextE, nextA, "Enumerable sequences have different lengths at {0}", path);
+                    ClassicAssert.AreEqual(nextE, nextA, "Enumerable sequences have different lengths at {0}", path);
                     if (!nextE)
                         break;
                     AssertTagsEqual(eItr.Current, aItr.Current, $"{path}[{idx}]");
@@ -83,7 +84,7 @@ namespace EquinoxCoreTests
             }
             else if (typeof(IEquatable<>).MakeGenericType(expected.GetType()).IsInstanceOfType(expected) || expected.GetType().IsPrimitive)
             {
-                Assert.AreEqual(expected, actual, "Different at {0}", path);
+                ClassicAssert.AreEqual(expected, actual, "Different at {0}", path);
             }
             else
             {
@@ -101,11 +102,11 @@ namespace EquinoxCoreTests
 
         private void AssetVTypeArraysEqual<T>(T[] expected, T[] actual, string path)
         {
-            Assert.AreEqual(expected.Length, actual.Length, "Arrays have different lengths at {0}", path);
+            ClassicAssert.AreEqual(expected.Length, actual.Length, "Arrays have different lengths at {0}", path);
             var comparer = EqualityComparer<T>.Default;
             for (var i = 0; i < expected.Length; i++)
                 if (!comparer.Equals(expected[i], actual[i]))
-                    Assert.AreEqual(expected[i], actual[i], "Different at {0}[{1}]", path, i);
+                    ClassicAssert.AreEqual(expected[i], actual[i], "Different at {0}[{1}]", path, i);
         }
 
         private Dictionary<string, object> Deserialize(byte[] raw)

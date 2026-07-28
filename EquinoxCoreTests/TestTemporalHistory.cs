@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Equinox76561198048419394.Core.Util;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -42,11 +43,11 @@ namespace EquinoxCoreTests
             histogram.AddRange(now - fourBucketWidth, twiceBucketWidth + bucketWidth, 3);
             Console.WriteLine(histogram);
             var buckets = histogram.ToList();
-            Assert.AreEqual(4, buckets.Count);
-            Assert.AreEqual(1, buckets[0].Value.Value);
-            Assert.AreEqual(9, buckets[1].Value.Value);
-            Assert.AreEqual(0, buckets[2].Value.Value);
-            Assert.AreEqual(5, buckets[3].Value.Value);
+            ClassicAssert.AreEqual(4, buckets.Count);
+            ClassicAssert.AreEqual(1, buckets[0].Value.Value);
+            ClassicAssert.AreEqual(9, buckets[1].Value.Value);
+            ClassicAssert.AreEqual(0, buckets[2].Value.Value);
+            ClassicAssert.AreEqual(5, buckets[3].Value.Value);
         }
     }
 }

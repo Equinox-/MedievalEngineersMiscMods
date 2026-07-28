@@ -7,19 +7,16 @@ namespace Equinox76561198048419394.Core.Util.Struct
     public sealed class PagedFreeList<T> where T : struct
     {
         private readonly List<uint> _freeList = new List<uint>();
-        private readonly List<T[]> _pages = new List<T[]>();
-        private readonly int _pageShift;
-        private readonly int _pageMask;
+        private readonly PagedList<T> _backing;
         private int _freeRevision;
         private uint _highWaterMark;
 
         public PagedFreeList(int pageShift = 6)
         {
-            _pageShift = pageShift;
-            _pageMask = (1 << pageShift) - 1;
+            _backing = new PagedList<T>(pageShift);
         }
 
-        public ref T this[uint index] => ref _pages[(int)(index >> _pageShift)][index & _pageMask];
+        public ref T this[uint index] => ref _backing[index];
 
         public uint AllocateIndex()
         {
@@ -34,8 +31,6 @@ namespace Equinox76561198048419394.Core.Util.Struct
             }
 
             slot = _highWaterMark++;
-            while (slot >> _pageShift >= _pages.Count)
-                _pages.Add(new T[1 << _pageShift]);
             Count++;
             return slot;
         }

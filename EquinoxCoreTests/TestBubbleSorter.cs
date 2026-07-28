@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Equinox76561198048419394.Core.Util;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -18,7 +19,7 @@ namespace EquinoxCoreTests
             var expected = new List<int> { a, b, c, d, };
             expected.Sort();
             BubbleSort.Sort(ref a, ref b, ref c, ref d, default(IntTester));
-            Assert.AreEqual(new List<int> { a, b, c, d, }, expected);
+            ClassicAssert.AreEqual(new List<int> { a, b, c, d, }, expected);
         }
 
         [Test]

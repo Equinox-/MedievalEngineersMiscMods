@@ -1,5 +1,6 @@
 using Equinox76561198048419394.Core.Util;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -14,7 +15,7 @@ namespace EquinoxCoreTests
         {
             using (ArrayPool<int>.Get(size, out var array))
             {
-                Assert.GreaterOrEqual(array.Length, size);
+                ClassicAssert.GreaterOrEqual(array.Length, size);
             }
         }
     }

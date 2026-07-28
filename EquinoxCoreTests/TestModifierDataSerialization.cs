@@ -5,6 +5,7 @@ using NUnit.Framework;
 using ObjectBuilders.Definitions.GUI;
 using VRage.Library.Utils;
 using VRageMath;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -24,7 +25,7 @@ namespace EquinoxCoreTests
                     V = rand.Next(-100, 101)
                 });
                 var compared = ModifierDataColor.Deserialize(data.Serialize());
-                Assert.AreEqual(data.Color, compared.Color);
+                ClassicAssert.AreEqual(data.Color, compared.Color);
             }
         }
     }

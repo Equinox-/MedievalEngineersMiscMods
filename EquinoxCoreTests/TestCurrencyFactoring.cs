@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Equinox76561198048419394.Core.Misc;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace EquinoxCoreTests
 {
@@ -15,8 +16,8 @@ namespace EquinoxCoreTests
 
             var counts = new ulong[info.Count];
             var taken = EquiCurrencySystemDefinition.CurrencyToItemAmounts(ref info, 8, true, counts);
-            Assert.AreEqual(12L, taken);
-            Assert.AreEqual(new ulong[] { 1, 1 }, counts);
+            ClassicAssert.AreEqual(12L, taken);
+            ClassicAssert.AreEqual(new ulong[] { 1, 1 }, counts);
         }
 
         private sealed class TestCurrencyInfo : EquiCurrencySystemDefinition.ICurrencyInfo
